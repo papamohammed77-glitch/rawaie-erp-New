@@ -157,3 +157,118 @@ acknowledgeCustody:async function(id){
 لا تعِد تنفيذ إصلاحات P0 المثبتة. لا تختبر Production ببيانات مالية أو مخزنية. لا تخلط Fleet/Delivery Van Stock مع عهدة سيارة المشتريات. لا تعتبر وجود وظيفة أو نجاح SQL دليلًا على تشغيل ناجح.
 
 **الحكم:** P0 الفواتير والاستلام وإقرار العهدة مثبتة؛ فجوة DML على المرتجعات مؤكدة؛ Quick Market Purchase وعهدة السيارة وقبول مرتجع المورد وتصنيف مصروفات العهدة لم تُغلق؛ النشر وE2E غير مثبتين. **OVERALL: OPEN / NOT PRODUCTION-READY.**
+---
+
+## الملحق التنفيذي P0-D — SQL المقترح كاملًا للمراجعة قبل الموافقة (لم يُنفذ)
+
+**الهدف:** جعل مرتجعات الشراء تتبع مبدأ الكاتب المركزي المطبق بالفعل على فواتير الشراء. يحافظ على قراءة المستخدم المصادق عليه داخل الشركة، ويمنع DML من PUBLIC/anon/authenticated، ويترك Service Role على منحها الحالية.
+
+### 1) Migration مقترحة
+
+```sql
+BEGIN;
+
+REVOKE ALL PRIVILEGES
+ON TABLE public.purchase_returns, public.purchase_return_details
+FROM PUBLIC, anon, authenticated;
+
+GRANT SELECT
+ON TABLE public.purchase_returns, public.purchase_return_details
+TO authenticated;
+
+DROP POLICY IF EXISTS purchase_returns_company
+ON public.purchase_returns;
+
+CREATE POLICY purchase_returns_company
+ON public.purchase_returns
+FOR SELECT
+TO authenticated
+USING (company_id = app_private.current_user_company_id());
+
+DROP POLICY IF EXISTS purchase_return_details_company
+ON public.purchase_return_details;
+
+CREATE POLICY purchase_return_details_company
+ON public.purchase_return_details
+FOR SELECT
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1
+    FROM public.purchase_returns r
+    WHERE r.id = purchase_return_details.return_id
+      AND r.company_id = app_private.current_user_company_id()
+  )
+);
+
+COMMIT;
+```
+
+### 2) Preflight إلزامي قبل تطبيق Migration
+
+- إعادة استعلام المنح الفعلية بعد تحديد grantee بما فيه PUBLIC وanon وauthenticated وservice_role.
+- التحقق من relrowsecurity وrelforcerowsecurity للجدولين.
+- إعادة فحص جميع مستهلكي Purchase Return خارج مجلد company-1، وأي تكامل أو تقرير أو تطبيق يكتب مباشرة.
+- إثبات أن عمليات الإنشاء/التعديل/الترحيل/الإلغاء تمر عبر save-purchase-order v22 فقط، ولا تحتاج Client DML.
+- حفظ تعريف السياستين والمنح الحالية Snapshot مستقلًا للـrollback.
+- التأكد من أن قراءات Parent وBuyer وwarehouse/vouchers لا تتعطل.
+
+### 3) Rollback محدد — لا يستخدم إلا عند إثبات فشل بعد التغيير
+
+```sql
+BEGIN;
+
+DROP POLICY IF EXISTS purchase_returns_company
+ON public.purchase_returns;
+
+CREATE POLICY purchase_returns_company
+ON public.purchase_returns
+FOR ALL
+TO public
+USING (company_id = app_private.current_user_company_id())
+WITH CHECK (company_id = app_private.current_user_company_id());
+
+DROP POLICY IF EXISTS purchase_return_details_company
+ON public.purchase_return_details;
+
+CREATE POLICY purchase_return_details_company
+ON public.purchase_return_details
+FOR ALL
+TO public
+USING (
+  EXISTS (
+    SELECT 1
+    FROM public.purchase_returns r
+    WHERE r.id = purchase_return_details.return_id
+      AND r.company_id = app_private.current_user_company_id()
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1
+    FROM public.purchase_returns r
+    WHERE r.id = purchase_return_details.return_id
+      AND r.company_id = app_private.current_user_company_id()
+  )
+);
+
+GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, UPDATE
+ON TABLE public.purchase_returns, public.purchase_return_details
+TO anon, authenticated;
+
+COMMIT;
+```
+
+هذا Rollback يعيد صلاحيات المنح والسياسات المسجلة قبل التغيير؛ لا يُستخدم لمجرد ظهور خطأ واجهة، بل بعد تحديد السبب والتأكد أن إعادة DML لا تعيد تجاوز الكاتب المركزي. إذا اختلف أي grant أو policy في Snapshot preflight، يجب تعديل rollback ليتطابق مع الـSnapshot الفعلي بدل تنفيذ هذا النص حرفيًا.
+
+### 4) Acceptance بعد التغيير
+
+1. anon: لا SELECT ولا DML على الجدولين.
+2. authenticated: SELECT لبيانات الشركة المصرح بها فقط.
+3. authenticated: INSERT/UPDATE/DELETE/TRIGGER/REFERENCES مرفوضة مباشرة.
+4. service_role: لا تتغير صلاحياته السابقة؛ عمليات بوابة المشتريات تستمر.
+5. اختبارات CREATE_RETURN وPOST_RETURN وCANCEL_DOCUMENT مع idempotency وrejection paths.
+6. لا تتغير stock_branches أو inventory_log أو supplier_ledger أو journal_entries أو cash_box عند فشل أي عملية.
+7. Company/branch negative tests وقراءة Parent وBuyer وwarehouse/vouchers.
+
+**قرار التنفيذ:** هذه الحزمة لم تُنفذ. يلزم اعتماد المالك الصريح لهذا النص المحدد وفق Master CTO §77.2 قبل Migration أو أي تغيير Production.
