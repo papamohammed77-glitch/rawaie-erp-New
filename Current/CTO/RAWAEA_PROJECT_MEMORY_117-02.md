@@ -1,3 +1,17 @@
+## LVE-598 — 2026-11-03 — POS Invoice Decision Gate
+
+- save-sales-invoice v19 accepts effective pos/van-sales/orders permission; save_sales_invoice_atomic requires operation_id and calls sales_decision_engine_atomic(VALIDATE_ORDER) for Invoiced.
+- Successful POS/Van Sales invoice source flow posts POSSale/VanSale stock movement, revenue/COGS journals, cash receipt for cash, customer ledger for credit, driver ledger for Van credit; POS cash requires active shift/terminal/treasury mapping.
+- POS UI persists _activeCheckoutOperationId and queues pending updates in IndexedDB; preserves key after failure.
+- sales_decision_actor_ok(p_write=true) accepts only direct *, sales_manager, general_manager. sales_decision_engine_atomic uses it for VALIDATE_ORDER, not only policy management.
+- Current active POS user has direct pos permission but no *, sales_manager, general_manager; read-only helper evaluation returns false. Edge passes user, DB decision helper denies. Current POS authorization conflict CONFIRMED; runtime invoice failure untested.
+- Historical Production has 5 POS orders by cashier between Oct 10–18 with linked decision evaluations ALLOW. Current helper denies; audit log does not record permission changes. Cause UNKNOWN (permission or function change).
+- No invoice/stock/cash/journal/ledger mutation; no code/DB/Edge/PR/deployment change.
+- Report: doc/Draft/Reprots/Report598_CTO_POS_INVOICE_DECISION_GATE_AND_ACCOUNTING_FLOW_AUDIT_20261103.md. Report commit 52e3771546f5d759e469ca1f67b89869463dad52. CURRENT_STATE commit 6cecc5c01cb53655093866310ed38b716ef5c263.
+- Next: split Sales Decision policy management (manager-only) from VALIDATE_ORDER (operational pos/van-sales/orders) while preserving approval rules; owner approval required.
+
+---
+
 ## LVE-597 — 2026-11-03 — HR & Fleet Domain Architecture
 
 - Parent main.html calls save-employee v10 and delete-employee v4.
