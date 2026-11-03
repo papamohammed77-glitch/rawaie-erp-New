@@ -11,7 +11,7 @@
 - Production snapshot: invoices 3; returns 0; all buyer custody rows 0; receiving 0; Fleet assignments 0; vehicles 2; inventory_log 76; supplier_ledger 2; journal_entries 19; cash_box 8. App currency EGP.
 - No source/Production mutations, no fixtures, no Edge/Cloudflare deploy, and no authenticated E2E this cycle. Cloudflare served-blob parity and runtime remain UNVERIFIED.
 - Exact P0-D revocation/SELECT-only policy change is documented in Report602; not applied pending explicit owner approval for the exact change and external consumer review. Market purchase, vehicle custody, supplier return acceptance, and expense categories remain open.
-- Report: `doc/Draft/Reprots/Report602_BUYER_CURRENT_SOURCE_PRODUCTION_FORENSIC_AND_CHANGESET_20261103.md` (commit 68a9301d4b69427b5d64da5298a725ee4556857a; blob 3fe38369f1e7142b10d2a08f2415dbbf3541b4a0).
+- Report: `doc/Draft/Reprots/Report602_BUYER_CURRENT_SOURCE_PRODUCTION_FORENSIC_AND_CHANGESET_20261103.md` (commit 25b991849fb2d7c9fea28cff0e68962dcf34a50d; blob af43e480f35c72fbc5093a6607c36b4ea16747eb).
 - Current state: LVE-602 at top of `CURRENT_STATE.md`, commit 76a5a398866971f0ec5c4e350763eccd7fa7f815; blob 16fd2dbec898ae9ef0374789f1aa16255cccdc74.
 - Next: check external return-table consumers; present P0-D for exact owner approval; then design Quick Market Purchase + independent goods custody + Supplier Return Acceptance through existing gateways only.
 
