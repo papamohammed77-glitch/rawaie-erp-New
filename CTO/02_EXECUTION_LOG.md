@@ -351,11 +351,11 @@ Execute the migration against the actual target database using the exact artifac
 No Buyer/Receiver/main source change, Production DDL/RLS/ACL/grant/RPC/data mutation, Edge deployment, Cloudflare deployment, fixture creation or authenticated Browser E2E was performed. Cloudflare artifact parity and runtime behavior remain UNVERIFIED. Production snapshot counts and full evidence are in Report602.
 
 ### Owner change gates
-- P0-D: narrow return-table client access to authenticated company-scoped SELECT and central service-role writers; exact proposed policy and SQL approach are in Report602. Not applied pending explicit approval of that exact changeset and external-consumer review.
+- P0-D: narrow return-table client access to authenticated company-scoped SELECT and central service-role writers; exact proposed SQL, rollback, preflight, and acceptance criteria are in Report602. Not applied pending explicit approval of that exact changeset and external-consumer review.
 - P1: Quick Market Purchase, purchasing vehicle goods custody, supplier return acceptance, and custody expense types remain design/open items.
 - Owner-facing surgical Buyer text/acknowledgement correction is prepared in Report602; not committed to operational source.
 
 **Arabic report:** `doc/Draft/Reprots/Report602_BUYER_CURRENT_SOURCE_PRODUCTION_FORENSIC_AND_CHANGESET_20261103.md` (commit `25b991849fb2d7c9fea28cff0e68962dcf34a50d`; blob `af43e480f35c72fbc5093a6607c36b4ea16747eb`).  
-**Current state:** LVE-602 at top of `CURRENT_STATE.md`; state commit `76a5a398866971f0ec5c4e350763eccd7fa7f815`; blob `16fd2dbec898ae9ef0374789f1aa16255cccdc74`.
+**Current state:** LVE-602 at top of `CURRENT_STATE.md`; state commit `bc6dd6a42311a599123314adf1a3d6a4772f5f99`; blob `18964899b45250a3bf92bec32d730b6457c1e199`.
 
 **STATUS:** P0 controls already present / return-table DML exposure confirmed / remediation awaiting exact owner approval / market purchase and vehicle custody open / Cloudflare-runtime E2E unverified / not closed.
