@@ -13,7 +13,7 @@
 - **Active existing Edge only:** `save-purchase-order` v22 and `receive-purchase` v13, both ACTIVE and `verify_jwt=true`. Do not create another Edge Function.
 - **Already applied and not to be repeated:** invoice-table central writer boundary `20261103155029`; receive PO role/branch authorization `20261103155444`; cash custody acknowledgement gate `20261103160902`.
 - **Buyer tabs preserved:** today, suppliers, requests, quotations, orders, invoices, custody, vehicle, account.
-- **New report:** `doc/Draft/Reprots/Report602_BUYER_CURRENT_SOURCE_PRODUCTION_FORENSIC_AND_CHANGESET_20261103.md`, commit `68a9301d4b69427b5d64da5298a725ee4556857a`.
+- **New report:** `doc/Draft/Reprots/Report602_BUYER_CURRENT_SOURCE_PRODUCTION_FORENSIC_AND_CHANGESET_20261103.md`, commit `25b991849fb2d7c9fea28cff0e68962dcf34a50d`.
 
 ## CONFIRMED
 
