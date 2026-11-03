@@ -1,3 +1,22 @@
+## LVE-602 — 2026-11-03 — Buyer Return ACL & Physical Procurement Workflow
+
+- Operational repo `papamohammed77-glitch/erp-frontend/main` HEAD `743c9b170bf2314a9e4d64fd4d8104f2cc1aee8c`; parent `2ce93c6d80ec4c38353bdf88880d06ae9e0abdde`.
+- Current Buyer blob: `aee14e6a4edbccd5fb95dff24f21daf1c6d21fcc`; core.js `f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1`; Receiver `3111b5e801d1bc021cf18fd66d633fbdc54ac0d6`.
+- P0 controls already present in Production and current migrations: invoice-table central writer (20261103155029), receive PO role/branch guard (20261103155444; receive-purchase v13), and custody cash movement only after employee acknowledgement (20261103160902). Do not repeat.
+- save-purchase-order v22 and receive-purchase v13 are active, JWT-protected; no new Edge Function is needed or authorized.
+- Confirmed return-table privilege gap: purchase_returns and purchase_return_details grant client DML to anon/authenticated and retain company-scoped ALL RLS policies. Current 34-file company-1 HTML/JS scan found no direct DML consumer, but external consumers remain unknown.
+- purchase_post_return_atomic (service_role only) posts SupplierReturn stock-out, Dr Supplier AP / Cr Inventory, and supplier_ledger debit without an explicit supplier-acceptance event inside the RPC.
+- Buyer issueCustody UI at lines 870/880 incorrectly states that cash/GL posted on issue; backend waits for employee acknowledgement. Surgical text and acknowledgement confirmation replacement are prepared in Report602, not yet applied.
+- quickPurchase() still aliases createPurchaseInvoice(); Receiver remains PO-only; vehicle tab reads Fleet driver assignment and displays Buyer goods custody ledger as not implemented. No Purchasing Vehicle Goods Custody ledger exists in the inspected schema.
+- Production snapshot: invoices 3; returns 0; all buyer custody rows 0; receiving 0; Fleet assignments 0; vehicles 2; inventory_log 76; supplier_ledger 2; journal_entries 19; cash_box 8. App currency EGP.
+- No source/Production mutations, no fixtures, no Edge/Cloudflare deploy, and no authenticated E2E this cycle. Cloudflare served-blob parity and runtime remain UNVERIFIED.
+- Exact P0-D revocation/SELECT-only policy change is documented in Report602; not applied pending explicit owner approval for the exact change and external consumer review. Market purchase, vehicle custody, supplier return acceptance, and expense categories remain open.
+- Report: `doc/Draft/Reprots/Report602_BUYER_CURRENT_SOURCE_PRODUCTION_FORENSIC_AND_CHANGESET_20261103.md` (commit 68a9301d4b69427b5d64da5298a725ee4556857a; blob 3fe38369f1e7142b10d2a08f2415dbbf3541b4a0).
+- Current state: LVE-602 at top of `CURRENT_STATE.md`, commit 76a5a398866971f0ec5c4e350763eccd7fa7f815; blob 16fd2dbec898ae9ef0374789f1aa16255cccdc74.
+- Next: check external return-table consumers; present P0-D for exact owner approval; then design Quick Market Purchase + independent goods custody + Supplier Return Acceptance through existing gateways only.
+
+---
+
 ## LVE-599 — 2026-11-03 — Procurement Receiving/Invoice/Payment/Return Flow
 
 - purchase_create_invoice_atomic_v2 creates Draft only.
