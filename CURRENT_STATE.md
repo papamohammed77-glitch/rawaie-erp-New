@@ -6,7 +6,7 @@
 ## Current State — LVE-607
 
 - **Operational repository / branch:** `papamohammed77-glitch/erp-frontend` / `main`.
-- **Operational HEAD / parent:** `5d7b10e4fd0fdf1bb2299c87805f9c86d381cc35` / `df7ad3aaa38b10dfaef6a3beb47780be4f5cfc9d`.
+- **Operational HEAD / parent:** `2b94681bf0ce93ca9ea55066a3f52c0d1add1084` / `5d7b10e4fd0fdf1bb2299c87805f9c86d381cc35`. A subsequent build commit changed only `buyer.tailwind.css`; Buyer HTML blob is unchanged.
 - **Buyer source:** `companies/company-1/purchasing/buyer.html`; blob `7f82fceb0b2c2470d1f112aefeaa1341de5b71a8`.
 - **Parent:** `companies/company-1/main.html` — untouched.
 - **Receiver/Core:** untouched.
