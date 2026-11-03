@@ -328,3 +328,34 @@ Repository artifact exists; Production implementation is not considered complete
 
 ### Next required action
 Execute the migration against the actual target database using the exact artifact, then return the final verification result. No Edge Function consumer is to be rewired until TASK-014 Production verification is PASS.
+
+
+---
+
+## 2026-11-03 — Buyer LVE-602: Return ACL / Procurement Flow Forensic Reconciliation
+
+**Starting checkpoint:** LVE-2026-11-03-601.  
+**Operational Git:** `erp-frontend/main` HEAD `743c9b170bf2314a9e4d64fd4d8104f2cc1aee8c`, parent `2ce93c6d80ec4c38353bdf88880d06ae9e0abdde`.  
+**Buyer blob:** `aee14e6a4edbccd5fb95dff24f21daf1c6d21fcc`.
+
+### Confirmed evidence
+- Revalidated P0 invoice-table writer boundary (migration 20261103155029), PO receiving authorization (20261103155444 / Edge v13), and employee-acknowledgement cash posting (20261103160902). These are already applied; do not repeat.
+- Active existing gateways: save-purchase-order v22 and receive-purchase v13; no new Edge Function created.
+- Production still grants client DML on purchase_returns and purchase_return_details to anon/authenticated, with ALL RLS policies scoped to current company. Current company-1 source scan of 34 HTML/JS files found no direct DML consumer in that tree; external integrations remain unknown.
+- purchase_post_return_atomic currently posts SupplierReturn stock-out and supplier AP debit without an explicit supplier acceptance event.
+- Buyer issueCustody modal/toast wording at lines 870/880 asserts immediate cash/GL posting despite current acknowledgement-gated RPC behavior.
+- quickPurchase remains an alias to createPurchaseInvoice; Receiver remains PO-only; no distinct Buyer vehicle-goods custody ledger is present.
+- Buyer current tabs and existing PO/delivery/fleet contracts preserved.
+
+### Verification boundary
+No Buyer/Receiver/main source change, Production DDL/RLS/ACL/grant/RPC/data mutation, Edge deployment, Cloudflare deployment, fixture creation or authenticated Browser E2E was performed. Cloudflare artifact parity and runtime behavior remain UNVERIFIED. Production snapshot counts and full evidence are in Report602.
+
+### Owner change gates
+- P0-D: narrow return-table client access to authenticated company-scoped SELECT and central service-role writers; exact proposed policy and SQL approach are in Report602. Not applied pending explicit approval of that exact changeset and external-consumer review.
+- P1: Quick Market Purchase, purchasing vehicle goods custody, supplier return acceptance, and custody expense types remain design/open items.
+- Owner-facing surgical Buyer text/acknowledgement correction is prepared in Report602; not committed to operational source.
+
+**Arabic report:** `doc/Draft/Reprots/Report602_BUYER_CURRENT_SOURCE_PRODUCTION_FORENSIC_AND_CHANGESET_20261103.md` (commit `68a9301d4b69427b5d64da5298a725ee4556857a`; blob `3fe38369f1e7142b10d2a08f2415dbbf3541b4a0`).  
+**Current state:** LVE-602 at top of `CURRENT_STATE.md`; state commit `76a5a398866971f0ec5c4e350763eccd7fa7f815`; blob `16fd2dbec898ae9ef0374789f1aa16255cccdc74`.
+
+**STATUS:** P0 controls already present / return-table DML exposure confirmed / remediation awaiting exact owner approval / market purchase and vehicle custody open / Cloudflare-runtime E2E unverified / not closed.
