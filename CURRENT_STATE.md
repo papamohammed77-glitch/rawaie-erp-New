@@ -1,3 +1,47 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-598 — POS Invoice Decision Gate
+
+**VERIFIED AT:** 2026-11-03.  
+**Starting LAST VERIFIED EVENT:** LVE-597.
+
+## 1. POS transaction flow
+
+- save-sales-invoice v19 accepts effective pos/van-sales/orders permissions and validates user/company/branch.
+- save_sales_invoice_atomic requires operation_id and, for Invoiced, calls sales_decision_engine_atomic(VALIDATE_ORDER).
+- Successful Invoiced flow posts POSSale/VanSale stock movement, revenue/COGS journals, cash receipt for cash, customer ledger for credit, and driver ledger for Van credit; POS cash requires active shift/terminal/treasury mapping.
+- POS UI persists _activeCheckoutOperationId, retains it after failure, and queues pending updates in IndexedDB.
+
+## 2. Critical current authorization conflict
+
+- sales_decision_actor_ok(p_company_id,p_user_email,true) allows only direct users.permissions *, sales_manager, or general_manager.
+- sales_decision_engine_atomic calls this p_write=true helper for VALIDATE_ORDER as well as policy writes.
+- Edge save-sales-invoice v19 accepts effective permission pos.
+- Production has one active user with direct pos permission but no *, sales_manager, or general_manager.
+- Direct read-only evaluation of sales_decision_actor_ok for that user returns false.
+- Therefore Edge/RPC contract conflicts: current POS cashier passes Edge but fails decision engine when Invoiced. Runtime invoice attempt was not performed.
+
+## 3. Historical evidence / cause unknown
+
+- Production contains 5 POS orders created by cashier role between 2026-10-10 and 2026-10-18, with 5 linked sales_decision_evaluations decision=ALLOW.
+- Current helper denies the current POS user. Audit log for user changes records role/role_id but not permissions.
+- Cause of historical/current divergence is UNKNOWN (permission change vs function change). Old ALLOW records do not prove current Runtime works.
+
+## 4. Status
+
+- No POS invoice, stock movement, cash receipt, journal or ledger mutation.
+- No source, DB, Edge, PR or deployment change.
+- PR #10 remains Draft.
+- Runtime and Browser E2E remain UNVERIFIED.
+
+## 5. Next priority
+
+Prepare a narrow Sales Decision permission split: policy management/publish stays manager-only; VALIDATE_ORDER accepts the operational source permission (pos/van-sales/orders) and still enforces discount/credit/stock approval rules. Include cashier and manager positive/negative tests and rollback. Do not change Production before exact owner approval under Master §77.2.
+
+**Arabic report:** doc/Draft/Reprots/Report598_CTO_POS_INVOICE_DECISION_GATE_AND_ACCOUNTING_FLOW_AUDIT_20261103.md  
+**Report commit:** 52e3771546f5d759e469ca1f67b89869463dad52  
+**Status:** POS FLOW SOURCE CONFIRMED / AUTHORIZATION CONFLICT CONFIRMED / HISTORICAL CAUSE UNKNOWN / RUNTIME UNVERIFIED.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-597 — HR & Fleet Domain Architecture
 
 **VERIFIED AT:** 2026-11-03.  
