@@ -187,3 +187,14 @@
 - Current `buyer.html` was inspected at blob `aee14e6a4edbccd5fb95dff24f21daf1c6d21fcc`; it uses its data/read layer and central purchase operations for writes. The matching references found are table declarations, cache/realtime dependencies, and read paths; no direct invoice-table DML was found in the inspected Buyer source.
 - `office/accountant.html`, `office/finance-manager.html`, and `warehouse/receiver.html` had no references to these three invoice tables in their current source snapshots.
 - This is a first tranche, not a repository-wide closure: the remaining 25 company-1 HTML apps and any non-HTML JS/TS consumers still require scanning before claiming every consumer is compatible with the SELECT-only boundary.
+
+
+### Invoice-table consumer scan — CLOSED for company-1 source tree (2026-11-03)
+- Scanned all 30 current `companies/company-1/**/*.html` files and all four current company-level JavaScript files (`core.js`, `register-sw.js`, `schema-validator.js`, `sw.js`) for `purchase_invoices`, `purchase_invoice_details`, and `purchase_attachments`.
+- The only non-Buyer/non-parent application reference found was `companies/company-1/warehouse/vouchers.html`, which performs a scoped `SELECT` of `purchase_invoices` for supplier-return invoice context; no direct DML was found there.
+- Parent `main.html` uses invoice tables for realtime/read queries and a `SELECT` on invoice details. Buyer uses central purchase operations for writes. The remaining company-1 applications and shared JS files had no references to these three tables.
+- No consumer requires restoration of client INSERT/UPDATE/DELETE. The SELECT-only boundary is therefore source-compatible across the scanned company-1 frontend tree.
+- Scope caveat: this scan covers the current `erp-frontend/main` company-1 HTML/JS source tree, not external integrations, unpublished branches, or deployed Cloudflare artifact parity. Those remain separate verification items.
+
+### Migration source filename alignment
+- The custody cash-gate migration is recorded in Production as version `20261103160902`; the Git migration file was aligned to `supabase/migrations/20261103160902_buyer_custody_cash_disbursement_requires_employee_ack_20261103.sql`. The earlier mismatched `20261103160000_...` filename was removed.
