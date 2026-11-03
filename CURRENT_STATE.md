@@ -1,3 +1,75 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-606 — Owner Procurement Clarifications & Buyer Execution Readiness
+
+**VERIFIED AT:** 2026-11-03 Africa/Cairo.  
+**LAST VERIFIED EVENT:** Re-read LVE-605, Reports603/604/605, Master CTO §§77.1–77.4 and current operational Buyer/Receiver/Parent sources. Verified Buyer still exposes supplier create/edit through its own tab, although the owner now requires the Parent supplier master to be the only authority; current save_supplier_atomic creates records active by default and the schema has no separate approval_status. Revalidated that Quick Market invoice is Draft-only and Receiver remains PO-only; current Receiver detail lookup still uses purchase_order_details.po_code although Production schema uses po_id. Revalidated that Buyer vehicle balance remains Fleet assignment, not goods custody; SupplierReturn still has two unlinked stock/financial paths; custody expense review still routes only PO supplier invoices to supplier payment; account schema has no explicit fuel/transport expense subaccounts. Discovered that rawaea-staging has only 62 migrations / 70 public tables and lacks purchase_invoices, purchase_invoice_details and Buyer custody tables, so it is not a valid Buyer E2E environment. Created Report606 and updated project continuity. No operational app source, Production/Staging schema, ACL/RPC/Edge, business rows, balances or deployment was modified.
+
+## Current State — LVE-606
+
+- **Operational repository / branch:** `papamohammed77-glitch/erp-frontend` / `main`.
+- **Operational HEAD / parent:** `743c9b170bf2314a9e4d64fd4d8104f2cc1aee8c` / `2ce93c6d80ec4c38353bdf88880d06ae9e0abdde`.
+- **Buyer source:** `companies/company-1/purchasing/buyer.html`; blob `aee14e6a4edbccd5fb95dff24f21daf1c6d21fcc`.
+- **Receiver source:** `companies/company-1/warehouse/receiver.html`; blob `3111b5e801d1bc021cf18fd66d633fbdc54ac0d6`.
+- **Parent source:** `companies/company-1/main.html`; blob `53b5a9e9d0433a785c3d5471a9c0d68c25497882`. Do not edit.
+- **Production:** SMART ERP `fiilmooggumokxanwiyx`; PostgreSQL 17.6.1.121; currency EGP; 737 migrations.
+- **Existing Edge only:** `save-purchase-order` v22 and `receive-purchase` v13, both ACTIVE and `verify_jwt=true`. Do not create a new Edge Function.
+- **Report605:** `doc/Draft/Reprots/Report605_BUYER_QUICK_MARKET_RECEIVING_GOODS_CUSTODY_AND_EXPENSES_FORENSIC_20261103.md`; blob `3f3f58022cfec096272fd092ec92e9a780c1d6d9`.
+- **Report606:** `doc/Draft/Reprots/Report606_BUYER_OWNER_CLARIFICATIONS_MASTER_SUPPLIER_QUICK_RECEIPT_GOODS_CUSTODY_EXECUTION_PLAN_20261103.md`; commit `904e526ada65951d7a80d53216264bf8e00785c8`; blob `5cf232ef2da1f0486442b3a3efa28acec16a849f`.
+
+## CONFIRMED
+
+1. Buyer contains nine existing tabs. Do not rebuild them.
+2. Buyer `renderSuppliers()` currently exposes “مورد جديد”; `supplierForm()` creates/edits supplier via `SAVE_SUPPLIER`. This conflicts with owner direction that supplier master creation/approval is controlled by Parent. Parent `RW_Suppliers` also has the master supplier CRUD UI.
+3. Production `suppliers` distinguishes `supplier_type` from `payment_type`, contains `is_active`, and has no separate `approval_status`. `save_supplier_atomic` sets new records `is_active=true`. Existing Parent type selector is مورد عام/مصنع/مورد خارجي; payment selector نقدي/أجل. `مورد كاش` is not present as a configured Parent selector or a sampled Production type. Do not create a synthetic cash supplier; treat نقدي as payment terms until the Parent master explicitly configures the independent type.
+4. Quick invoice is created as Draft without PO by existing RPC; no stock/AP/treasury/GL effect occurs at creation. Posting no-PO invoice is currently rejected by `PURCHASE_QUICK_INVOICE_RECEIPT_REQUIRED`.
+5. Receiver remains PO-only; Edge `receive-purchase` v13 and `receive_purchase_atomic` accept PO code, not invoice id. `receiving` and `receiving_details` have no invoice header/line relationship. Receiver still queries purchase_order_details by po_code while current schema links details through po_id.
+6. Production current quick invoice/receiving accounting contract must distinguish cash paid from custody, supplier credit, and direct Treasury cash. Custody issue is already posted only after employee ACK; do not debit Treasury twice for an expense already funded from the issued custody balance.
+7. Buyer current vehicle panel reads Fleet driver assignments; no purchaser goods-custody ledger exists. Vehicle must be optional; manual hand-carry must work.
+8. SupplierReturn still has two independent routes: `purchase_returns` through the purchase gateway and `stock_vouchers.SupplierReturn` through Warehouse Vouchers. Their atomic link/single-writer guarantee is not proven. Current voucher trigger clears `custodian_user_id` for SupplierReturn. Supplier acceptance/rejection qty and evidence gates are missing; SupplierReturn currency defaults can conflict with EGP.
+9. `buyer_custody_review_expense_atomic` remains PO/supplier-payment-specific; it creates supplier payment and marks invoice Paid. It is not a generic FUEL/TRANSPORT/OTHER expense review path.
+10. COA rows currently found include accounts 121, 124, 127, 211, 5, 51, 52; no explicit FUEL or TRANSPORT expense accounts were found. Do not invent account mappings.
+11. Private storage bucket `employee-documents` exists and current object policies are for HR/employee docs and `buyer-custody` paths. No complete Buyer purchase invoice/line evidence path has been verified; purchase_attachments metadata table exists but does not by itself prove secure object upload/read/delete.
+12. PR #10 remains Draft/Open/Unmerged on `cto/buyer-field-workbench-lve-587` (head `209c318f2324d741e61b0dceaf5253f830af8c2e`). It includes useful UX improvements but is based on an older main and its current-user-only invoice filter conflicts with central Finance/Audit visibility. Do not merge as-is; rebase/review and preserve role-scoped oversight.
+13. Staging project `rawaea-staging` (`hfzznsiprnwkpayskzhu`) has 62 migrations and 70 public tables. It lacks `purchase_invoices`, `purchase_invoice_details`, and Buyer custody tables. It is not an equivalent environment for Buyer E2E until schema parity is restored under a separately approved plan.
+14. Already applied controls must not be repeated: invoice central writer migration `20261103155029`; PO receiving role/branch authorization `20261103155444`; employee custody cash posting after ACK `20261103160902`.
+15. P0-D return-table DML boundary and P0-R cumulative return/acceptance lifecycle remain separately gated under Reports603/604; do not silently fold them into this UI workstream.
+
+## OWNER REQUIREMENTS — OPERATIONAL INTERPRETATION
+
+- Parent owns supplier creation/master approval. Buyer is a consumer/operational app and must not create/edit/delete the master supplier.
+- All market invoices must link to a central supplier record. Do not allow free-text supplier/payee or synthetic suppliers in this path.
+- Treat `payment_type='نقدي'` as settlement terms, not as a free-standing supplier. Independent `supplier_type='مورد كاش'` remains a Parent master-data configuration gap because its current UI options do not expose that value and `main.html` is protected.
+- Quick market invoice remains Draft until actual warehouse receipt; Receiver searches by internal/supplier invoice number and records accepted/rejected quantities via the existing receive Edge/RPC after exact-source parity is restored.
+- Goods custody is person/item-based; vehicle optional; manual carry permitted. The ledger is separate from cash custody and Delivery Fleet stock.
+- Supplier return defaults to supplier pickup. Buyer representative is an explicitly authorized exception. The warehouse must record the handover and evidence; Supplier AP credit is for supplier-accepted qty only.
+- Cash PURCHASE, operating expenses FUEL/TRANSPORT/OTHER, Supplier Credit, and actual Supplier Payment remain separate financial paths.
+- Employee cash custody management will later be surfaced in Accounts using the same existing custody tables/RPCs; no duplicate ledger.
+
+## UNKNOWN / CONFLICT / UNVERIFIED
+
+- Meaning of `is_active` as formal supplier approval is UNKNOWN; the DB has no approval_status column.
+- The independent `مورد كاش` supplier_type configuration is not present in the inspected Parent selector/current Production sample.
+- Final GRNI/AP recognition for cash and credit direct market receipts still needs Finance sign-off.
+- Expense-account mapping for FUEL/TRANSPORT/OTHER is absent in the COA rows inspected.
+- Staging parity, fixture users and authenticated Edge/Browser E2E remain UNVERIFIED.
+- Current Cloudflare served Buyer artifact parity remains UNVERIFIED.
+- PR #10 has not been rebased onto current main and remains unmerged.
+- No supplier return or custody production records existed in current snapshot; no transaction fixture was inserted.
+
+## Next Exact Execution
+
+1. Prepare **Change Set A**: Buyer supplier master read-only UX; remove local create/edit/delete; strictly resolve selected supplier to central master active/approved state; preserve Finance/Audit invoice visibility; rebase and selectively reuse PR #10 improvements.
+2. Prepare **Change Set B**: Quick Market Invoice plus Receiver no-PO receiving through existing `receive-purchase` v13 and authenticated RPC; restore byte-matching v13 source in operational Git before modifying it; explicit partial receive, invoice-line linkage and accounting settlement source.
+3. Prepare **Change Set C/D** together as a single physical contract: person-based goods custody, optional vehicle, warehouse issue/acceptance, supplier pickup or authorized representative, partial supplier acceptance, and one stock/AP/GL writer linked to Parent return record.
+4. Prepare **Change Set E**: PURCHASE/FUEL/TRANSPORT/OTHER expense types, evidence, finance review, verified expense account IDs and custody settlement reconciliation; later Accounts UI reuses existing employee custody entity.
+5. Build a schema-parity isolated Staging/E2E environment before generating fixtures; never seed Production. After approval, run role/tenant/branch/duplicate/concurrency/partial acceptance + snapshots for stock_branches, inventory_log, receiving, purchase_invoices, supplier_ledger, journal_entries, treasury, cash_box and custody tables.
+6. Present complete source diffs + SQL/RPC/Edge changes + effects + dependencies + negative tests + rollback for each Change Set; wait for explicit approval of that exact changeset under Master §77.2.
+
+**PROHIBITIONS:** Do not edit `companies/company-1/main.html`; do not create Edge Functions; do not merge PR #10 as-is; do not repeat the three applied P0 controls; do not use Fleet/Delivery Van Stock as purchasing custody; do not post SupplierReturn credit before supplier acceptance; do not fabricate expense accounts; do not test on Production; do not close Buyer on UI/static checks alone.
+
+**STATUS:** OWNER BUSINESS REQUIREMENTS RECONCILED / BUYER SOURCE GAPS CONFIRMED / STAGING NOT YET E2E-CAPABLE / COMPLETE CHANGESETS REQUIRED / NO OPERATIONAL OR PRODUCTION WRITE IN LVE-606 / BUYER OPEN — NOT PRODUCTION-READY.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-605 — Buyer Quick Market Receipt, Goods Custody & Expense Contract
 
 **VERIFIED AT:** 2026-11-03 Africa/Cairo.  
