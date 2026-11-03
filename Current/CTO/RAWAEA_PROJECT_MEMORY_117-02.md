@@ -1,6 +1,6 @@
 ## LVE-607 — 2026-11-03 — Buyer Source Update
 
-Operational main HEAD: `5d7b10e4fd0fdf1bb2299c87805f9c86d381cc35`; Buyer blob: `7f82fceb0b2c2470d1f112aefeaa1341de5b71a8`. Buyer supplier master is now read-only; no SAVE_SUPPLIER call remains; active-only supplier selection is enforced, without equating is_active to formal approval. The vehicle tab is now «رصيدي» and no longer reads Fleet; no goods custody ledger exists yet. No DB, Edge, Parent, Receiver, or Production changes; B–E and E2E remain open. Report607: `doc/Draft/Reprots/Report607_BUYER_SAFE_SOURCE_EXECUTION_MASTER_SUPPLIER_AND_GOODS_CUSTODY_20261103.md`; checkpoint LVE-607 in CURRENT_STATE.md.
+Operational main HEAD: `2b94681bf0ce93ca9ea55066a3f52c0d1add1084` (parent `5d7b10e4fd0fdf1bb2299c87805f9c86d381cc35`; CSS build only, Buyer blob unchanged); Buyer blob: `7f82fceb0b2c2470d1f112aefeaa1341de5b71a8`. Buyer supplier master is now read-only; no SAVE_SUPPLIER call remains; active-only supplier selection is enforced, without equating is_active to formal approval. The vehicle tab is now «رصيدي» and no longer reads Fleet; no goods custody ledger exists yet. No DB, Edge, Parent, Receiver, or Production changes; B–E and E2E remain open. Report607: `doc/Draft/Reprots/Report607_BUYER_SAFE_SOURCE_EXECUTION_MASTER_SUPPLIER_AND_GOODS_CUSTODY_20261103.md`; checkpoint LVE-607 in CURRENT_STATE.md.
 
 ---
 
