@@ -1,3 +1,50 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-602 — Buyer Return ACL Exposure & Procurement Workflow Reconciliation
+
+**VERIFIED AT:** 2026-11-03 Africa/Cairo.  
+**LAST VERIFIED EVENT:** Re-fetched operational Git HEAD/parent and Buyer/core/Receiver sources; verified active Production Edge versions, current purchase/custody RPC contracts, table grants/RLS, migration ledger, currency, and business-data counts. Confirmed that invoice-writer, PO-receiving authorization, and employee-acknowledgement cash controls from earlier P0 checkpoints are already present. Discovered client DML grants and ALL RLS policies still present on `purchase_returns` and `purchase_return_details`; inspected the current supplier-return posting RPC and confirmed it reduces inventory and supplier payable without an in-function supplier acceptance event. Identified Buyer cash-custody issue UI wording that contradicts the new acknowledgement-gated Production contract. Created Report602; no operational source, Production schema/ACL/RPC/Edge or business data was changed.
+
+## Current State
+
+- **Operational repository:** `papamohammed77-glitch/erp-frontend` / `main`.
+- **Operational HEAD / parent:** `743c9b170bf2314a9e4d64fd4d8104f2cc1aee8c` / `2ce93c6d80ec4c38353bdf88880d06ae9e0abdde`.
+- **Buyer source:** `companies/company-1/purchasing/buyer.html`; blob `aee14e6a4edbccd5fb95dff24f21daf1c6d21fcc`.
+- **Core / Receiver:** `core.js` blob `f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1`; `warehouse/receiver.html` blob `3111b5e801d1bc021cf18fd66d633fbdc54ac0d6`.
+- **Production:** SMART ERP project `fiilmooggumokxanwiyx`; currency EGP; 737 recorded migrations.
+- **Active existing Edge only:** `save-purchase-order` v22 and `receive-purchase` v13, both ACTIVE and `verify_jwt=true`. Do not create another Edge Function.
+- **Already applied and not to be repeated:** invoice-table central writer boundary `20261103155029`; receive PO role/branch authorization `20261103155444`; cash custody acknowledgement gate `20261103160902`.
+- **Buyer tabs preserved:** today, suppliers, requests, quotations, orders, invoices, custody, vehicle, account.
+- **New report:** `doc/Draft/Reprots/Report602_BUYER_CURRENT_SOURCE_PRODUCTION_FORENSIC_AND_CHANGESET_20261103.md`, commit `68a9301d4b69427b5d64da5298a725ee4556857a`.
+
+## CONFIRMED
+
+1. Invoice headers/details/attachments have authenticated SELECT-only client access; central gateway is the write route. Prior source consumer scan found no direct DML consumers.
+2. Receiving v13 and the 5-argument `receive_purchase_atomic` enforce caller/role/branch scope. The old 4-argument overload is service-role-only.
+3. Custody issue/add-advance do not post cash until the assigned employee acknowledges physical receipt. The Buyer UI issue text/toast at lines 870/880 still says cash and GL were posted immediately; this is a UI-contract mismatch.
+4. Production grants on both `purchase_returns` and `purchase_return_details` still include client DML privileges for `anon` and `authenticated`; each table has an RLS `ALL` policy for role `public` with company-scope checks. The current 34-file company-1 HTML/JS tree scan found no direct app DML consumer; Buyer references those tables in realtime/cache invalidation only. External consumers remain outside this scan.
+5. `purchase_post_return_atomic(uuid,uuid,text)` is service-role-only, posts `SupplierReturn` stock movement, debits Supplier AP and credits inventory, and marks the return Posted. It contains no explicit supplier-acceptance/partial-acceptance event.
+6. Buyer `quickPurchase()` is only an alias to `createPurchaseInvoice()`; quick market purchase is not a distinct business process. Receiver remains PO-only. Buyer vehicle balance reads Fleet driver assignments, not a purchasing-goods custody ledger.
+7. Production counts at the current read-only snapshot: purchase_invoices 3; purchase_returns 0; buyer_custodies/advances/expenses/payments/settlements 0; receiving 0; fleet_vehicle_assignments 0; vehicles 2; stock_vouchers 0; inventory_log 76; supplier_ledger 2; journal_entries 19; cash_box 8.
+
+## UNKNOWN / CONFLICT / UNVERIFIED
+
+- **CONFLICT resolved for checkpoint order:** LVE-601 at the old file top says earlier P0 controls are not executed; later appended records and current Git/Production show they have been executed. LVE-602 supersedes the old top status but retains historical entries intact.
+- **UNKNOWN:** Whether external integrations or repositories outside the current company-1 source tree directly depend on DML to purchase-return tables.
+- **UNVERIFIED:** Practical exploitability of the return-table grants from ordinary/anon sessions; deployed Cloudflare Buyer artifact parity; authenticated Buyer Browser E2E; real physical supplier-return acceptance; full cash custody settlement and accounting reconciliation.
+- There are no Supabase development branches on this project at the time of the check. Do not use Production for test fixtures.
+
+## Next Execution
+
+1. Complete the external consumer/ACL impact review and present **P0-D** to the owner: remove client DML on purchase return headers/details, preserve tenant-scoped authenticated SELECT, and preserve Service Role writes through `save-purchase-order` v22. Exact SQL and acceptance/rollback are in Report602. Do not apply until explicit approval of that exact changeset.
+2. After that gate, design one integrated P1 package for Quick Market Purchase, Receiver no-PO receiving, purchasing vehicle goods custody, supplier return acceptance, and custody expense types PURCHASE/FUEL/TRANSPORT/OTHER. Keep all four event dimensions separate and use existing gateway/RPC capacity.
+3. Prepare the two small Buyer UI replacements at lines 870/880 and the full `acknowledgeCustody` replacement in Report602 for owner application.
+4. Verify Cloudflare artifact and authenticated Browser E2E before claiming runtime closure.
+
+**PROHIBITIONS:** Do not edit `companies/company-1/main.html`; do not repeat the three P0 controls already applied; do not create Edge Functions; do not reuse Fleet/Delivery Van Stock as purchasing vehicle custody; do not post a supplier credit before actual supplier acceptance; do not test on Production; do not mark task closed from static/source/schema checks alone.
+
+**STATUS:** P0 invoice/receiving/cash-ack controls CONFIRMED; supplier-return ACL exposure CONFIRMED / remediation awaiting exact owner approval; Buyer market purchase and purchasing vehicle custody OPEN; Supplier Return Acceptance OPEN; Cloudflare/runtime E2E UNVERIFIED; overall Buyer task OPEN / NOT PRODUCTION-READY.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-601 — Owner Transaction-State & Physical-Event Invariant
 
 **VERIFIED AT:** 2026-11-03 Africa/Cairo.  
