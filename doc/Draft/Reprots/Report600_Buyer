@@ -198,3 +198,11 @@
 
 ### Migration source filename alignment
 - The custody cash-gate migration is recorded in Production as version `20261103160902`; the Git migration file was aligned to `supabase/migrations/20261103160902_buyer_custody_cash_disbursement_requires_employee_ack_20261103.sql`. The earlier mismatched `20261103160000_...` filename was removed.
+
+
+### Deployment and live-E2E gate
+- The current Buyer blob and database controls are verified in Git/Production, but the Cloudflare-served Buyer artifact is **not yet verified** against blob `aee14e6a4edbccd5fb95dff24f21daf1c6d21fcc`.
+- The available GitHub Actions runs are RAWAEA forensic extraction/assembly checks. Their success does not establish Cloudflare Pages deployment or served-file parity.
+- The connected local browser context was unavailable during this checkpoint, and no Cloudflare deployment connector/API is available in the current tool surface. Therefore no claim is made that the Buyer changes are live on the public Production URL.
+- Authenticated browser E2E remains open. No production cash, inventory, supplier balance, or custody test transactions were created.
+- Next gate: establish the Production URL/deployment state through the authorized Cloudflare/browser session, compare the served Buyer asset to the verified Git blob, then run authenticated read/write-denial and safe non-financial workflow tests. Only after those pass should market-purchase and vehicle-goods-custody implementation be treated as the next execution tranche.
