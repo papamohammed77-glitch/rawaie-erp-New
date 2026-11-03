@@ -1,3 +1,42 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-599 — Procurement Accounting Flow
+
+**VERIFIED AT:** 2026-11-03.  
+**Starting LAST VERIFIED EVENT:** LVE-598.
+
+## 1. Procurement lifecycle
+
+- purchase_create_invoice_atomic_v2 creates Draft only; no stock/AP effect.
+- receive_purchase_atomic (5 args) requires operation_id, payload fingerprint, locks PO/details, validates item and remaining qty, posts PurchaseIn, updates qty_received/PO status, creates Inventory(124) Dr / Supplier(211) Cr journal and supplier_ledger credit.
+- receive-purchase Edge v12 and RPC do not enforce warehouse/receiver permission; gap carried forward from LVE-590.
+- purchase_post_invoice_atomic for PO invoice requires receiving, validates invoice qty <= received minus previously invoiced, item/price/tax/total against PO, then marks Posted with stock_posted_by_invoice=false and supplier_liability_posted_by_invoice=false. This avoids double stock/AP.
+- Quick invoice with purchase_order_id NULL is rejected with PURCHASE_QUICK_INVOICE_RECEIPT_REQUIRED; a market-purchase policy decision is needed.
+- purchase_post_payment_atomic posts cash payment, creates allocations, updates invoice paid status, and supplier_ledger debit.
+- purchase_post_return_atomic posts SupplierReturn stock-out, Dr Supplier/Cr Inventory journal, and supplier_ledger debit.
+- purchase_update_draft_invoice_atomic blocks editing after receiving/payment/posting/downstream refs and uses operation_id.
+
+## 2. Accounting policy question
+
+- Current receiving recognizes supplier liability at GRN: Dr Inventory / Cr Supplier account 211 and supplier_ledger credit.
+- PO invoice posting does not recognize AP again.
+- Whether account 211 is intended as direct AP or GRNI/GRIR clearing, and how price/tax variance is handled, requires owner/accountant decision. Do not alter accounts or journals without approval.
+
+## 3. Status
+
+- No PO/receiving/invoice/payment/return operation was performed.
+- No source, DB, Edge, PR or deployment mutation.
+- PR #10 remains Draft.
+- Runtime E2E remains UNVERIFIED.
+
+## 4. Next priority
+
+Resolve market quick-purchase policy and GRNI/AP recognition policy, then add warehouse/receiver permission and assignment checks to receive-purchase. Validate partial receive → invoice → payment → return on isolated fixtures with stock, inventory_log, supplier ledger, journals and treasury reconciliation. Explicit approval under Master §77.2 required.
+
+**Arabic report:** doc/Draft/Reprots/Report599_CTO_PROCUREMENT_RECEIVING_INVOICE_PAYMENT_ACCOUNTING_FLOW_20261103.md  
+**Report commit:** 880865555fa24e89e6548270163b884d2679eccc  
+**Status:** PROCUREMENT FLOW SOURCE/DB CONFIRMED / POLICY QUESTIONS OPEN / RECEIVING AUTHORIZATION GAP CONFIRMED / RUNTIME UNVERIFIED.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-598 — POS Invoice Decision Gate
 
 **VERIFIED AT:** 2026-11-03.  
