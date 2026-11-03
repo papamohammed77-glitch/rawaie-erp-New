@@ -4832,3 +4832,16 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 \`START/COMPLETE/CANCEL EDGE GUARDS DEPLOYED + CURRENT EDGE SNAPSHOTS SYNCED / OWNER HTML PATCH PENDING / REOPEN + ZERO-QTY CORE CONTRACT OPEN / CLOUDFLARE MAIN DEPLOYMENT QUEUED / AUTHENTICATED BROWSER E2E UNVERIFIED / NOT CLOSED\`.
 
 
+
+
+## 2026-11-03 — Buyer owner-authorized execution checkpoint
+- Read the latest `Report600_Buyer` and current Buyer source before execution; the owner explicitly approved the execution packages.
+- Production migrations applied and verified:
+  - `20261103155029_buyer_invoice_tables_central_writer_only`: invoice headers/details/attachments are SELECT-only for authenticated users, with company-scoped SELECT RLS; anon has no table privileges.
+  - `20261103155444_receive_purchase_role_and_branch_authorization`: 5-argument receiving RPC checks active user, effective permission, active `استلام` role/owner exception, and branch scope. The legacy 4-argument overload is service-role-only and delegates to the guarded overload. Current receive-purchase Edge v13 checks the caller profile.
+  - `20261103160000_buyer_custody_cash_disbursement_requires_employee_ack_20261103`: custody issue/add-advance no longer post cash; only authenticated custodian acknowledgement triggers idempotent cash/GL posting.
+- Buyer main source blob is `aee14e6a4edbccd5fb95dff24f21daf1c6d21fcc`. Price autofill from item cost removed, blank prices preserved and explicitly validated, invoice create/update use a stable operation ID, and misleading quick-purchase label corrected. Six inline scripts pass static parse.
+- Production currently has zero buyer-custody advance rows; no historical custody row or real cash movement was touched.
+- **Open:** full invoice-table consumer scan; Cloudflare served-blob parity; authenticated browser E2E; quick market purchase workflow; buyer vehicle goods-custody ledger; supplier return acceptance/credit; complete cash-custody expense/payment/settlement E2E. Do not mark Buyer complete until all are verified.
+- **Next exact step:** finish repository-wide DML consumer scan for the three invoice tables, then verify Cloudflare deployment and execute safe authenticated E2E before moving to market purchase, vehicle custody, supplier returns, and cash settlement.
+- **Status:** P0 database controls applied; Buyer source committed; production/browser verification incomplete; overall Buyer work OPEN.
