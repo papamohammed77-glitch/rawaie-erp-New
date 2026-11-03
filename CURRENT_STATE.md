@@ -4859,3 +4859,11 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - Only non-Buyer/non-parent reference: `warehouse/vouchers.html` reads `purchase_invoices` with SELECT for supplier-return context. `main.html` invoice references are realtime/read-side only; Buyer writes route through central purchase operations. No direct DML consumer was found.
 - The SELECT-only invoice-table boundary is source-compatible across the scanned frontend tree. External integrations, unpublished branches, and Cloudflare served-artifact parity are outside this scan.
 - Production custody migration version `20261103160902` now has a matching Git source filename; mismatched `20261103160000_...` file removed.
+
+
+## 2026-11-03 — Deployment/E2E gate
+- Buyer Git blob and Production database controls are verified, but Cloudflare served-file parity against Buyer blob `aee14e6a4edbccd5fb95dff24f21daf1c6d21fcc` is NOT VERIFIED.
+- Latest GitHub Actions evidence is forensic extraction/assembly only, not Cloudflare deployment evidence.
+- No Cloudflare connector or active local browser context was available to inspect the Production deployment. Do not infer deployment success from Git commits or Actions.
+- Authenticated browser E2E remains NOT DONE; no live financial or stock test transactions were created.
+- Next step: verify Cloudflare deployment/served asset via authorized Cloudflare session, then execute authenticated safe E2E. After that continue market purchase, buyer vehicle-goods custody, supplier return acceptance, and cash-custody full settlement.
