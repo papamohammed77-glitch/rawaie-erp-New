@@ -1,3 +1,63 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-589 — Buyer Comprehensive Application / Procurement & Accounting Assessment
+
+**VERIFIED AT:** 2026-11-03 Africa/Cairo.  
+**LAST VERIFIED EVENT:** Read current Buyer main source (139,419 chars / 1,047 lines; blob 73d746571a10b1720bdd31631004abce0ac9afa1), rechecked PR #10 branch (Buyer blob 100987d03c6ed94ff2e2acd1c623a63b80ffb471; 149,274 chars / 1,155 lines), active save-purchase-order v22 and receive-purchase v12, current Production schema/RLS/ACL/function definitions and data counts, then authored Report589. No operational source, Production data, DDL, RLS/grants, RPC, trigger, Edge deployment, merge or Cloudflare deployment was changed. The only writes were this documentation checkpoint and the new report in the governance repository.
+
+## Current State
+
+- Operational repo: `papamohammed77-glitch/erp-frontend`, `main`; Buyer main blob: `73d746571a10b1720bdd31631004abce0ac9afa1`.
+- Buyer retains nine tabs: today, suppliers, requests, quotations, orders, invoices, custody, vehicle, account.
+- Main Buyer has 4 `cost_price` references and the current PO/invoice add-line validation can convert blank price to zero. The feature branch removes all `cost_price` references and adds manual price validation.
+- PR #10 remains OPEN / DRAFT / unmerged; head `209c318f2324d741e61b0dceaf5253f830af8c2e`; its only changed file is `companies/company-1/purchasing/buyer.html` (+142/-34). Current comparison to main: 3 ahead / 2 behind. Do not describe PR-only changes as live main.
+- PR #10 improves touch navigation, Arabic-normalized item search, image-led search results, manual price entry, and adds a PO operation_id. It filters the invoice list by created_by only in the client. CREATE_INVOICE for a new invoice still does not pass a stable operation_id.
+- Production save-purchase-order v22 is ACTIVE / verify_jwt=true, SHA-256 `a0885a8a636b0d57ef9ab54b476001be8e3dd1f4227b921f511b002f58642ffb`.
+- Production receive-purchase v12 is ACTIVE / verify_jwt=true. Its deployed source verifies JWT and active same-company user membership, but no effective functional permission guard (no get_my_effective_profile / hasPermission / requireAny check) was found before invoking receive_purchase_atomic through Service Role. Treat as a receiving authorization gap to close before relying on it as a controlled warehouse workflow.
+- The current currency in app_settings is EGP. Current invoice sample: 3 invoices, all created by owner@alrawae.com and currency SAR; two Posted/no PO and one Draft/PO-linked. No Buyer-created invoice exists in this current sample.
+- Current Production counts: items 30; suppliers 4; PR 0; RFQ 0; quotations 0; PO 1 / detail 1; purchase invoices 3 / details 6; purchase returns 0; purchase payments 0; purchase attachments 0; purchase document links 4; buyer custodies/advances/expenses/settlements/payments all 0; receiving/details 0; fleet assignments 0; vehicles 2; stock vouchers 0; inventory_log 76.
+- Buyer invoice Draft create has no inventory/AP/Treasury/GL effect. PO receipt uses receive-purchase → receive_purchase_atomic → post_stock_movement and posts the physical receipt/related accounting according to the current contract. PO invoice posting guards against missing/insufficient receiving and avoids duplicating stock/AP already booked by receiving. No-PO quick invoice posting is currently blocked by PURCHASE_QUICK_INVOICE_RECEIPT_REQUIRED.
+- Buyer “فواتيري” is a generic supplier invoice list on main. PR #10 narrows it to created_by in the browser only; neither main nor PR adds explicit invoice_type/source=QuickMarketPurchase, invoice header image, line photo/spec evidence, or direct quick-invoice receiving.
+- Buyer “رصيد السيارة” reads fleet_vehicle_assignments.driver_user_id, which is delivery-driver assignment, not purchasing-custodian assignment. The UI explicitly says the buyer goods-custody ledger is not enabled. Production has no fleet assignment rows; the two vehicles previously inspected are Delivery vehicles. Do not reuse Driver/Van Sales stock or SupplierReturn for buyer custody.
+- buyer_custody_expenses has no expense_type. Current submission requires PO-linked Draft invoice + completed PO receiving + supplier invoice and receipt documents. Current expense approval posts Dr Supplier AP (211) / Cr Employee Custody (127), marks invoice Paid and debits supplier ledger. This conflicts with the owner-defined cash-paid quick-market purchase expense, which must not become supplier AP payment merely because an invoice exists.
+- buyer_custody_issue_atomic and buyer_custody_add_advance_atomic post treasury cash/journal effects when issue/advance is recorded; employee acknowledgment is a separate later event. The current settlement posts cash return but does not require a dedicated return-proof attachment. Reconcile these actions to actual handover proof and Master §77.1 before any changes.
+- Production invoice RLS/ACL conflict remains confirmed: purchase_invoices and purchase_invoice_details have permissive ALL company-only policies and authenticated SELECT/INSERT/UPDATE/DELETE. app_private.current_user_company_id returns company_id for any non-Inactive authenticated user and does not enforce purchases permission. This permits authenticated direct DML outside the central workflow, without status/Draft guards. purchase_attachments has a similar company-only ALL policy and broad client DML grants. anon has broad table grants too, but anon EXECUTE on the company resolver is false; effective anon access was not proven in this review.
+- Production purchase_attachments is empty. Current private employee-documents storage rules cover employee documents and buyer-custody subpaths, not a verified private invoice/item evidence contract. Public product-images must not be used for private invoices.
+- GET_DATA limits each table read to 500 and Buyer applies most search/filter logic client-side. Pagination/server-side search is required for scale.
+- Buyer’s main source has 22 major SweetAlert2 modal calls covering supplier, PR, RFQ, quotation, PO, invoice, custody, reporting and settings workflows. Static modal count is not browser E2E evidence.
+
+## Confirmed Architecture / Financial Invariants
+
+1. PR/RFQ/quotation/PO creation and acceptance alone must not change stock, Treasury, supplier/customer balances or GL.
+2. Draft invoice creation/edit must not change stock, Treasury, AP or GL.
+3. Physical PO receiving is the stock and receipt accounting event; linked invoice posting must not double-book it.
+4. Quick Market Purchase is a separate business source from general AP invoices and PO-linked invoices. Do not infer its identity from purchase_order_id IS NULL.
+5. Buyer vehicle goods balance is a physical custody movement ledger, not delivery-driver assignment, mobile branch or sales van.
+6. Cash custody is employee accountability; cash-paid market expenses must not be converted automatically into supplier AP settlement.
+7. Central inventory writer, operation_id idempotency, audit history and company isolation remain mandatory.
+
+## Conflict / Risk / Unverified
+
+- **CONFLICT:** Buyer invoice list semantics (generic AP invoices vs owner-defined quick-market register).
+- **CONFLICT:** Buyer vehicle source (delivery-driver assignments vs purchasing vehicle custody).
+- **CONFLICT:** custody expense approval AP settlement vs owner-defined cash-paid market expense.
+- **CONFIRMED HIGH RISK:** authenticated direct DML on purchase invoice header/details bypasses the central workflow and its status/permission rules.
+- **CONFIRMED HIGH RISK:** receive-purchase v12 lacks a functional permission gate in its deployed source.
+- **UNKNOWN:** the approved seller identity policy for market purchases while purchase_invoices.supplier_id remains NOT NULL.
+- **UNVERIFIED:** authenticated Browser E2E for all nine tabs, actual Cloudflare-served Buyer artifact, real quick-market receipt cycle, actual invoice private-storage upload/download, and full regression of Parent consumers.
+- **UNVERIFIED:** end-to-end buyer-created invoice, custody, buyer vehicle movement, direct market receiving, supplier AP isolation and all accounting balances; current Production sample has no buyer-owned invoice/custody/receipt transaction.
+
+## Change Control / Next Action
+
+- Report: `doc/Draft/Reprots/Report589_BUYER_COMPREHENSIVE_APPLICATION_ASSESSMENT_20261103.md`.
+- Report commit: `4b06f24a12253e70dfe601d428f2a82f393263d7`.
+- Keep PR #10 Draft until the exact patch is reviewed and approved; do not present its changes as production source.
+- Next engineering work must be split into exact owner-review packages, starting with invoice DML/RLS and receiving permission gates, then quick-market classification/evidence/receipt, then custody categories/financial treatment, then purchasing-vehicle custody. Preserve existing PO receiving, SupplierReturn, Delivery Van stock, Parent, and shared core.
+- Per Master §77.2, no DDL, grants/RLS, RPC/trigger, source change, merge, Edge deployment or Production write without the exact diff/SQL, impacts, dependencies, acceptance tests, rollback and explicit approval of that changeset.
+- No main.html broad rewrite. No new Edge Function. Operational HTML remains owner-applied after review.
+
+**STATUS:** COMPREHENSIVE BUYER REVIEW RECORDED / CRITICAL SECURITY AND BUSINESS-CONTRACT GAPS IDENTIFIED / NO OPERATIONAL OR PRODUCTION MUTATION / NOT CLOSED.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-599 — Procurement Accounting Flow
 
 **VERIFIED AT:** 2026-11-03.  
