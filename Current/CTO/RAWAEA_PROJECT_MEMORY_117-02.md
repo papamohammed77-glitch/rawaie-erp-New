@@ -1,3 +1,27 @@
+## LVE-2026-11-03-609 — Buyer / Receiver Production Reconciliation (2026-11-03 23:30 Cairo)
+
+**Evidence report:** doc/Draft/Reprots/Report609_BUYER_RECEIVER_PRODUCTION_RECONCILIATION_20261103.md  
+**Report commit:** 84fb16856c030963766b63cbf8418e00e9e927c7  
+**CURRENT_STATE commit:** 5635e8ed98d1b74ffa689ebf88bd9409be8ff210
+
+- Re-read CURRENT_STATE first. At start it was LVE607; Report608 existed but had not been reflected in CURRENT_STATE. LVE609 now reconciles this.
+- Operational main HEAD remains 2b94681bf0ce93ca9ea55066a3f52c0d1add1084. Buyer/Receiver/Core blobs: 7f82fceb0b2c2470d1f112aefeaa1341de5b71a8 / 3111b5e801d1bc021cf18fd66d633fbdc54ac0d6 / f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1.
+- Production SMART ERP: ACTIVE_HEALTHY, PostgreSQL 17.6.1.121, 737 migrations. save-purchase-order v22 is byte-identical to Git; receive-purchase v13 is active/verify_jwt=true but its exact source is absent from operational Git. Governance snapshot is older; do not deploy it.
+- Receiver defects reconfirmed: purchase_order_details lookup uses po_code although Production schema only has po_id; errors are not surfaced; parseInt truncates decimals; UI does not read qty_received/remaining_qty; max is full qty_ordered; zero is allowed; branch list is not filtered; no operation_id is sent.
+- receive-purchase v13 derives deterministic operation_id from user/company/PO/payload when the client sends none. This collapses two independent physical receipts with identical payloads. RPC fingerprint includes item_code/received_qty only.
+- receive_purchase_atomic v5 is service_role-only and enforces company/user/role/branch, but all-zero non-empty items can still create a completed receiving header and mark PO Partially Received without details or stock/GL/AP. RPC expected/difference is compared with full original PO quantity on each receipt.
+- receiving and receiving_details have no purchase_invoice_id / purchase_invoice_detail_id. Quick Market Invoice can be created Draft without PO but cannot be posted without a receipt contract. Cash-vs-credit accounting route remains unapproved; do not reuse PO AP path blindly.
+- RLS read-scope mismatch: PO/Invoices are company SELECT, not branch/permission scoped. receiving self-read compares responsible to users.name while RPC stores email; current_user_has_permission does not include role_permissions. receiving tables have broad anon/auth DML GRANTS but only SELECT RLS policies.
+- Production data: 1 Draft PO; 3 invoices/6 details; no receiving, attachments, payments or Buyer Custody rows. PINV-1000/1001 are historical Posted no-PO SAR invoices totaling 3,970 with 50 PurchaseIn units, supplier-ledger credits 3,970 and two Posted journals; paid_amount=0. Do not reverse without Finance/Owner review.
+- QA-SR PO/Invoice is inconsistent (PO Draft EGP, qty_received=5; invoice Draft SAR, is_received=true, received_date NULL, no receiving). Four document links point to two missing stock_voucher rows; provenance unknown. Do not delete/repair.
+- Migration lineage conflict: Production versions 20261102150516/20261102151137 versus operational Git filename prefixes 20261102160000/20261102162000; function bodies match. No db push until reconciled.
+- Staging has 62 migrations/70 public tables and lacks invoice/custody tables; not valid for full B E2E.
+- Cloudflare Pages check for HEAD 2b94681 failed at 19:16:47Z; parent 5d7b10e succeeded at 18:58:49Z. Served artifact/runtime remain UNVERIFIED.
+- Report608's Production rollback test is corroborated by logs: two purchase_create_po_atomic write transactions ended with ROLLBACK; no residual operation/audit/status rows. Report608 records no owner approval; do not repeat Production write tests. LVE609 used read-only Production queries only.
+- Next: prepare exact Change Set B approval package, restore exact live v13 source to operational Git only after approval, fix Receiver contract/quantity/idempotency/branch scope, design invoice-linked receiving and cash-vs-credit accounting, reconcile migration lineage, and diagnose Cloudflare failure. No source/Production/deployment changes before explicit owner approval under Master CTO §77.2.
+
+---
+
 ## LVE-607 — 2026-11-03 — Buyer Source Update
 
 Operational main HEAD: `2b94681bf0ce93ca9ea55066a3f52c0d1add1084` (parent `5d7b10e4fd0fdf1bb2299c87805f9c86d381cc35`; CSS build only, Buyer blob unchanged); Buyer blob: `7f82fceb0b2c2470d1f112aefeaa1341de5b71a8`. Buyer supplier master is now read-only; no SAVE_SUPPLIER call remains; active-only supplier selection is enforced, without equating is_active to formal approval. The vehicle tab is now «رصيدي» and no longer reads Fleet; no goods custody ledger exists yet. No DB, Edge, Parent, Receiver, or Production changes; B–E and E2E remain open. Report607: `doc/Draft/Reprots/Report607_BUYER_SAFE_SOURCE_EXECUTION_MASTER_SUPPLIER_AND_GOODS_CUSTODY_20261103.md`; checkpoint LVE-607 in CURRENT_STATE.md.
