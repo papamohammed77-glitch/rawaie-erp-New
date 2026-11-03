@@ -1,3 +1,20 @@
+## LVE-597 — 2026-11-03 — HR & Fleet Domain Architecture
+
+- Parent main.html calls save-employee v10 and delete-employee v4.
+- save-employee validates actor/company/users permission or real Owner, role exists, wildcard restrictions, branch scope, updates Auth + users with audit and rollback.
+- delete-employee deactivates/ban Auth, protects owner/self, preserves history.
+- hr_command_atomic (SECURITY DEFINER, authenticated/service_role EXECUTE) validates actor identity/company, HR permission or self-service/approver scope, operation_id and hr_command_log payload-hash idempotency. Commands cover profile/org/contracts/schedules/attendance/leave/requests/advances/payroll/documents.
+- hr_command_log_enforce_actor_identity enforces actor email/company.
+- hr_user_has_permission checks users.permissions + roles.permissions, not role_permissions; no current role_permissions key hr found.
+- fleet_command_atomic and fleet_query (SECURITY DEFINER, authenticated/service_role EXECUTE) validate actor/company. fleet_command_atomic requires operation_id and erp_operation_registry payload conflict; 18 commands cover vehicles/drivers/docs/contracts/assignments/odometer/fuel/maintenance/incidents/performance/expenses/Runsheet assignment/status.
+- Fleet core permissions include fleet.manage or manager roles; operational commands allow scoped warehouse/delivery/van-sales roles. fleet_query has read permissions/roles.
+- Fleet uses direct users.permissions and explicit role names, not full role_permissions union; current General Manager explicitly allowed by role name.
+- No HR/Fleet mutation or E2E. No source/DB/Edge/PR/deployment change.
+- Report: doc/Draft/Reprots/Report597_CTO_HR_AND_FLEET_DOMAIN_ARCHITECTURE_AUDIT_20261103.md. Report commit c78e430d9cc8cf69ced60a6a28f7e2fa68d8c0fb. CURRENT_STATE commit 93969ab73c593640d8f2fc7ee4cec6d5c45c2bc0.
+- Next: reuse HR/Fleet command patterns in Warehouse/Delivery/Finance fixes; no parallel executor or permission engine.
+
+---
+
 ## LVE-596 — 2026-11-03 — Public Storefront Checkout & Pricing
 
 - submit-online-order v11 supports Guest Checkout intentionally with verify_jwt=false but requires published storefront_key and maps to company_id.
