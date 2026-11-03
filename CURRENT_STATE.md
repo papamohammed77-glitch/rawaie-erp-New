@@ -4852,3 +4852,10 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - Inspected current Buyer (blob `aee14e6a4edbccd5fb95dff24f21daf1c6d21fcc`): write operations route through central purchase operations; no direct invoice-table DML found in inspected source.
 - `accountant.html`, `finance-manager.html`, and `receiver.html` have no references to the three invoice tables.
 - Remaining company-1 HTML apps and JS/TS consumers are not yet scanned; P0-A consumer compatibility remains OPEN pending that scan and authenticated E2E.
+
+
+## 2026-11-03 — Buyer invoice-table consumer scan CLOSED
+- Completed scan of all 30 company-1 HTML apps and all four company-level JS files in current `erp-frontend/main`.
+- Only non-Buyer/non-parent reference: `warehouse/vouchers.html` reads `purchase_invoices` with SELECT for supplier-return context. `main.html` invoice references are realtime/read-side only; Buyer writes route through central purchase operations. No direct DML consumer was found.
+- The SELECT-only invoice-table boundary is source-compatible across the scanned frontend tree. External integrations, unpublished branches, and Cloudflare served-artifact parity are outside this scan.
+- Production custody migration version `20261103160902` now has a matching Git source filename; mismatched `20261103160000_...` file removed.
