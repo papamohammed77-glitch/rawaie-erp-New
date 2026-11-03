@@ -1,3 +1,9 @@
+## LVE-607 — 2026-11-03 — Buyer Source Update
+
+Operational main HEAD: `5d7b10e4fd0fdf1bb2299c87805f9c86d381cc35`; Buyer blob: `7f82fceb0b2c2470d1f112aefeaa1341de5b71a8`. Buyer supplier master is now read-only; no SAVE_SUPPLIER call remains; active-only supplier selection is enforced, without equating is_active to formal approval. The vehicle tab is now «رصيدي» and no longer reads Fleet; no goods custody ledger exists yet. No DB, Edge, Parent, Receiver, or Production changes; B–E and E2E remain open. Report607: `doc/Draft/Reprots/Report607_BUYER_SAFE_SOURCE_EXECUTION_MASTER_SUPPLIER_AND_GOODS_CUSTODY_20261103.md`; checkpoint LVE-607 in CURRENT_STATE.md.
+
+---
+
 ## LVE-603 — 2026-11-03 — Buyer Cumulative Return Integrity & Supplier Acceptance
 
 - Revalidated operational Git: erp-frontend/main HEAD 743c9b170bf2314a9e4d64fd4d8104f2cc1aee8c, parent 2ce93c6d80ec4c38353bdf88880d06ae9e0abdde. Buyer blob aee14e6a4edbccd5fb95dff24f21daf1c6d21fcc; Core f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1; Receiver 3111b5e801d1bc021cf18fd66d633fbdc54ac0d6.
