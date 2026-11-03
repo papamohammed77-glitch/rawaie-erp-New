@@ -1,3 +1,44 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-597 — HR & Fleet Domain Architecture
+
+**VERIFIED AT:** 2026-11-03.  
+**Starting LAST VERIFIED EVENT:** LVE-596.
+
+## 1. HR domain
+
+- Parent main.html calls save-employee v10 and delete-employee v4.
+- save-employee validates JWT/actor/company, users permission or real Owner, role exists in company, wildcard restrictions, branch scope, and performs Auth + public.users update with audit and rollback.
+- delete-employee deactivates and bans Auth rather than hard-deleting; protects owner/self and preserves history.
+- hr_command_atomic is SECURITY DEFINER and executable by authenticated/service_role; validates actor identity, company, HR permission or self-service/approver scope, requires operation_id, and uses hr_command_log with payload_hash/idempotency.
+- HR commands cover profiles/org/contracts/schedules/attendance/leave/requests/advances/payroll/documents.
+- hr_command_log_enforce_actor_identity enforces actor email/company consistency.
+- hr_user_has_permission checks users.permissions and roles.permissions but not role_permissions; no current role_permissions key hr was found, so current impact not established.
+
+## 2. Fleet domain
+
+- fleet_command_atomic and fleet_query are SECURITY DEFINER and executable by authenticated/service_role.
+- Both validate actor identity/company; fleet_command_atomic requires operation_id and uses erp_operation_registry with payload conflict detection.
+- 18 commands cover vehicles, drivers, documents, contracts, assignments, odometer, fuel, maintenance, incidents, performance, expenses, Runsheet assignment and status.
+- Core command permissions include fleet.manage or manager roles; selected operational commands allow warehouse/delivery/van-sales roles/permissions.
+- fleet_query checks read permission or approved operational roles.
+- Fleet checks direct users.permissions and explicit role names rather than the full role_permissions union; current General Manager is explicitly allowed by role name, so no denial was established.
+
+## 3. Status
+
+- No HR or Fleet mutation or E2E was performed.
+- No source, DB, Edge, PR or deployment change occurred.
+- PR #10 remains Draft.
+- Runtime remains UNVERIFIED.
+
+## 4. Next priority
+
+Use HR/Fleet command patterns as internal reference when preparing Warehouse/Delivery/Finance fixes: actor identity, company scope, command-level permission, operation_id + payload conflict, assignment checks, audit. Do not create a new executor or permission engine.
+
+**Arabic report:** doc/Draft/Reprots/Report597_CTO_HR_AND_FLEET_DOMAIN_ARCHITECTURE_AUDIT_20261103.md  
+**Report commit:** c78e430d9cc8cf69ced60a6a28f7e2fa68d8c0fb  
+**Status:** HR/FLEET SOURCE+DB CONTRACTS MAPPED / RUNTIME UNVERIFIED / NOT CLOSED.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-596 — Public Storefront Checkout & Pricing
 
 **VERIFIED AT:** 2026-11-03.  
