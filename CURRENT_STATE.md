@@ -1,3 +1,70 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-600 — Buyer Assessment Integration & Owner Change Gates
+
+**VERIFIED AT:** 2026-11-03 Africa/Cairo.  
+**LAST VERIFIED EVENT:** Re-read Report589, current Buyer source on operational `main`, and the governing Master CTO document §§29, 32, 58–60, 77.2–77.4. Integrated the independent Buyer assessment into Report589 and defined prioritized repair Change Sets. Documentation was updated; no operational source or Production mutation was made.
+
+## Current State
+
+- **Operational source:** `papamohammed77-glitch/erp-frontend` / `main`.
+- **Buyer file:** `companies/company-1/purchasing/buyer.html`.
+- **Verified Buyer blob:** `73d746571a10b1720bdd31631004abce0ac9afa1` — 139,419 characters / 1,047 lines.
+- **PR #10:** LVE-587 field-workbench branch remains OPEN / DRAFT / unmerged per the latest recorded PR evidence; its improvements must not be treated as current `main` or production.
+- **Production Edge:** `save-purchase-order` v22 remains the last verified active version in Report589; `receive-purchase` v12 remains the last verified active version. No deployment was performed in this checkpoint.
+- **Assessment report:** `doc/Draft/Reprots/Report589_BUYER_COMPREHENSIVE_APPLICATION_ASSESSMENT_20261103.md` now includes §18, an integration addendum consolidating the independent assessment, direct source cross-checks, the Buyer-to-Edge operation gap, and prioritized repair Change Sets.
+- **Report commit:** `66f79014056b029a29bccdbd0c98b6f019c705df`.
+- **Report blob after update:** `e0f3ef54aae9eeb6d46c27098cc269e73c54ccd8`.
+
+## CONFIRMED — Additional Buyer Source Cross-Check
+
+1. Current `buyer.html` contains four `cost_price` references. PO, invoice, and quick-purchase paths prefill purchase price from this field; blank numeric input can be coerced to zero by `Number('')` while current validation permits zero.
+2. `createPurchaseInvoice()` sends `operation_id` on draft update, but not on new `CREATE_INVOICE`.
+3. `quickPurchase()` is only an alias to `createPurchaseInvoice()`; it is not a distinct Quick Market Purchase business process.
+4. `renderInvoices()` reads supplier invoices and performs filtering in the browser; it documents a 500-row cap. This is not server-side pagination or a dedicated market-purchase register.
+5. Buyer calls only a subset of the operations available in `save-purchase-order`. In particular, no direct Buyer UI invocation was found for `POST_INVOICE`, `RECEIVE_PO`, `CREATE_RETURN`, `POST_RETURN`, `POST_PAYMENT`, or `CANCEL_DOCUMENT`. Their presence in Edge does not prove that Buyer exposes or completes these workflows; other consumers must be checked before altering the shared contract.
+6. No source evidence establishes that PR #10 changes are live on main or served by Cloudflare.
+
+## CONFIRMED — Governance Gate
+
+Master CTO §77.2 explicitly requires the exact proposed change, evidence, complete code/SQL, impacts, dependencies, acceptance tests, and rollback to be presented, followed by explicit owner approval of that exact changeset. A broad request to implement the task is not blanket approval for undisclosed production or business-critical changes. Master §§29–30 and Report589's decision preserve the owner review/application path for operational HTML. No bypass is authorized.
+
+## Change Sets Prepared — NOT EXECUTED
+
+- **P0-A:** Remove direct client DML on purchase invoice headers/details/attachments while preserving required SELECT and approved server-side writers; requires consumer scan and exact SQL approval.
+- **P0-B:** Add effective functional permission and branch/warehouse assignment checks to existing `receive-purchase` v12 / RPC contract; no new Edge Function; requires exact code and tests.
+- **P0-C:** In Buyer HTML, separate blank price from explicit zero, remove automatic `cost_price` purchase-price prefill, and implement durable operation identity for new invoice creation; owner source-review/application gate applies.
+- **P1:** Define Quick Market Purchase classification, seller identity, private evidence/storage, and direct physical receiving contract.
+- **P1:** Separate cash-custody expense categories from supplier AP/payment and approve accounting mappings before changing RPCs.
+- **P2:** Design a purchasing-vehicle goods-custody ledger distinct from Fleet driver assignment and Delivery van stock.
+- **P3:** Supplier scorecards, agreements, landed-cost comparison, vendor collaboration, demand forecasting, and spend analytics.
+
+## Work Completed in LVE-600
+
+- Integrated the independent Buyer assessment into Report589 §18.
+- Rechecked current Buyer main SHA and exact price/idempotency/quick-purchase behavior.
+- Distinguished UI-invoked operations from backend-supported operations.
+- Defined Change Sets and acceptance criteria in the report.
+- Updated this project-state checkpoint.
+
+## NOT DONE / NOT VERIFIED
+
+- No edit to `buyer.html` or any other operational HTML.
+- No direct Production write; no SQL, DDL, migration, RLS, ACL, grant, RPC, trigger, or data mutation.
+- No Edge deployment or Cloudflare publish.
+- No PR #10 merge.
+- No authenticated Browser E2E, no live receiving/payment/return transaction, and no real market-purchase/custody/vehicle E2E.
+- No proof that Cloudflare currently serves the exact Buyer blob recorded above.
+
+## Next Exact Execution Point
+
+1. Prepare and present **P0-A exact SQL** after scanning all consumers of invoice tables and attachments; include before/after grants and policies, tests, and rollback.
+2. Prepare and present **P0-B complete replacement** for the existing `receive-purchase` authorization path and its RPC dependencies; test positive/negative role, company, and branch cases plus idempotent partial/full receiving.
+3. Present **P0-C full Buyer function/block changes** to the owner for review/application, without modifying the operational HTML directly.
+4. Execute each approved changeset only after explicit approval of that exact artifact; verify Production, Git alignment, runtime, and update this file again.
+
+**STATUS:** BUYER ASSESSMENTS INTEGRATED / PRIORITIZED CHANGESETS DOCUMENTED / NO OPERATIONAL OR PRODUCTION CHANGE / OWNER APPROVAL GATE OPEN / NOT CLOSED.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-589 — Buyer Comprehensive Application / Procurement & Accounting Assessment
 
 **VERIFIED AT:** 2026-11-03 Africa/Cairo.  
