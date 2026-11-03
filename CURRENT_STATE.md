@@ -1,3 +1,46 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-609
+
+**Timestamp:** 2026-11-03 23:30 Africa/Cairo (21:30 UTC)  
+**LAST VERIFIED EVENT:** Independent revalidation of Buyer/Receiver Change Set B against operational Git, SMART ERP Production, deployed Edge versions, migrations, business data, RLS/GRANTS, staging and available deployment checks.  
+**Report:** doc/Draft/Reprots/Report609_BUYER_RECEIVER_PRODUCTION_RECONCILIATION_20261103.md  
+**Report commit:** 84fb16856c030963766b63cbf8418e00e9e927c7  
+**Previous report:** Report608 exists, but CURRENT_STATE had remained at LVE607; LVE609 reconciles that documentation gap. Report608 is retained unchanged.
+
+## CURRENT STATE — CONFIRMED
+
+- Operational repo: papamohammed77-glitch/erp-frontend, branch main, HEAD 2b94681bf0ce93ca9ea55066a3f52c0d1add1084; parent 5d7b10e4fd0fdf1bb2299c87805f9c86d381cc35.
+- Current source blobs: Buyer 7f82fceb0b2c2470d1f112aefeaa1341de5b71a8; Receiver 3111b5e801d1bc021cf18fd66d633fbdc54ac0d6; Core f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1.
+- SMART ERP Production is ACTIVE_HEALTHY; PostgreSQL 17.6.1.121; 737 migrations; latest relevant migrations 20261103155029, 20261103155444, 20261103160902.
+- save-purchase-order v22 is active, verify_jwt=true, and byte-identical to operational Git. receive-purchase v13 is active, verify_jwt=true, but its exact source is still absent from operational Git; the governance snapshot is older and must not be deployed.
+- Receiver source/schema mismatch remains: details query uses po_code while purchase_order_details only has po_id; no explicit res.error handling; parseInt truncates decimals; remaining quantity is not read; zero is allowed; no operation_id is sent; branch list is not filtered.
+- receive_purchase_atomic v5 is service_role-only and enforces company/user/role/branch. It still permits an all-zero item array to create a completed receiving header and mark PO Partially Received without details or stock/GL/AP effects. Its idempotency key fallback is deterministic from payload; the same payload can collapse two distinct physical receipts.
+- receiving/receiving_details have no invoice-header/line linkage. Quick Market Invoice can be created as Draft without PO, but post is blocked until a receipt contract exists. Cash-vs-credit accounting treatment for market purchases is not approved; do not reuse PO AP posting blindly.
+- Invoice tables/attachments are central-writer: anon has no access; authenticated has SELECT only. receiving tables retain broad anon/authenticated DML GRANTS while RLS exposes SELECT policies only; hardening remains a separate reviewed change. PO/Invoice SELECT policies are company-scoped, not branch/permission-scoped. receiving self-read policy compares responsible to users.name while the RPC writes the email; role_permissions is not included in current_user_has_permission.
+- Production data snapshot: PO=1 (Draft), PO details=1, invoices=3, invoice details=6, receiving=0, receiving_details=0, purchase_attachments=0, purchase_payments=0, Buyer custody tables=0, stock_vouchers=0, purchase_document_links=4, inventory_log=76, supplier_ledger=2, journal_entries=19.
+- Two legacy no-PO Posted invoices (PINV-1000 SAR 2,640 and PINV-1001 SAR 1,330) predate the current posting guard. They have no receiving/attachments, but have 50 total PurchaseIn units, supplier-ledger credits totaling 3,970, and two Posted journal entries; paid_amount=0. Do not reverse or alter without Finance/Owner reconciliation.
+- QA-SR PO/Invoice remains inconsistent: PO Draft EGP with qty_received=5; linked invoice Draft SAR with is_received=true but received_date NULL; no receiving row. Four purchase_document_links point to two stock_voucher IDs absent from the current stock_vouchers table. Their provenance/meaning is UNKNOWN; do not delete or repair without owner review.
+- Production migration registry versions 20261102150516/20261102151137 differ from operational Git filename prefixes 20261102160000/20261102162000. The relevant function bodies match byte-for-byte; migration lineage remains CONFLICT. No db push or renumbering.
+- Staging rawaea-staging has 62 migrations and 70 public tables but lacks purchase_invoices, purchase_invoice_details and Buyer custody tables; it is not a valid full Change Set B E2E environment.
+- Cloudflare Pages check for current HEAD 2b94681 failed at 2026-11-03 19:16:47 UTC; the parent 5d7b10e succeeded at 18:58:49 UTC. This is check metadata only; served HTML/JS, headers/cache and runtime remain UNVERIFIED.
+- Report608's Production rollback test is corroborated by Postgres logs: two write transactions called purchase_create_po_atomic and ended with ROLLBACK. Current queries show no residual operation rows, audit rows or status-history rows. Report608 records lack of owner approval; no approval evidence was found in CURRENT_STATE. Do not repeat Production write tests. LVE609 itself used read-only Production queries only.
+
+## OPEN BLOCKERS
+
+1. Owner approval of the exact Change Set B source/schema/RPC/RLS changes under Master CTO §77.2.
+2. Restore exact deployed receive-purchase v13 source to operational Git before extending it; do not use the stale governance snapshot.
+3. Correct Receiver po_id lookup, error handling, branch filtering, decimal/remaining quantity, zero rejection, accepted/rejected variance and per-physical-event idempotency.
+4. Approve the invoice-linked receiving schema and the cash-vs-credit accounting treatment; do not double-post stock/AP/GL.
+5. Reconcile the two legacy Posted no-PO invoices and QA-SR/orphan document-link records without destructive cleanup.
+6. Resolve migration version lineage mismatch before any migration push.
+7. Diagnose the current Cloudflare Pages failure and obtain direct served-artifact/runtime evidence.
+8. Build a Staging environment with the complete Buyer/Receiving/Custody schema before E2E.
+
+## NEXT EXACT EXECUTION
+
+Prepare the complete Change Set B approval package, including the new zero-quantity/idempotency/branch-read/RLS and migration-lineage findings, and diagnose the Cloudflare check failure. Do not edit operational Git, Production schema/data/RLS/GRANTS/RPC/Edge, or deploy until the owner approves the exact change. No new Edge Function; no broad main.html edits; no repeat of already-applied P0 migrations.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-607 — Buyer Safe Source Execution / Supplier Master & Goods Custody Naming
 
 **VERIFIED AT:** 2026-11-03 Africa/Cairo.  
