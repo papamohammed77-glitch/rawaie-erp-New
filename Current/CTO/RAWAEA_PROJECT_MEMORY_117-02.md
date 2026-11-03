@@ -1,3 +1,20 @@
+## LVE-599 — 2026-11-03 — Procurement Receiving/Invoice/Payment/Return Flow
+
+- purchase_create_invoice_atomic_v2 creates Draft only.
+- receive_purchase_atomic (5 args) requires operation_id + payload fingerprint; locks PO/details, validates remaining qty, posts PurchaseIn, increments qty_received/PO status, creates Dr Inventory 124 / Cr Supplier 211 journal and supplier_ledger credit.
+- receive-purchase Edge v12 and RPC do not enforce warehouse/receiver permission; carried forward from LVE-590.
+- purchase_post_invoice_atomic for PO invoices requires receiving, validates qty against received minus prior invoices, price/tax/total against PO, then marks Posted with stock_posted_by_invoice=false and supplier_liability_posted_by_invoice=false (no duplicate stock/AP).
+- Quick invoice without PO is rejected (PURCHASE_QUICK_INVOICE_RECEIPT_REQUIRED); owner policy required.
+- purchase_post_payment_atomic posts cash payment, allocations, invoice paid status, supplier_ledger debit.
+- purchase_post_return_atomic posts SupplierReturn stock-out, Dr Supplier/Cr Inventory, supplier_ledger debit.
+- purchase_update_draft_invoice_atomic prevents editing after receiving/payment/posting/downstream references.
+- Accounting policy question: GRN currently recognizes supplier liability directly to account 211 and supplier_ledger; decide whether this is intended AP or should use GRNI/GRIR clearing; do not change without accountant/owner.
+- No PO/receipt/invoice/payment/return operation, no source/DB/Edge/deployment change.
+- Report: doc/Draft/Reprots/Report599_CTO_PROCUREMENT_RECEIVING_INVOICE_PAYMENT_ACCOUNTING_FLOW_20261103.md. Report commit 880865555fa24e89e6548270163b884d2679eccc. CURRENT_STATE commit c26f7fa3ac6514a5643aada4c78f6e98a2d24cb9.
+- Next: owner decisions on quick market purchase and GRNI/AP policy, then receiving authorization and isolated E2E.
+
+---
+
 ## LVE-598 — 2026-11-03 — POS Invoice Decision Gate
 
 - save-sales-invoice v19 accepts effective pos/van-sales/orders permission; save_sales_invoice_atomic requires operation_id and calls sales_decision_engine_atomic(VALIDATE_ORDER) for Invoiced.
