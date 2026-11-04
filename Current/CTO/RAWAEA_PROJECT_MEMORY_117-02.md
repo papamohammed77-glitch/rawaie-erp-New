@@ -1,3 +1,20 @@
+# LVE-2026-11-04-631 — Buyer Invoice Evidence / Security / Performance
+
+- Report631: [Buyer Attachment, Security and Performance Hardening](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report631_BUYER_ATTACHMENT_SECURITY_PERFORMANCE_20261104.md), commit `9f4c67dfe28d3dafad74d85b161ea732805438ee`.
+- Operational HEAD `b47a56379018e1965e98bb25015d860ba0f70a9f`; Buyer blob `d22d9d914069c820d47ba2dc7e6ead721e1b26d3`; Tailwind CSS commit `10e9a875053743dd9eeb593c973968086572cf14`.
+- Buyer Quick Market supplier invoice image/PDF workflow implemented in Buyer source; new drafts require JPEG/PNG/WEBP/PDF <=10MB. Upload path binds company/user/invoice, Edge validates invoice ownership/source/draft status/path/object/MIME/size, registration is idempotent, and invoice detail shows a 5-minute signed URL. Unknown attachment outcome preserves file and draft.
+- Edge `save-purchase-order` v28 ACTIVE, verify_jwt true, SHA256 `663b4bab72a4c81ec93b53d3f15a29902fa9984320f11a198209a46ac45646e2`, archived blob `7291a8ca704213a244d740ed7ce8f01920f5dac4`. v28 uses Storage API `info(path)`; v27 superseded.
+- Storage bucket `employee-documents` remains private. Finance/Finance Manager/Owner can read only same-company buyer-goods objects tied to Quick Market invoice. Warehouse/Receiver not granted until branch-scoped integration.
+- `purchase_attachments` RLS limits PurchaseInvoice metadata to purchaser/creator or Finance/Finance Manager/Owner; Edge GET_DATA scopes non-finance to visible invoices. RLS test rolled back: buyer 0, finance 1, finance_manager 1, owner 1, warehouse 0. Unique path test rolled back: first insert 1, duplicate 0.
+- Returns tables are central-writer-only: anon no privileges, authenticated SELECT only, service_role DML; Parent reads via SELECT/RLS and writes via Edge central RPCs.
+- Eight migrations applied/recorded: 20261104213909, 20261104214839, 20261104215236, 20261104215443, 20261104215757, 20261104220325, 20261104220515, 20261104220659.
+- Added 10 Buyer goods/return indexes and 48 further Buyer/Purchase FK indexes. Performance Advisor: 0 unindexed FK findings in buyer_/purchase_ scope; 244 remain elsewhere.
+- Revoked EXECUTE from PUBLIC/anon/authenticated on 16 trigger-only SECURITY DEFINER functions; service_role/postgres retained and all triggers remain attached. Pinned `sales_decision_default_policy()` to search_path pg_catalog. Reviewed 20 authenticated Buyer/Purchase SECURITY DEFINER RPCs; retained because they enforce auth.uid/company/permission/ownership and Edge calls with user JWT.
+- Security Advisor remaining: 2 intentional public-store SECURITY DEFINER functions, 123 authenticated SECURITY DEFINER systemwide, 24 RLS-enabled-no-policy INFO, and one leaked-password-protection warning.
+- Buyer JS parse check PASS; Tailwind CSS generated. Cloudflare deployment still unverified and authenticated upload/signed URL E2E not run.
+- Current production data: EGP, 3 historical purchase invoices, 0 Quick Market invoices, 0 Buyer cash custodies, 0 goods events, 0 returns/details, 0 attachments. No test data remains.
+- Remaining: Buyer→Warehouse/partial acceptance waits for Receiver; Buyer→Supplier requires separate physical custody/return accounting design; purchase invoice RLS consumer map; Parent stale SAR UI constants; Cloudflare/E2E; 244 global FK and 123 authenticated SECURITY DEFINER audits; Auth leaked-password protection setting.
+
 # LVE-2026-11-04-630 — Purchase Returns Central Writer Enforced
 
 - Report630: [Purchase Returns Central Writer Hardening](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report630_PURCHASE_RETURNS_CENTRAL_WRITER_HARDENING_20261104.md), report commit `222ad88f4196e754d67bad7024766bb053b117ac`.
