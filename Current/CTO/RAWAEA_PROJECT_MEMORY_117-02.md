@@ -1,3 +1,14 @@
+# LVE-2026-11-04-616 — Receiver Surgical Patch + Buyer Custody Schema Draft
+
+- Report616: [Receiver surgical patch and Buyer custody schema draft](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report616_RECEIVER_SURGICAL_PATCH_AND_BUYER_CUSTODY_SCHEMA_DRAFT_20261104.md), commit `95d8b6322754672ce0b415e5d24689a6a675de1c`.
+- SQL draft: [01_buyer_goods_custody_schema_security_DRAFT.sql](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/ChangeSets/20261104/01_buyer_goods_custody_schema_security_DRAFT.sql), commit `193fe7cfa6946b67903ecdf47e6f3abbadd098d8`.
+- Report616 contains exact Receiver source patch for: select PO `id`; query detail rows by `po_id`; calculate remaining quantity using `qty_ordered - qty_received`; hide action on query failure/empty lines; use decimal-safe `Number` and input `step=0.001`.
+- SQL draft contains additive schema scaffolding for buyer goods custody events, return acceptance batches, voucher recipient mode/issued quantities, Parent return linkage, invoice source/settlement, invoice-to-Receiving links, custody expense classification, append-only ledger trigger, RLS/least-privilege return table access and Realtime publication.
+- Critical: SQL file is explicitly NOT a complete deployable migration. It omits full RPC/Trigger replacements and requires companion source changes, tests, rollback and exact owner approval. It was not executed.
+- No operational source edit, Production schema/data write, Edge deployment, or test fixture was made. Status remains NOT IMPLEMENTED / NOT PRODUCTION READY.
+
+---
+
 # LVE-2026-11-04-615 — Buyer / Receiver / Quick Market / Return Security Revalidation
 
 - Report: [Report615_BUYER_RECEIVER_SECURITY_QUICK_MARKET_REVALIDATION_20261104.md](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report615_BUYER_RECEIVER_SECURITY_QUICK_MARKET_REVALIDATION_20261104.md), commit `64e0988cf7bae218c3d1e7766c0ffe45136cff7e`.
