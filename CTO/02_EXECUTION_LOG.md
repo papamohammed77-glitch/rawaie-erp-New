@@ -1,3 +1,15 @@
+## LVE-2026-11-04-619 — Buyer Custody RPC / Single-Writer Posting Contract
+
+**Status:** SERVER CONTRACT DESIGN / NOT IMPLEMENTED.  
+**Report:** [Report619_BUYER_CUSTODY_RPC_SINGLE_WRITER_POSTING_CONTRACT_20261104.md](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report619_BUYER_CUSTODY_RPC_SINGLE_WRITER_POSTING_CONTRACT_20261104.md) — commit `e3c0fc755815cf5e49c972a1d67607c8cddc9823`.  
+**Schema draft v2:** `Current/CTO/ChangeSets/20261104/02_buyer_goods_custody_schema_security_DRAFT_v2.sql` — commit `2961a45d34349033991b36ad8312a71933d45c61`; still not executable alone.
+
+Defined exact RPC contracts and invariants for ledger reads, Quick Market handover, Buyer-to-Warehouse receiving, invoice-ID receiving, SupplierReturn case, dispatch, supplier acceptance batches, financial posting, currency, and cash-custody review. Single-writer rule: physical stock issue once, Buyer event balance once, AP/GL only for accepted supplier quantity, and linked finance posting never posts stock a second time.
+
+No operational or Production write, no Edge deployment, no test fixture.
+
+---
+
 ## LVE-2026-11-04-618 — Buyer Goods Custody / Quick Market UX Specification
 
 **Status:** APPLICATION SPECIFICATION PREPARED / NOT APPLIED.  
