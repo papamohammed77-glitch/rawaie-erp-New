@@ -1,3 +1,15 @@
+# LVE-2026-11-04-630 — Purchase Returns Central Writer Enforced
+
+- Report630: [Purchase Returns Central Writer Hardening](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report630_PURCHASE_RETURNS_CENTRAL_WRITER_HARDENING_20261104.md), report commit `222ad88f4196e754d67bad7024766bb053b117ac`.
+- Scanned 34 company-1 HTML/JS files and six Edge functions. Parent main.html reads `purchase_returns` directly via Supabase SELECT but creates/posts via `save-purchase-order` Edge `CREATE_RETURN`/`POST_RETURN`; Buyer reads only. No direct DML consumers found in app sources.
+- RPCs `purchase_create_return_atomic` and `purchase_post_return_atomic` are SECURITY DEFINER and EXECUTE only service_role/postgres.
+- Applied Production migration `buyer_purchase_returns_central_writer_only_20261104`, version `20261104214839`: anon has no privileges; authenticated SELECT only; service_role retains DML. RLS policies SELECT-only and company-scoped. Verified with ACL, policies, has_table_privilege and a simulated authenticated SELECT transaction.
+- Operational migration blob refs: 01 hardening `eff1da92b8045b6f439b3aae67008dab17303042`; returns writer `abbb1aa308c4325b2db7aecc3d49bd530f5218db`.
+- Edge v26 archived exact with manifest; v26 remains ACTIVE, verify_jwt true, SHA256 `fb31ac953213d6f30a9e545f1da3b9075ca28638b5032450618769d20f2cb5b4`.
+- Buyer LVE629 commit `a35cd59fab199e1614536cd4ce5421179a907608` adds local Quick Market supplier search; earlier commit `240858a` adds unknown-outcome evidence protection and Realtime.
+- Parent purchasing UI has stale `currency: 'SAR'` payload constants, but Edge v26 CREATE_QUOTATION/CREATE_INVOICE forces system currency from app_settings (EGP). Parent not edited; stale UI constants remain for separate parent-scoped change.
+- Remaining: Quick Market invoice image and purchase_attachments workflow; Storage SELECT for Finance and branch-scoped Warehouse; invoice RLS consumer map; Buyer→Warehouse/Supplier and partial acceptance; Cloudflare deployment parity and authenticated E2E. Receiver deferred. No business data/test fixtures.
+
 # LVE-2026-11-04-629 — Buyer Quick Market Supplier Search / Storage Boundary
 
 - Report629: [Buyer Quick Market Supplier Search and Storage Boundary](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report629_BUYER_QUICK_MARKET_SUPPLIER_SEARCH_STORAGE_BOUNDARY_20261104.md), commit `74ec5ee64c4be4a7a8d180b64654c682cbad3e31`.
