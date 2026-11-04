@@ -5819,6 +5819,7 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
   6. `buyer_phase1_06_goods_custody_realtime`
   7. `buyer_phase1_07_draft_ownership_guards`
   8. `buyer_phase1_08_legacy_invoice_duplicate_guard`
+  9. `buyer_phase1_09_effective_permission_only_rpc_guards`
 - Live verification: Buyer goods custody table exists; RLS ON; authenticated SELECT only, no authenticated INSERT/UPDATE/DELETE; one authorized SELECT policy; append-only trigger enabled; Realtime publication membership true. New Buyer SECURITY DEFINER RPCs have empty search_path. anon EXECUTE is false; authenticated EXECUTE only on intended RPCs.
 - Live business rows after migrations: purchase_invoices=3, all 3 LEGACY_UNCLASSIFIED; PO-source=0; Quick Market=0; buyer_goods_custody_events=0; buyer_custodies=0; buyer_custody_expenses=0; purchase_returns=0; inventory_log=76; supplier_ledger=2; journal_entries Posted=17 and Cancelled=2; app_settings currency=EGP. No test or financial/stock rows created.
 - Existing invoices PINV-1000/1001/QA-SR-INV remain unchanged in historical SAR; no reversal/deletion/reclassification.
