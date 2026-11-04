@@ -21,7 +21,7 @@ BEGIN
       CHECK (
         (expense_type='PURCHASE_INVOICE' AND expense_category IS NULL)
         OR
-        (expense_type='OPERATIONAL' AND expense_category IN ('TRANSPORTATION','FUEL','TOLLS_PARKING','OTHER'))
+        (expense_type='OPERATIONAL' AND expense_category IS NOT NULL AND expense_category IN ('TRANSPORTATION','FUEL','TOLLS_PARKING','OTHER'))
       );
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.buyer_custody_expenses'::regclass AND conname='buyer_custody_expenses_operational_document_scope_ck') THEN
@@ -36,6 +36,15 @@ BEGIN
     ALTER TABLE public.buyer_custody_expenses
       ADD CONSTRAINT buyer_custody_expenses_expense_account_fk
       FOREIGN KEY (expense_account_id) REFERENCES public.chart_of_accounts(id) ON DELETE RESTRICT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.buyer_custody_expenses'::regclass AND conname='buyer_custody_expenses_operational_approved_journal_ck') THEN
+    ALTER TABLE public.buyer_custody_expenses
+      ADD CONSTRAINT buyer_custody_expenses_operational_approved_journal_ck
+      CHECK (
+        expense_type <> 'OPERATIONAL'
+        OR status <> 'Approved'
+        OR (expense_account_id IS NOT NULL AND journal_entry_id IS NOT NULL)
+      );
   END IF;
 END $$;
 
