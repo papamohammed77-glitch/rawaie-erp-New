@@ -1303,3 +1303,5 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - Receiver.html وSupplierReturn لم يتغيرا؛ لا Edge slug جديد ولا فرع ولا PR ولا Mother/Core/تطبيق آخر.
 - تقرير التنفيذ: `doc/Draft/Reprots/Report624_BUYER_PHASE1_PRODUCTION_SCHEMA_EDGE_UI_20261104.md`, SHA `e9cfa3beb19ee1b635473ff25f3283551cc07781`, 189 lines.
 - الاستئناف: تحقق/أكمل Cloudflare Pages deployment للـcommit `3717c027`، ثم اختبارات مستخدم Buyer مصادق read-only وSQL transaction rollback؛ لا تترك فاتورة أو append-only handover event تجريبيًا دائمًا. Receiver بعد قبول Buyer فقط.
+
+- تحديث لاحق LVE624: Cloudflare Pages أكد Production deployment للـBuyer commit `3717c0279b856127d29fb9f912ec502523761da5`، Preview URL `https://633d858b.rawaea-erp.pages.dev/`. هذا يلغي ملاحظة "deployment غير مثبت" السابقة؛ يبقى اختبار Buyer المصادق وE2E غير منفذ لعدم وجود جلسة مستخدم مصادق في المتصفح. Report624 الحالي SHA `5b20448251415846bc627ddb59453278fdc77dda`.
