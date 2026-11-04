@@ -1,3 +1,35 @@
+## LVE-2026-11-04-630 — Purchase Returns Central Writer Enforced
+
+**Status:** RETURNS CENTRAL WRITER ENFORCED / PARENT SELECT PRESERVED / SERVICE ROLE RPC WRITERS VERIFIED.  
+**Report:** [Report630](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report630_PURCHASE_RETURNS_CENTRAL_WRITER_HARDENING_20261104.md) — report commit `222ad88f4196e754d67bad7024766bb053b117ac`.
+
+### Consumer mapping
+- Scanned 34 `companies/company-1` HTML/JS files and six Supabase Edge Function source files.
+- Parent `main.html` reads `purchase_returns` directly via Supabase SELECT/RLS; creates/posts only through Edge `CREATE_RETURN`/`POST_RETURN`.
+- Buyer reads returns; no DML.
+- No direct return table writes in other app sources.
+- Central RPCs `purchase_create_return_atomic` and `purchase_post_return_atomic` are SECURITY DEFINER; EXECUTE only service_role/postgres.
+
+### Applied
+- Migration `buyer_purchase_returns_central_writer_only_20261104`, version `20261104214839`.
+- Revoked all anon/authenticated privileges on `purchase_returns` and `purchase_return_details`, then granted authenticated SELECT only.
+- Replaced ALL policies with SELECT-only company-scoped policies.
+- service_role retains DML for central Edge/RPC writer.
+
+### Verification
+- Migration compile tested in BEGIN/ROLLBACK, then applied.
+- ACL: anon none; authenticated SELECT only; service_role DML retained.
+- Policies: SELECT-only company-scoped.
+- Simulated authenticated read under SET LOCAL ROLE authenticated resolved company and successfully selected both tables (0 rows); transaction rolled back.
+- Added exact SQL migration files to operational repo:
+  - `20261104213909_buyer_phase1_hardening_20261104.sql` blob `eff1da92b8045b6f439b3aae67008dab17303042`.
+  - `20261104214839_buyer_purchase_returns_central_writer_only_20261104.sql` blob `abbb1aa308c4325b2db7aecc3d49bd530f5218db`.
+- Archived live Edge v26 and manifest in governance repo.
+
+### Parent and remaining work
+- Parent has stale `currency: 'SAR'` values in purchase quote/invoice payloads, but Edge v26 overrides them with system currency; no main.html edit made.
+- Storage image read access, invoice image attachment, purchase invoice RLS consumer map, Buyer→Warehouse/Supplier/partial acceptance, Cloudflare parity and authenticated E2E remain open. Receiver deferred. No business data modified.
+
 ## LVE-2026-11-04-629 — Buyer Supplier Search / Storage Access Boundary
 
 **Status:** Buyer local supplier search committed; invoice image and cross-role Storage reads remain open.  
