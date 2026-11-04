@@ -69,8 +69,8 @@
 ## 5. توثيق المصدر التشغيلي
 
 تم تسجيل ملفات SQL المطبقة في المستودع التشغيلي:
-1. `supabase/migrations/20261104213909_buyer_phase1_hardening_20261104.sql` — blob `<verified-on-fetch>`.
-2. `supabase/migrations/20261104214839_buyer_purchase_returns_central_writer_only_20261104.sql` — migration version `20261104214839`.
+1. `supabase/migrations/20261104213909_buyer_phase1_hardening_20261104.sql` — blob `eff1da92b8045b6f439b3aae67008dab17303042`.
+2. `supabase/migrations/20261104214839_buyer_purchase_returns_central_writer_only_20261104.sql` — blob `abbb1aa308c4325b2db7aecc3d49bd530f5218db`, migration version `20261104214839`.
 
 وتم أرشفة المصدر الحي لـ Edge v26 في مستودع الحوكمة:
 - `Current/CTO/EdgeSnapshots/20261104/save-purchase-order_v26/index.ts`
