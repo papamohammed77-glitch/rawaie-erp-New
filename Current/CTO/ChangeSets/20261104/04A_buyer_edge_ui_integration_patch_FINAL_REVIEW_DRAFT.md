@@ -306,6 +306,16 @@ var events=Array.isArray(result.events)?result.events:[];
 الصيغة المفاهيمية:
 `المتاح = النقد المؤكد الاستلام - المصروفات Submitted/Approved - حجوزات فواتير Quick Market Draft غير المسواة`.
 
+في `renderToday` و`renderCustody` يجب حساب الحجوزات من `purchase_invoices` التي تحقق جميع الشروط:
+```javascript
+purchase_source === 'QUICK_MARKET'
+settlement_source === 'EMPLOYEE_CUSTODY'
+cash_custody_id === custody.id
+status === 'Draft'
+settlement_status === 'UNSETTLED'
+```
+ثم طرح مجموع `total_amount` من رصيد النقد المؤكد بعد استبعاد الفاتورة الحالية عند تعديلها. لا تخصم فواتير المورد الآجلة أو الفواتير التاريخية غير المصنفة. يجب استخدام نفس العملة فقط، ويظل فحص SQL هو مصدر الحسم عند الحفظ؛ العرض الأمامي للتنبيه فقط.
+
 لا تُخصم فاتورة PO الآجلة من عهدة نقدية لمجرد أنها موجودة. ولا يُسمح للحسابات أن تجمع عملات مختلفة.
 
 ---
