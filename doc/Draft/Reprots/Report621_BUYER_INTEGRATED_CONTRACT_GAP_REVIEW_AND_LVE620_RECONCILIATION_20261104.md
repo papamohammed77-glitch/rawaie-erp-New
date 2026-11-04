@@ -293,6 +293,13 @@ v2 corrected several key risks: preserves the invoice NOT NULL and existing stat
 
 ### v4 — review draft created in this review
 
+File: `Current/CTO/ChangeSets/20261104/04_buyer_goods_custody_schema_security_REVIEWED_DRAFT_v4.sql`; latest blob `585b7091c3692be519d9455bc27036f5a1c93153`; correction commit `647fec6a9b7d7201cf06941bc016806849ee2cba`.
+
+A first text-generation defect in the currency CHECK was caught during self-review before use, repaired, and re-fetched. A lexical/parenthesis scan of the current file returned balanced parentheses, closed single-quoted strings and dollar-quoted blocks, and 63 statement terminators. This is only a source-text sanity check, **not** a PostgreSQL compile, migration dry-run, schema-parity test or execution approval.
+
+v4:
+
+
 File: `Current/CTO/ChangeSets/20261104/04_buyer_goods_custody_schema_security_REVIEWED_DRAFT_v4.sql`.
 
 v4:
