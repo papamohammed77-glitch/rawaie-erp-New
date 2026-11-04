@@ -12,12 +12,12 @@
 | Supabase SMART ERP schema/RPC/RLS/Realtime | <span>مطبق ومتحقق من الوجود والتواقيع والمنح</span> |
 | Edge `save-purchase-order` | الإصدار 25 ACTIVE |
 | Buyer `companies/company-1/purchasing/buyer.html` | التعديل committed على main |
-| Buyer Cloudflare Pages production deployment | **غير مؤكد بعد**؛ لوحة Cloudflare المفتوحة ما زالت تعرض آخر commit منشورًا `e8ab54c` قبل تعديلات Buyer الحالية |
+| Buyer Cloudflare Pages production deployment | <badge>منشور ومؤكد</badge>؛ لوحة Cloudflare تعرض commit `3717c027` وPreview deployment `633d858b.rawaea-erp.pages.dev` |
 | اختبار مستخدم مشتريات مصادق end-to-end | لم ينفذ؛ لا توجد جلسة Buyer مفتوحة في المتصفح الحالي |
 | Receiver | لم يُعدل ولم يُنشر |
 | بيانات الفواتير/المخزون/المورد/القيود/الخزينة | لم تُنشأ أو تُعدل لهذا التنفيذ |
 
-لا أصف واجهة Buyer بأنها منشورة على Cloudflare قبل ظهور deployment يحمل commit الحالي. Automatic deployments مفعلة في لوحة Cloudflare، لكن الحالة المرئية لم تثبت اكتمال build/deploy بعد.
+تم تأكيد اكتمال Cloudflare Pages deployment للـcommit الحالي من لوحة Cloudflare. هذا يثبت النشر فقط؛ لم يتم اختبار تحميل التطبيق وتفاعلاته من جلسة Buyer مصادق.
 
 ## 2. تغييرات قاعدة البيانات المطبقة
 
@@ -162,7 +162,7 @@
 
 ## 6. ما لم يكتمل بعد — لا يُخفى
 
-1. **Cloudflare Pages UI deployment:** لم يتأكد نشر commit `3717c027`. لوحة Cloudflare التي أمكن قراءتها كانت لا تزال تعرض `e8ab54c` كآخر Production deployment. لا تختبر Buyer UI في Production باعتبارها منشورة حتى يظهر deployment جديد لهذا commit أو أحدث.
+1. **Cloudflare Pages UI deployment:** تم تأكيد نشر commit `3717c0279b856127d29fb9f912ec502523761da5` في Production؛ Preview URL: `https://633d858b.rawaea-erp.pages.dev/`. تعذر فحص الصفحة عبر أداة قراءة الويب، ولم يتم اختبار التطبيق من جلسة Buyer مصادق.
 2. **Authenticated E2E:** لم تتوفر جلسة Buyer مصادق في المتصفح؛ لم ننشئ فاتورة أو حدث حيازة دائمًا للاختبار. يلزم اختبار قبول بمستخدم مشتريات حقيقي داخل transaction rollback أو مسار QA مؤقت آمن.
 3. **Quick Market receiving/financial settlement:** يبقى محجوبًا عمدًا حتى تطوير Receiver لاحقًا. لا يتم POST ولا stock/AP/GL/cash posting من Buyer.
 4. **SupplierReturn:** لم يُعدل؛ قبول المورد والخصم المالي بعد الإثبات ما زالا مرحلة لاحقة مستقلة.
@@ -181,8 +181,7 @@
 
 ## 8. نقطة الاستئناف التالية
 
-1. تحقق من Cloudflare Pages deployment للـcommit `3717c027`؛ إن لم يبدأ تلقائيًا، استخدم مسار النشر المعتمد في لوحة Cloudflare دون تعديل تطبيق آخر.
-2. افتح Buyer بمستخدم مشتريات مصادق، واختبر القراءة والنماذج أولًا. لا تحفظ Quick Market أو handover على بيانات Production الحقيقية لأغراض التجربة.
-3. نفّذ اختبار صلاحيات على مستخدمين مختلفين: كل مشتري يرى فواتيره وحيازته فقط، والمالية ترى النطاق المصرح.
-4. اختبر عمليات الإنشاء/التعديل/التكرار في معاملة معزولة تنتهي بـROLLBACK مع مستخدم JWT مصرح، ثم تحقق من عدم تغير counts.
-5. بعد قبول Buyer، افتح مرحلة Receiver منفصلة وفق توجيه المالك؛ لا تبدأ SupplierReturn قبل توحيد الكاتب المخزني/المحاسبي.
+1. افتح Buyer المنشور من Cloudflare Pages بمستخدم مشتريات مصادق، واختبر القراءة والنماذج أولًا. لا تحفظ Quick Market أو handover على بيانات Production الحقيقية لأغراض التجربة.
+2. نفّذ اختبار صلاحيات على مستخدمين مختلفين: كل مشتري يرى فواتيره وحيازته فقط، والمالية ترى النطاق المصرح.
+3. اختبر عمليات الإنشاء/التعديل/التكرار في معاملة معزولة تنتهي بـROLLBACK مع مستخدم JWT مصرح، ثم تحقق من عدم تغير counts.
+4. بعد قبول Buyer، افتح مرحلة Receiver منفصلة وفق توجيه المالك؛ لا تبدأ SupplierReturn قبل توحيد الكاتب المخزني/المحاسبي.
