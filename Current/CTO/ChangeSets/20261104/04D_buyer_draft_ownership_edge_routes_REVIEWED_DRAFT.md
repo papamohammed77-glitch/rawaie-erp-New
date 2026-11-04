@@ -25,7 +25,7 @@
     p_company_id: companyId,
     p_invoice_id: p.id,
     p_supplier_id: p.supplier_id,
-    p_purchase_order_id: null,
+    p_purchase_order_id: p.purchase_order_id || null,
     p_branch_id: p.branch_id || null,
     p_due_date: p.due_date || null,
     p_currency: await getSystemCurrency(),
@@ -50,6 +50,7 @@
 ## 4. توجيه واجهة Buyer
 
 - إذا كانت الفاتورة `LEGACY_UNCLASSIFIED`، تعديلها يستدعي `UPDATE_BUYER_LEGACY_DRAFT`.
+- يمرر هذا المسار مرجع PO التاريخي نفسه إن وجد؛ لا يجوز تغييره أو تحويل المستند القديم إلى PO أو Quick Market. وظيفة SQL ترفض تغيير `purchase_order_id` في المسار التاريخي.
 - إذا كانت `PURCHASE_ORDER`، تعديلها يستدعي `UPDATE_PO_INVOICE`.
 - إذا كانت `QUICK_MARKET`، تعديلها يستدعي `UPDATE_QUICK_MARKET_INVOICE`.
 - حذف `LEGACY_UNCLASSIFIED` أو `PURCHASE_ORDER` يستدعي `DELETE_BUYER_DRAFT_INVOICE`.
