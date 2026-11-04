@@ -5,19 +5,19 @@
 
 ## 1. الحالة التنفيذية
 
-تم تنفيذ الجزء الخلفي من مرحلة Buyer في Production، ونُشرت النسخة 25 من Edge Function القائمة `save-purchase-order`، كما عُدّل ملف Buyer المطلوب وحده في `erp-frontend/main`.
+تم تنفيذ الجزء الخلفي من مرحلة Buyer في Production، ونُشرت النسخة 25 من Edge Function القائمة `save-purchase-order`، كما عُدّل ملف Buyer المطلوب وحده في `erp-frontend/main`؛ ثم أضيف تصحيح ملكية واجهة المسودات في commit أحدث.
 
 | المكوّن | الحالة |
 |---|---|
 | Supabase SMART ERP schema/RPC/RLS/Realtime | **مطبق ومتحقق من الوجود والتواقيع والمنح** |
 | Edge `save-purchase-order` | الإصدار 25 ACTIVE |
-| Buyer `companies/company-1/purchasing/buyer.html` | التعديل committed على main |
-| Buyer Cloudflare Pages production deployment | **منشور ومؤكد**؛ لوحة Cloudflare تعرض commit `3717c027` وPreview deployment `633d858b.rawaea-erp.pages.dev` |
+| Buyer `companies/company-1/purchasing/buyer.html` | آخر blob `762de2aa2189b1f6695129a1031475232a70640f`، commit `841b90f` على main |
+| Buyer Cloudflare Pages production deployment | commit `3717c027` منشور ومؤكد؛ آخر تعديل UI `841b90f` أحدث من النشر المرئي ولم يظهر له deployment بعد |
 | اختبار مستخدم مشتريات مصادق end-to-end | لم ينفذ؛ لا توجد جلسة Buyer مفتوحة في المتصفح الحالي |
 | Receiver | لم يُعدل ولم يُنشر |
 | بيانات الفواتير/المخزون/المورد/القيود/الخزينة | لم تُنشأ أو تُعدل لهذا التنفيذ |
 
-تم تأكيد اكتمال Cloudflare Pages deployment للـcommit الحالي من لوحة Cloudflare. هذا يثبت النشر فقط؛ لم يتم اختبار تحميل التطبيق وتفاعلاته من جلسة Buyer مصادق.
+أكدت لوحة Cloudflare نشر commit `3717c027` (Preview `https://633d858b.rawaea-erp.pages.dev/`). بعد ذلك أضيف تصحيح ملكية UI في commit `841b90f`؛ لم يظهر هذا commit الأحدث في لوحة النشر حتى آخر تحقق. لذلك نسخة 3717 منشورة، أما تصحيح 841b فينتظر تأكيد Pages. لم يتم اختبار التطبيق من جلسة Buyer مصادق.
 
 ## 2. تغييرات قاعدة البيانات المطبقة
 
@@ -110,8 +110,9 @@
 - تبويب «رصيدي» تحول إلى دفتر عهدة البضاعة: رصيد حسب الصنف والفرع، وسجل الأحداث؛ لا يستعمل رصيد Fleet كبديل.
 - صفحة «عهدتي» تعرض رصيد حيازة البضاعة وتخصم حجوزات Quick Market من المتاح النقدي.
 
-**Buyer blob SHA:** `9cc971d8c5ae9ce960c9395d53e36d43a30e9c73`  
-**آخر commit تعديل Buyer:** `3717c0279b856127d29fb9f912ec502523761da5`.
+**Buyer blob SHA الحالي:** `762de2aa2189b1f6695129a1031475232a70640f`  
+**آخر commit تعديل Buyer:** `841b90f564e004311a0a8abcac76056f797e9f71`.  
+**النسخة التي تأكد نشرها في Cloudflare:** commit `3717c0279b856127d29fb9f912ec502523761da5`؛ آخر تصحيح الملكية في 841b ينتظر deployment verification.
 
 تم فحص JavaScript inline في الملف، ونجح parsing دون SyntaxError. وتمت مقارنة أصناف Tailwind المستخدمة مع `buyer.tailwind.css`؛ لا توجد utility classes جديدة ناقصة من CSS الحالي.
 
@@ -163,7 +164,7 @@
 
 ## 6. ما لم يكتمل بعد — لا يُخفى
 
-1. **Cloudflare Pages UI deployment:** تم تأكيد نشر commit `3717c0279b856127d29fb9f912ec502523761da5` في Production؛ Preview URL: `https://633d858b.rawaea-erp.pages.dev/`. تعذر فحص الصفحة عبر أداة قراءة الويب، ولم يتم اختبار التطبيق من جلسة Buyer مصادق.
+1. **Cloudflare Pages UI deployment:** commit `3717c0279b856127d29fb9f912ec502523761da5` منشور في Production؛ Preview URL: `https://633d858b.rawaea-erp.pages.dev/`. آخر تعديل Buyer commit `841b90f564e004311a0a8abcac76056f797e9f71` لم يظهر بعد في قائمة Pages عند آخر قراءة. تعذر فحص الصفحة عبر أداة قراءة الويب، ولم يتم اختبار التطبيق من جلسة Buyer مصادق.
 2. **Authenticated E2E:** لم تتوفر جلسة Buyer مصادق في المتصفح؛ لم ننشئ فاتورة أو حدث حيازة دائمًا للاختبار. يلزم اختبار قبول بمستخدم مشتريات حقيقي داخل transaction rollback أو مسار QA مؤقت آمن.
 3. **Quick Market receiving/financial settlement:** يبقى محجوبًا عمدًا حتى تطوير Receiver لاحقًا. لا يتم POST ولا stock/AP/GL/cash posting من Buyer.
 4. **SupplierReturn:** لم يُعدل؛ قبول المورد والخصم المالي بعد الإثبات ما زالا مرحلة لاحقة مستقلة.
@@ -182,7 +183,7 @@
 
 ## 8. نقطة الاستئناف التالية
 
-1. افتح Buyer المنشور من Cloudflare Pages بمستخدم مشتريات مصادق، واختبر القراءة والنماذج أولًا. لا تحفظ Quick Market أو handover على بيانات Production الحقيقية لأغراض التجربة.
+1. تحقق من ظهور commit `841b90f` في Cloudflare Pages، ثم افتح Buyer بمستخدم مشتريات مصادق واختبر القراءة والنماذج أولًا. لا تحفظ Quick Market أو handover على بيانات Production الحقيقية لأغراض التجربة.
 2. نفّذ اختبار صلاحيات على مستخدمين مختلفين: كل مشتري يرى فواتيره وحيازته فقط، والمالية ترى النطاق المصرح.
 3. اختبر عمليات الإنشاء/التعديل/التكرار في معاملة معزولة تنتهي بـROLLBACK مع مستخدم JWT مصرح، ثم تحقق من عدم تغير counts.
 4. بعد قبول Buyer، افتح مرحلة Receiver منفصلة وفق توجيه المالك؛ لا تبدأ SupplierReturn قبل توحيد الكاتب المخزني/المحاسبي.
