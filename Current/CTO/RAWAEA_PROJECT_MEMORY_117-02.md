@@ -1,3 +1,18 @@
+## LVE-2026-11-04-610 — Buyer PO/Invoice UX, Parent Cycle Integration, Creator, Currency & Barcode
+
+- Operational main HEAD 2b94681bf0ce93ca9ea55066a3f52c0d1add1084; Buyer blob 7f82fceb0b2c2470d1f112aefeaa1341de5b71a8; Parent main blob 53b5a9e9d0433a785c3d5471a9c0d68c25497882.
+- Buyer and Parent use the same purchase_orders/details and purchase_invoices/details via existing central Edge/RPC writers. No mirrored procurement tables are required.
+- Creator is already stored as authenticated actor email in created_by for both PO and Invoice; show it as a column rather than adding a redundant DB field. Parent should retain company/permission-scoped visibility; do not filter to current creator.
+- New document currency is server-derived from app_settings.currency; current value EGP. purchase_settings.default_currency is separately editable and can drift; make Parent Purchase Settings currency display read-only from app_settings, do not delete old column or convert historical documents. Existing three invoices in snapshot include one Draft SAR and two Posted SAR; preserve their document currency.
+- Parent orders list lacks creator/currency/date/branch and Parent invoices list shows supplier UUID; Parent Realtime subscribes to invoices but not purchase_orders. Buyer PO list uses one session currency for rows; invoice list has no currency column. Edge GET_DATA max 500 / no offset, Parent getData limit 300.
+- Buyer has no camera scanner in PO/Invoice inputs. Parent inventory scanner pattern is getUserMedia + BarcodeDetector, rear camera, formats EAN-13/EAN-8/Code128/Code39/UPC-A/UPC-E/QR, 350ms scan loop and cleanup; adapt as Buyer-owned helper, never call RW_Warehouse in isolated PWA.
+- Cloudflare Pages check for HEAD 2b94681 succeeded 2026-11-04 11:26:14 UTC; automatic deployment check passed, but served blob/runtime parity remains unverified.
+- Report610 doc/Draft/Reprots/Report610_BUYER_PO_INVOICE_PARENT_CYCLE_UX_CURRENCY_BARCODE_FORENSIC_20261104.md, blob e88c15586a9a37025b04924b8b6553aa7fcfa5b2, commit db82d92f45e6b122000453cacdf01382f9035c93.
+- No operational Buyer/Parent/Core writes, no SQL/RPC/ACL/Edge/deployment change, no fixtures or authenticated E2E. Staging remains schema-misaligned.
+- Exact Change Set 610 is prepared; explicit owner approval required under Master CTO §77.2 before source/Parent/gateway writes. Do not create Edge functions or duplicate tables.
+
+---
+
 ## LVE-2026-11-03-609 — Buyer / Receiver Production Reconciliation (2026-11-03 23:30 Cairo)
 
 **Evidence report:** doc/Draft/Reprots/Report609_BUYER_RECEIVER_PRODUCTION_RECONCILIATION_20261103.md  
