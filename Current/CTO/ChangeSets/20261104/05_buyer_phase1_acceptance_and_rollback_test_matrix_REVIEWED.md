@@ -22,6 +22,7 @@
 | الملف | الوظيفة |
 |---|---|
 | `03B_buyer_phase1_atomic_contracts_FINAL_REVIEW_DRAFT.sql` | تصنيف الفاتورة، دفتر الأحداث، Quick Market، الحيازة، القراءة والحذف |
+| `03Z_buyer_phase1_execution_order_and_deployment_manifest.md` | ترتيب SQL وEdge وBuyer وبوابة التحقق الوحيدة |
 | `03D_buyer_source_idempotency_and_permission_hardening_REVIEWED_DRAFT.sql` | إنشاء/تعديل PO، idempotency التعديل، نطاق القراءة والحذف |
 | `03E_buyer_invoice_posting_guard_FINAL_REVIEW_DRAFT.sql` | منع ترحيل Quick Market مباشرة وحفظ مسار PO |
 | `03F_buyer_invoice_handover_progress_FINAL_REVIEW_DRAFT.sql` | تقدم تسليم المورد إلى Buyer على مستوى كل بند |
