@@ -331,6 +331,10 @@ BEGIN
     RAISE EXCEPTION 'PURCHASE_SUPPLIER_INVALID';
   END IF;
 
+  PERFORM app_private.assert_unique_purchase_supplier_invoice(
+    p_company_id,p_supplier_id,p_supplier_invoice_no,NULL
+  );
+
   IF COALESCE(jsonb_typeof(p_items),'')<>'array' THEN
     RAISE EXCEPTION 'PURCHASE_INVOICE_ITEMS_MUST_BE_ARRAY';
   END IF;
