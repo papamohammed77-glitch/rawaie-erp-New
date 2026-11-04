@@ -21,6 +21,8 @@
 
 كل ملف SQL مستقل ويحتوي BEGIN/COMMIT. عند تحويله إلى migration، لا تلصق ملفين في migration واحدة ولا تنفذ ترتيبًا متوازيًا. بعد كل migration: افحص تعريف الوظائف والقيود والمنح من قاعدة البيانات الحية.
 
+**ما تم فعليًا في 4 نوفمبر:** طبقت migrations 01–07 بالتسلسل، ثم أعيد تطبيق ملف 03J مرة ثانية باسم `buyer_phase1_08_legacy_invoice_duplicate_guard` بعد إدخال استدعاء duplicate guard داخل مسار تعديل Legacy. لذلك النسخة المنشورة من غلاف Legacy هي التي تستدعي `app_private.assert_unique_purchase_supplier_invoice`. راجع Report624 للـversion/hash وحالة Production.
+
 ## 2. Edge Function القائمة فقط
 
 يُحدّث `save-purchase-order` الحالي (slug واحد، لا وظيفة جديدة) بعد نجاح SQL:
