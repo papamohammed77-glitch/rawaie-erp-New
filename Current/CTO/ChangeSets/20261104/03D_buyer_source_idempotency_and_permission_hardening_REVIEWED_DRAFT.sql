@@ -543,6 +543,10 @@ BEGIN
     RAISE EXCEPTION 'PURCHASE_SUPPLIER_INVALID';
   END IF;
 
+  PERFORM app_private.assert_unique_purchase_supplier_invoice(
+    p_company_id,p_supplier_id,p_supplier_invoice_no,p_invoice_id
+  );
+
   v_fingerprint:=md5(jsonb_build_object(
     'supplier_id',p_supplier_id,'branch_id',p_branch_id,'due_date',p_due_date,
     'supplier_invoice_no',NULLIF(btrim(p_supplier_invoice_no),''),
