@@ -1,3 +1,15 @@
+# LVE-2026-11-04-620 — Existing Edge Function Extension Contract
+
+- Report620: [Existing Edge extension contract](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report620_EXISTING_EDGE_EXTENSION_CONTRACT_20261104.md), commit `4052446b38b35a26b186ab9a861066a205d2a9fd`.
+- Confirmed exact current `save-purchase-order` v22 dispatch/permission structure. New Buyer custody operations should use existing Edge only and use `profileClient` for new auth.uid()-dependent RPCs.
+- Existing `receive-purchase` v13 can be extended with mutually exclusive PO `po_code`, Quick Market `invoice_id`, and Buyer custody `receiving_id` modes. Preserve current PO payload and RPC unchanged.
+- Existing `create-stock-voucher` v12 already forwards `rep_id` → `p_rep_id`; Buyer Delegate can reuse it after SQL Trigger/RPC validation. Existing `send-stock-voucher` v20 and `complete-stock-voucher` v4 can keep request shapes while their SQL RPC behavior is updated.
+- No new Edge function. Edge source snapshots are archived and current source parity is no longer a blocker.
+- Hardening: `save-purchase-order` v22 `getSystemCurrency()` currently falls back to EGP if setting missing; change to fail closed for missing/invalid `app_settings.currency`.
+- No Edge deploy or source write. Status remains contract design / not implemented.
+
+---
+
 # LVE-2026-11-04-619 — Buyer Custody RPC / Single-Writer Posting Contract
 
 - Report619: [Buyer custody RPC and single-writer posting contract](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report619_BUYER_CUSTODY_RPC_SINGLE_WRITER_POSTING_CONTRACT_20261104.md), commit `e3c0fc755815cf5e49c972a1d67607c8cddc9823`.
