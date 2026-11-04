@@ -1,3 +1,23 @@
+## LVE-2026-11-04-611 — Buyer / Parent / Core / Receiving Revalidation
+
+- Report: [Report611_BUYER_PARENT_CORE_RECEIVING_RUNTIME_REVALIDATION_20261104.md](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report611_BUYER_PARENT_CORE_RECEIVING_RUNTIME_REVALIDATION_20261104.md); report commit `c2ae71d778a65679afb7d55358606b763901fac7`.
+- Operational repo `papamohammed77-glitch/erp-frontend`, branch `main`, HEAD `68d222b20251049daddc2f159f2b8c80cd6ffb89`, three commits ahead of LVE610 HEAD `2b94681bf0ce93ca9ea55066a3f52c0d1add1084`.
+- Buyer blob `311f2673a90149df6f56d59a9a187a3379e6981c`; Parent main blob `53b5a9e9d0433a785c3d5471a9c0d68c25497882`; Core blob `f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1`; Receiver blob `3111b5e801d1bc021cf18fd66d633fbdc54ac0d6`.
+- Buyer new creator/branch/receipt/currency filters and camera barcode work are in source at current HEAD; browser/camera behavior remains UNVERIFIED.
+- Core is used by Buyer/Receiver/Loader, but Parent main, Picker and app.html use direct Supabase/Auth/Realtime paths. The ERP is not fully centralized through Core; centralization is partial/mixed.
+- Parent `RW_PurchaseGold.ensurePurchaseRealtime()` subscribes to purchase_invoices but not purchase_orders; Production purchase_orders is in supabase_realtime publication. Parent PO live refresh gap is source-confirmed; runtime event delivery UNVERIFIED.
+- Buyer/Parent list retrieval caps remain 500/300 without a complete pagination contract. Parent Purchase Settings edits `purchase_settings.default_currency`, while central PO/Invoice writers use `app_settings.currency`; current values both EGP, but independently editable settings create source-of-truth conflict.
+- SMART ERP Production: PostgreSQL 17.6.1.121, 737 migrations. Edge `save-purchase-order` v22 active/JWT and byte-identical to operational Git; `receive-purchase` v13 active/JWT but its source file remains absent from operational Git.
+- **CONFIRMED P1:** active `receive_purchase_atomic` can create Receiving header and change PO status for an all-zero receipt: Edge permits zero, RPC skips `received_qty<=0` rows after inserting Receiving, lacks a post-loop positive-total guard, then updates PO and audit log. No Production write probe was run.
+- Receiver still uses `po_code` for PO detail lookup while Production detail schema uses `po_id`; uses parseInt; no branch filter in PO list; does not send operation_id. Edge fallback deterministic UUID based on identical payload can collide for distinct physical receipt events.
+- Production current sample: PO=1, invoices=3, invoice details=6, receiving headers/details=0. QA PO `QA-SR-PO-20260927` is Draft EGP but qty_received=5; linked QA invoice is Draft SAR, is_received=true, received_date NULL, detail qty/received_qty 5; no Receiving evidence. This is a confirmed metadata inconsistency; actual physical handover remains UNKNOWN. Do not mutate/delete these records without reconciliation and approval.
+- Staging `rawaea-staging` has 62 migrations, lacks purchase_invoices, purchase_invoice_details and buyer_custodies; full Buyer E2E unavailable there.
+- Cloudflare Pages check on HEAD 68d222b: rawaea-erp Preview deploy success at `https://61aedb51.rawaea-erp.pages.dev`; warehouse-supervisor, rawaea-store and erp-frontend checks failed. Canonical Production artifact parity and authenticated Runtime/E2E remain UNVERIFIED.
+- No operational source/Core/Parent/Buyer/Receiver changes, no Production DDL/data/RPC/RLS/Edge changes, no deployment, and no test fixtures were created in LVE611.
+- Next: exact owner-review Change Set for zero-receipt guard, per-physical-event idempotency, Receiver po_id/decimal/branch contract and tests. Must follow Master CTO §77.2; wait for explicit approval before source/Production changes. LVE611 state checkpoint recorded in CURRENT_STATE.md; buyer/receiver remains open and not Production Ready.
+
+---
+
 ## LVE-2026-11-04-610 — Buyer PO/Invoice UX, Parent Cycle Integration, Creator, Currency & Barcode
 
 - Operational main HEAD 2b94681bf0ce93ca9ea55066a3f52c0d1add1084; Buyer blob 7f82fceb0b2c2470d1f112aefeaa1341de5b71a8; Parent main blob 53b5a9e9d0433a785c3d5471a9c0d68c25497882.
