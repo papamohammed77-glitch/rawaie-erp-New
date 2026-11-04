@@ -41,7 +41,6 @@ BEGIN
 
   IF NOT FOUND OR NOT (
     app_private.current_user_has_effective_permission('purchases')
-    OR COALESCE(v_actor.permissions,'[]'::jsonb) @> '["*"]'::jsonb
   ) THEN
     RAISE EXCEPTION 'BUYER_PURCHASE_PERMISSION_REQUIRED';
   END IF;
@@ -206,7 +205,6 @@ BEGIN
 
   IF NOT FOUND OR NOT (
     app_private.current_user_has_effective_permission('purchases')
-    OR COALESCE(v_actor.permissions,'[]'::jsonb) @> '["*"]'::jsonb
   ) THEN
     RAISE EXCEPTION 'BUYER_PURCHASE_PERMISSION_REQUIRED';
   END IF;
@@ -406,7 +404,6 @@ BEGIN
 
   IF NOT FOUND OR NOT (
     app_private.current_user_has_effective_permission('purchases')
-    OR COALESCE(v_actor.permissions,'[]'::jsonb) @> '["*"]'::jsonb
   ) THEN
     RAISE EXCEPTION 'BUYER_PURCHASE_PERMISSION_REQUIRED';
   END IF;
@@ -670,15 +667,13 @@ BEGIN
     app_private.current_user_has_effective_permission('purchases')
     OR app_private.current_user_has_effective_permission('finance')
     OR app_private.current_user_has_effective_permission('finance_manager')
-    OR COALESCE(v_actor.permissions,'[]'::jsonb) @> '["*"]'::jsonb
   ) THEN
     RAISE EXCEPTION 'BUYER_GOODS_PERMISSION_REQUIRED';
   END IF;
 
   v_can_view_all:=
     app_private.current_user_has_effective_permission('finance')
-    OR app_private.current_user_has_effective_permission('finance_manager')
-    OR COALESCE(v_actor.permissions,'[]'::jsonb) @> '["*"]'::jsonb;
+    OR app_private.current_user_has_effective_permission('finance_manager');
 
   IF p_custodian_user_id IS NULL THEN
     v_target:=CASE WHEN v_can_view_all THEN NULL ELSE v_actor.id END;
@@ -769,7 +764,6 @@ BEGIN
 
   IF NOT FOUND OR lower(v_actor.email)<>lower(COALESCE(p_actor,'')) OR NOT (
     app_private.current_user_has_effective_permission('purchases')
-    OR COALESCE(v_actor.permissions,'[]'::jsonb) @> '["*"]'::jsonb
   ) THEN
     RAISE EXCEPTION 'BUYER_PURCHASE_PERMISSION_REQUIRED';
   END IF;
