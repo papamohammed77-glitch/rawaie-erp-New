@@ -1290,3 +1290,16 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - التقرير العربي: `doc/Draft/Reprots/Report623_BUYER_FIRST_CHANGESET_REVALIDATION_20261104.md` blob `5846a567cd765d08c492412864d9a278451e903f`، 348 سطرًا. يوثق النموذج التجاري، فجوات المصدر، العهدة النقدية، Receiver/SupplierReturn لاحقًا، حادثة DDL والتنظيف، advisor findings، قائمة الحزمة وبوابة النشر.
 - الحالة: تشخيص Buyer وتصميم الحزمة واختبار SQL/التنظيف اكتمل؛ لم يطبق Buyer UI/Edge تشغيليًا. لا Edge جديد ولا branch ولا تعديل/نشر app. تبقى بوابة Report614 لاعتماد الحزمة المتطابقة قبل النشر. Receiver بعد قبول Buyer فقط.
 - الخطوة التالية: توحيد الفروق النهائية الدقيقة لواجهة Buyer داخل buyer.html والـrouting/server-scope داخل save-purchase-order الموجود، ومقارنة blobs الحالية، ثم عرض ChangeSet واحد كامل واختبارات/تراجع قبل Production. لا تشغل مسودات SQL القديمة مباشرة.
+
+
+## LVE624 — Buyer Phase 1 executed (2026-11-04)
+- تم تطبيق 8 Supabase migrations على SMART ERP: supplier invoice duplicate guard، Buyer source/goods custody schema، PO/QM idempotency hardening، posting guard، handover progress، Realtime، ownership wrappers، ثم إعادة تثبيت غلاف Legacy بعد ربط duplicate guard.
+- جدول `buyer_goods_custody_events` live مع RLS، SELECT policy واحدة، append-only trigger، Realtime membership. authenticated SELECT فقط؛ لا DML مباشر. جميع SECURITY DEFINER Buyer RPCs تضبط search_path فارغًا؛ anon EXECUTE=false.
+- Edge الحالي `save-purchase-order` ACTIVE v25، SHA-256 `793ba5412a27813aa715da4078971a150d592dd03b53833148b9e99a37b5be62`. العمليات الجديدة تستعمل profileClient/JWT. GET_DATA يحد فواتير وتفاصيل المشتري إلى المالك الحالي، مع توسيع للمالية/مدير المالية/مالك النظام.
+- Buyer source الوحيد المعدل: `companies/company-1/purchasing/buyer.html`, blob `9cc971d8c5ae9ce960c9395d53e36d43a30e9c73`, commit `3717c0279b856127d29fb9f912ec502523761da5`. منفصل PO/Quick Market، إخفاء cost_price، حجز عهدة نقدية دون double count، handover موثق إلى عهدة البضاعة مع مركبة اختيارية، رصيد مشتريات من ledger، فواتيري current-user default.
+- حالة Production DB: العملة EGP؛ 3 purchase invoices وكلها LEGACY_UNCLASSIFIED؛ 0 PO source و0 Quick Market؛ 0 goods events؛ 0 cash custodies/expenses؛ inventory_log=76؛ supplier_ledger=2؛ journal_entries Posted=17 وCancelled=2؛ purchase_returns=0. لم تُنشأ بيانات اختبار ولم يتغير مخزون أو AP/GL/treasury.
+- لا تزال فواتير SAR التاريخية PINV-1000/1001/QA-SR-INV كما هي؛ لا حذف ولا عكس ولا إعادة تصنيف.
+- Cloudflare Pages deployment غير مثبت: آخر لقطة لوحة مرئية كانت على commit `e8ab54c` قبل Buyer commit. لا تدّع أن واجهة Buyer live قبل التحقق من deployment جديد. Authenticated Buyer E2E لم ينفذ لعدم وجود جلسة Buyer في المتصفح؛ اختبارات رفض unauthenticated RPC نجحت.
+- Receiver.html وSupplierReturn لم يتغيرا؛ لا Edge slug جديد ولا فرع ولا PR ولا Mother/Core/تطبيق آخر.
+- تقرير التنفيذ: `doc/Draft/Reprots/Report624_BUYER_PHASE1_PRODUCTION_SCHEMA_EDGE_UI_20261104.md`, SHA `e9cfa3beb19ee1b635473ff25f3283551cc07781`, 189 lines.
+- الاستئناف: تحقق/أكمل Cloudflare Pages deployment للـcommit `3717c027`، ثم اختبارات مستخدم Buyer مصادق read-only وSQL transaction rollback؛ لا تترك فاتورة أو append-only handover event تجريبيًا دائمًا. Receiver بعد قبول Buyer فقط.
