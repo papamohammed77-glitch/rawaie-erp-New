@@ -101,6 +101,10 @@ BEGIN
     RAISE EXCEPTION 'PURCHASE_SUPPLIER_INVALID';
   END IF;
 
+  PERFORM app_private.assert_unique_purchase_supplier_invoice(
+    p_company_id,p_supplier_id,p_supplier_invoice_no,NULL
+  );
+
   IF p_branch_id IS NOT NULL AND NOT EXISTS (
     SELECT 1 FROM public.branches
     WHERE id=p_branch_id AND company_id=p_company_id AND COALESCE(is_active,true)=true
