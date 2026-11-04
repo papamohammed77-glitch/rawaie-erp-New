@@ -89,7 +89,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.purchase_returns'::regclass AND conname='purchase_returns_status_check') THEN
     ALTER TABLE public.purchase_returns
       ADD CONSTRAINT purchase_returns_status_check
-      CHECK (status IN ('Draft','PartiallyPosted','Posted','Cancelled'));
+      CHECK (status IN ('Draft','InBuyerCustody','AwaitingSupplierAcceptance','AwaitingFinance','PartiallyPosted','Posted','ReturnedToWarehouse','Cancelled'));
   ELSE
     ALTER TABLE public.purchase_returns DROP CONSTRAINT purchase_returns_status_check;
     ALTER TABLE public.purchase_returns
@@ -130,7 +130,7 @@ CREATE TABLE IF NOT EXISTS public.purchase_return_acceptances (
   status text NOT NULL DEFAULT 'Draft',
   created_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT purchase_return_acceptances_status_ck
-    CHECK (status IN ('Draft','Posted','Cancelled')),
+    CHECK (status IN ('Draft','AwaitingFinance','Posted','Cancelled')),
   CONSTRAINT purchase_return_acceptances_company_code_uk
     UNIQUE (company_id, acceptance_code),
   CONSTRAINT purchase_return_acceptances_operation_uk
