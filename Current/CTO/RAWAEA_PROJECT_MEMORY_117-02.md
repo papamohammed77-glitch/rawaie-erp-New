@@ -1,3 +1,22 @@
+# LVE-2026-11-04-621 — Integrated Buyer Goods Custody / Return / Quick Market
+
+- Report621: [Integrated contract gap review and LVE620 reconciliation](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report621_BUYER_INTEGRATED_CONTRACT_GAP_REVIEW_AND_LVE620_RECONCILIATION_20261104.md), latest commit `080c03711154e544c126f5fa41ded2e895a6c11b`.
+- CURRENT_STATE is now advanced from stale LVE616 to LVE621; update commit `a9e627e5ff83c7648e7e7f98eba9b59da1269f13`.
+- Reconciling basis: Execution Log/Project Memory LVE620; owner decisions Report606; technical/competitive research and change contracts Reports615–620; current operating charter blob `d2afa896514b1cb6abd247d2af7a862251ce0604`.
+- Fresh Production read: purchase_invoices=3 (Draft 1 / Posted 2 / no-PO 2); purchase_returns=0; stock_vouchers=0; receiving=0; buyer_custodies=0. `purchase_returns` and details still grant anon/authenticated direct DML with permissive company-only ALL policies. Existing cash-custody review remains PO/AP-specific and must be preserved as a separate branch.
+- Current source still shows Buyer `رصيدي` static, Quick Purchase as Draft invoice alias, SupplierReturn without recipient picker, Receiver `po_code` detail query mismatch (actual `po_id`) and parseInt precision defect; no deployed app changes.
+- P0: SupplierReturn SAR default/form is incompatible with app_settings EGP; save-contract accepts SAR and financial functions ignore the currency field. Both posting functions need fail-closed currency validation.
+- P0: manual SupplierReturn voucher and Parent `purchase_returns` are independent stock/AP/GL writers. Single writer: warehouse voucher dispatch only; linked purchase_return acceptance batch only for accepted AP/GL; linked financial posting cannot post stock.
+- P1: purchase return cumulative quantity lock missing; Receiver zero/decimal checks and Quick Market invoice-ID Receiving are missing.
+- Competitive evidence in Report621 uses official Dynamics 365 partial return/product receipt, Odoo staged input/quality/stock, and SAP return PO/outbound delivery/goods issue/vendor credit memo flows.
+- Schema v1/v3 rejected; v2 still incomplete; created reviewed schema scaffold v4 at `Current/CTO/ChangeSets/20261104/04_buyer_goods_custody_schema_security_REVIEWED_DRAFT_v4.sql`, latest blob `585b7091c3692be519d9455bc27036f5a1c93153`, correction commit `647fec6a9b7d7201cf06941bc016806849ee2cba`. It fixes duplicated acceptance counters, acceptance finance state, multiple event allocations per Receiving line, new Receiving source types/line links, recipient-mode nullability and currency default. It is not executable or approved and has no full RPC/Trigger/Edge bodies.
+- Six live Edge snapshots are archived; versions/hash details appear in Report621. No new Edge; five functions are not yet restored to operational Git paths. New auth.uid() operations use profileClient.
+- No operational app source, Production schema/data/RPC/Trigger/RLS/ACL, Edge deployment, Cloudflare deployment, test fixture, browser E2E or migration execution. Schema text scan only is not a PostgreSQL compile.
+- Governance: preserve Parent main.html lock; no Production/operational write before exact full changeset and explicit owner approval under §77.2.
+- Status: forensic/design/change-set preparation continues / implementation NOT STARTED / NOT PRODUCTION READY. Next: finish full RPC/Trigger bodies, six Edge diffs, surgical Buyer/Vouchers/Receiver patches, owner-side Parent patch, private evidence policies, schema-parity JWT/E2E/financial tests and rollback; then submit exact bundle for approval.
+
+---
+
 # LVE-2026-11-04-620 — Existing Edge Function Extension Contract
 
 - Report620: [Existing Edge extension contract](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report620_EXISTING_EDGE_EXTENSION_CONTRACT_20261104.md), commit `4052446b38b35a26b186ab9a861066a205d2a9fd`.
