@@ -216,6 +216,13 @@ USING (
     )
     OR app_private.current_user_has_effective_permission('finance')
     OR app_private.current_user_has_effective_permission('finance_manager')
+    OR EXISTS (
+      SELECT 1 FROM public.users owner_user
+      WHERE owner_user.auth_id=auth.uid()
+        AND owner_user.company_id=buyer_goods_custody_events.company_id
+        AND COALESCE(owner_user.status,'Active')='Active'
+        AND COALESCE(owner_user.permissions,'[]'::jsonb) @> '["*"]'::jsonb
+    )
   )
 );
 
