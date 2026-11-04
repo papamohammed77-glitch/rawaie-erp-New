@@ -51,6 +51,9 @@ DROP FUNCTION IF EXISTS public.purchase_delete_quick_market_draft_atomic(uuid,uu
 DROP FUNCTION IF EXISTS public.buyer_goods_custody_get_balances_atomic(uuid,uuid);
 DROP FUNCTION IF EXISTS public.buyer_goods_custody_register_handover_atomic(uuid,uuid,uuid,jsonb,text,text,text);
 DROP FUNCTION IF EXISTS public.purchase_create_quick_market_invoice_atomic(uuid,uuid,uuid,date,text,text,jsonb,text,uuid,text);
+DROP FUNCTION IF EXISTS public.purchase_update_buyer_legacy_draft_atomic(uuid,uuid,uuid,uuid,uuid,date,text,text,text,text,jsonb,text);
+DROP FUNCTION IF EXISTS public.purchase_delete_buyer_draft_invoice_atomic(uuid,uuid,text,text,text);
+DROP FUNCTION IF EXISTS app_private.assert_unique_purchase_supplier_invoice(uuid,uuid,text,uuid);
 
 -- 2. إزالة محفز append-only وسياسة القراءة والجدول بعد التأكد أنه فارغ.
 DO $$
