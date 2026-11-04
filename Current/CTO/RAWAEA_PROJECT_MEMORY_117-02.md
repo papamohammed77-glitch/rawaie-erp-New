@@ -1,3 +1,18 @@
+# LVE-2026-11-04-626 — Buyer Live Forensic Revalidation
+
+- Report626: [Buyer live forensic revalidation and Phase 2 ChangeSet](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report626_BUYER_LIVE_FORENSIC_REVALIDATION_AND_PHASE2_CHANGESET_20261104.md), commit `32c8716a6f23f79865d1a51a711c8da4975b09a5`.
+- Live operational HEAD: `bf0833c3c71d7a2dea6167bfac9b5403e8044cf7`; Buyer blob `d9ffb1084a538b7f7baf48391d3048ac5e96bffa`; CSS blob `7eb4ef089a1903e405179f23f921328cad1c06e9`. 19 commits since `e8ab54c` are limited to Buyer/CSS. Receiver, Parent, Core and Vouchers unchanged.
+- Buyer Phase 1 Production migrations 01–09 are live. `buyer_goods_custody_events` exists, RLS/append-only; no events or Quick Market invoices exist yet. Edge save-purchase-order v25 and receive-purchase v13.
+- Quick Market form lacks supplier invoice image and smart supplier search; invoice date is absent. Goods custody supports supplier→Buyer only; Buyer Realtime does not subscribe to the events table.
+- Cash custody settlement ignores outstanding QMP reservations; QMP expense review remains PO/Receiving-only. Generic Edge draft deletion remains callable without purchaser ownership or goods-event guard. Invoice table RLS is company-wide despite Edge GET_DATA filtering.
+- SupplierReturn still uses SAR default/fallback, excludes Buyer custodian, permits direct DML on purchase_returns/details, lacks acceptance batches/partial acceptance and cumulative return quantity protection, and has two possible stock/financial writers.
+- Historical PINV-1000/1001 are Posted SAR with 5 PurchaseIn movements (50 units), SAR 3,970 supplier-ledger credit and 2 Posted journals; later movements exist. Do not delete directly. QA-SR Draft has inconsistent receipt flags/quantities without a matching Receiving/inventory/AP/journal record.
+- Current app_settings currency EGP. Deployment for HEAD bf0833c and authenticated E2E remain unverified. No Production or app write occurred; no test data created.
+- Owner sequence remains Buyer first; Receiver is deferred until Buyer acceptance. No new Edge Function; extend existing functions only.
+- Exact full change package, impact, acceptance tests and rollback must pass Report614 §14 / charter §6.2 explicit approval before operational or Production writes.
+
+---
+
 # LVE-2026-11-04-621 — Integrated Buyer Goods Custody / Return / Quick Market
 
 - Report621: [Integrated contract gap review and LVE620 reconciliation](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report621_BUYER_INTEGRATED_CONTRACT_GAP_REVIEW_AND_LVE620_RECONCILIATION_20261104.md), latest commit `080c03711154e544c126f5fa41ded2e895a6c11b`.
