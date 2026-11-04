@@ -1,3 +1,23 @@
+# LVE-2026-11-04-614 — Buyer Goods Custody / Supplier Return / Quick Market Receipt
+
+- Review report: [Report614_BUYER_GOODS_CUSTODY_RETURN_RECONCILIATION_20261104.md](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report614_BUYER_GOODS_CUSTODY_RETURN_RECONCILIATION_20261104.md), created at commit `8ee6889e33e671c7996a73e55560e3163a0cfb60`.
+- Starting point: LVE613 / Report613. Latest operational repository HEAD observed: `e8ab54c75572e15e71581212479d22be139c8020`; Buyer blob `311f2673a90149df6f56d59a9a187a3379e6981c`; Parent blob `f6ec4ab41dc517f86e17dd3d74a9d5f8add264ca`; Warehouse Vouchers blob `85e709d0f41c189c6624a6160965d3b1a41960ba`; Receiver blob `3111b5e801d1bc021cf18fd66d633fbdc54ac0d6`.
+- Read current permanent charter `الدستور التشغيلي الدائم.md` blob `d2afa896514b1cb6abd247d2af7a862251ce0604`, latest Master CTO operational protocol and Master CTO Governance §77.2–77.4.
+- CONFIRMED: Buyer tab `رصيدي` is a static placeholder, not a live quantity ledger. `quickPurchase()` is only an alias to create a Draft invoice. Buyer Realtime does not subscribe to a goods custody ledger or SupplierReturn voucher stream.
+- CONFIRMED: `buyer_custodies` and its dependent tables are cash custody, not goods custody. Production has no separate item-level Buyer custody ledger.
+- CONFIRMED: Warehouse `SupplierReturn` UI only selects Branch and Supplier; no Purchasing Officer recipient picker. The deployed Trigger `enforce_stock_voucher_custodian()` clears `custodian_user_id` except DirectSale/DirectReturn; mobile-sales vehicle/rep rules must remain unchanged.
+- CONFIRMED: Warehouse manual SupplierReturn sends branch stock out at send; its completion path writes supplier payable reduction and GL for full return amount. It has no Buyer intermediate-custody stage or supplier accepted-quantity model.
+- CONFIRMED: Parent purchase-cycle `purchase_returns` is a second independent stock/AP/GL writer through `purchase_post_return_atomic`; there is no unique link between `purchase_returns` and `stock_vouchers`. Risk: duplicate stock and supplier balance reduction if both paths post the same goods.
+- CONFIRMED: Quick invoice can be created Draft with PO optional, but the deployed `receive-purchase` v13 contract requires PO code and the current `receiving`/details schema has no invoice/line FK. Quick Market → Buyer custody → Receiver acceptance is not currently supported end to end.
+- Current read-only Production counts for `stock_vouchers`, `purchase_returns`, `inventory_log.SupplierReturn`, and `buyer_custodies` were all zero at the review snapshot. No test rows or production data changes were made.
+- Proposed target: append-only item-level Buyer goods custody ledger separate from cash custody; movements include Warehouse→Buyer, Supplier→Buyer (quick purchase), Buyer→Warehouse accepted, Buyer→Supplier accepted, direct Supplier receipt and compensating corrections. Optional vehicle metadata only.
+- Return single-writer proposal: Warehouse voucher owns physical branch stock-out; one linked financial SupplierReturn record owns AP/GL only after supplier acceptance; the linked financial posting must not issue stock again. Final canonical header/link model and accepted-quantity fields still need exact changeset.
+- Parent Returns register should display a real recipient: validated Buyer custodian when held, otherwise Supplier for direct receipt. Parent currently reads only `purchase_returns`; current governance §77.3 prohibits editing `main.html`, so that UI patch is blocked unless the governing rule changes or an approved alternative exists.
+- No operational HTML, SQL, migration, RPC, Trigger, RLS, Edge Function, data, or deployment change was made. No new Edge Function created. No authenticated Browser E2E or Cloudflare artifact verification. Staging remains schema-non-parity per LVE613.
+- Status: forensic root causes confirmed / design proposed / implementation NOT STARTED / Buyer procurement NOT PRODUCTION READY. Next step: prepare the exact additive SQL, RPC/Trigger bodies, existing Edge-source diffs, Buyer/Vouchers/Receiver patches, Parent owner-side patch proposal, test matrix and rollback; then submit that exact set for explicit approval under §77.2 before any operational write.
+
+---
+
 ## LVE-2026-11-04-612 — Shared-Core Centralization Application Matrix
 
 - Report: [Report612_CORE_CENTRALIZATION_FORENSIC_APPLICATION_MATRIX_20261104.md](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report612_CORE_CENTRALIZATION_FORENSIC_APPLICATION_MATRIX_20261104.md); report commit `9cc489a7171a3e1675500488767a99d3a07cfcfa`.
