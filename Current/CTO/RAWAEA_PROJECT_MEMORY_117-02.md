@@ -1,3 +1,17 @@
+# LVE-2026-11-04-619 — Schema Review + Receiver Patch Completion + Buyer UX Financial Reconciliation
+
+- Report619: [LVE616_SCHEMA_REVIEW_AND_RECEIVER_PATCH_COMPLETION_20261104.md](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report619_LVE616_SCHEMA_REVIEW_AND_RECEIVER_PATCH_COMPLETION_20261104.md), commit `9b1bd4d374d292f21c13a6da1d6716cbdaa115f5`, blob `f284d8e7e0023c333db0caf45967c65ff86303ce`.
+- Reviewed schema scaffold v2: `Current/CTO/ChangeSets/20261104/02_buyer_goods_custody_schema_security_REVIEWED_DRAFT.sql`, latest commit `b203017bfede923382cb833b195d443289ed0838`, blob `9446c4dece9650fb6736e92db1aa340f89ee53dd`. This is schema/security scaffolding only, NOT a deployable migration and NOT executed.
+- Canonical Report617: [SupplierReturn Recipient & Currency Surgical Change Set](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report617_SUPPLIER_RETURN_RECIPIENT_CURRENCY_SURGICAL_PATCH_20261104.md), blob `1f2624c5d93adbc8034f1515d6c4791cb2f77564`.
+- Report618 UX spec was reconciled and updated (latest blob `53f89aca7f273a5bb6978974dfe22e77c90a16d3`): use `purchase_source='QUICK_MARKET'`; settlement values `EMPLOYEE_CUSTODY`, `SUPPLIER_CREDIT`, `TREASURY_CASH`; employee-custody cash requires invoice-linked accepted Receiving but NO Supplier AP prerequisite and no duplicate supplier payment; operation UUID is fresh per physical event and reused only for exact retry.
+- Report619 review found v1 SQL scaffold must not run: unguarded purchase_returns.purchase_invoice_id DROP NOT NULL; destructive replacement of purchase_returns.status check; recipient_mode default applies to non-SupplierReturn vouchers; missing Buyer delegation reference/evidence; duplicate mutable acceptance counters; missing rejection details/sign rules; missing PUBLIC ACL revoke; settlement vocabulary mismatch; no function bodies. Reviewed v2 fixes these schema-contract risks but leaves business RPC/Trigger functions and deployment open.
+- Receiver source revalidated: App.purchaseOrders exists; the exact owner-side patch selects PO id, queries details by po_id, uses qty_received to calculate remaining, hides Receive on error/empty, escapes values, validates decimals, uses fresh operation UUID with exact retry reuse.
+- Exact edge snapshots remain byte-identical to live Production for all six functions. No function was deployed or modified.
+- No operational source write, Production DDL/DML/ACL/RLS/RPC/Trigger/Edge write, test fixture or Cloudflare deployment. Parent main.html remains locked.
+- Status: LVE615–619 forensic and source/contract specifications prepared; implementation still NOT APPLIED / NOT PRODUCTION READY. Next coherent step: author full replacement RPC/Trigger/Edge contracts against archived exact source, with one-writer supplier return posting, partial acceptance/tax, cumulative return lock, invoice-ID Quick Market receipt, separate cash settlement branch; then submit exact full change set under §77.2 before operational/Production writes.
+
+---
+
 # LVE-2026-11-04-618 — Buyer Goods Custody / Quick Market UX Specification
 
 - Report618: [Buyer goods custody and Quick Market UX specification](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report618_BUYER_GOODS_CUSTODY_QUICK_MARKET_UX_SPEC_20261104.md), commit `440a32991d8b3a259ab77d7da81d801bfe5e2a34`.
