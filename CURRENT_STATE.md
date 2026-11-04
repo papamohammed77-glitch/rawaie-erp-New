@@ -1,3 +1,63 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-612 — Complete Shared-Core Centralization Application Matrix
+
+**Timestamp:** 2026-11-04 — follow-up to LVE611.  
+**LAST VERIFIED EVENT:** Re-fetched operational GitHub main at HEAD 68d222b; inventoried all 30 HTML files under companies/company-1; inspected core.js, main.html, app.html, picker.html and every domain PWA's Core/Auth/API/DB/RPC/Realtime/offline references; reviewed Report595's architecture map and current LVE611; created Report612. This was a read-only source inventory. No operational source, Production DB/RPC/RLS/GRANTS/Edge, data, or deployment was changed.
+
+## Current State — LVE612
+
+- Operational repo/branch: papamohammed77-glitch/erp-frontend / main.
+- Operational HEAD: `68d222b20251049daddc2f159f2b8c80cd6ffb89`.
+- Core blob: `f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1`.
+- Parent main.html blob: `53b5a9e9d0433a785c3d5471a9c0d68c25497882`.
+- Buyer blob: `311f2673a90149df6f56d59a9a187a3379e6981c`.
+- Picker blob: `d483bd15b36585b975b63c2ef641481a01d5d084`.
+- app.html blob: `2e47a68fe83956e27d569e786a08dcee91af2924`.
+- Inventory: 30 HTML files. 26 load core.js; main.html, warehouse/picker.html and app.html do not. index.html is a static navigation page and is exempt from Core loading.
+- Report612: `doc/Draft/Reprots/Report612_CORE_CENTRALIZATION_FORENSIC_APPLICATION_MATRIX_20261104.md`; report commit `9cc489a7171a3e1675500488767a99d3a07cfcfa`.
+
+## CONFIRMED — Core Centralization Is Partial
+
+1. main.html is NON-CORE: it creates/uses its own Supabase client and has independent Auth/data/RPC/Edge/Realtime paths. Static scan: 178 supabase.from call sites, 75 supabase.auth references, 61 direct RPC references, 68 functions/v1 references, 11 channel declarations and 39 postgres_changes references. Its internal RW_* namespaces are not the seven Core modules.
+2. warehouse/picker.html is NON-CORE: its own Supabase client/Auth, four raw Edge fetch call sites, independent Dexie and service-worker behavior.
+3. app.html is NON-CORE: its own Supabase client, login/password recovery/session and role-routing logic.
+4. 26 pages load Core, but many still call Supabase tables/RPC directly. Loading core.js is not proof of full centralization.
+5. Buyer is the closest Core-aligned application in the current source: RW_Auth, RW_API, RW_UI and RW_Realtime, with no direct supabase.from/RPC/channel/fetch references in the current Buyer file. This does not close Buyer business/Runtime defects tracked in LVE611.
+6. RW_DB is primarily a local Dexie layer, exposing getDB/syncDown/syncUp/getItems/getCustomers/getBranches; it is not a complete central server-read repository.
+7. RW_API exposes Edge call/callWithRetry only; no shared RPC wrapper or automatic operation identity/idempotency contract.
+8. RW_Realtime is used by Buyer, Purchasing Supervisor, Loader, Warehouse Manager, Receiver and Warehouse Supervisor. Parent, Sales Manager and Warehouse Vouchers create independent channels. Core defaults to INSERT/UPDATE; DELETE behavior must be explicitly defined/tested where required.
+9. Driver is a high-risk hybrid: despite loading Core it reads user_metadata for isOwner/role/permissions, contains direct inserts/updates to users, credit_block_events, service_complaints and driver_liabilities, and makes four raw Edge fetch calls. Do not treat this source finding alone as proof of a live exploit; reconcile RLS/GRANTS and effective server-side policies.
+10. Warehouse Returns contains a direct run_sheet_details.qty_returned update while it also uses the existing return Edge flow. Map the event's single-writer contract before changing it.
+11. Other hybrid apps include Accountant, Finance Manager, General Manager, HR, Owner, Purchasing Supervisor, Sales Manager, Order Taker, POS, Sales Supervisor, Telesales, Van Sales, Storefront, Store Tracking, Counter, Data Entry, Loader, Warehouse Manager, Receiver, Warehouse Supervisor, Unloader and Vouchers. Their precise access patterns are in Report612.
+12. Public Storefront and Order Tracking must use a shared public API contract; do not force employee Auth on public customer flows.
+13. Apps mix RW_DB/Dexie, app-specific Dexie schemas, localStorage, direct fetch and service-worker registration. A shared outbox/retry/SW contract is missing or incompletely adopted.
+
+## Centralization Target
+
+- Versioned Core bootstrap with exactly one page-local Supabase client, reusing an injected client where required and maintaining safe legacy aliases.
+- RW_Auth based on get_my_effective_profile and authoritative company/branch/active-role context; no user_metadata-based authorization.
+- RW_API for existing Edge Functions and RW_RPC for approved RPC invocation with correlation, normalized errors and operation identity/idempotency.
+- RW_Data/server-read repository for RLS-preserving query methods, explicit tenant/branch scope, pagination and consistent errors. Direct SELECTs need not all become Edge Functions.
+- RW_Realtime manages all channels, event policy, lifecycle, status, cleanup and reconciliation.
+- RW_Offline provides shared operation/outbox/retry/conflict policy with adapters for existing Dexie schemas.
+- RW_SW owns one consistent registration/update/cache policy.
+- Keep Parent and each operational PWA as separate applications; Core is shared infrastructure, not a second business engine.
+
+## Execution Order / Owner Gates
+
+1. Present exact Core bootstrap, compatibility and API/RPC/Data contract before changing files.
+2. Do not blindly add core.js to main.html/app.html; the current Core creates a global Supabase client while these pages already initialize their own client. Build an injection/compatibility adapter first.
+3. Integrate app.html Auth/profile/routing and picker operational PWA incrementally after the Core contract is tested.
+4. Address Driver's Auth/direct-DML boundary and Returns' run_sheet_details direct update as P1 write-boundary reviews.
+5. Bring Parent, Sales Manager and Vouchers Realtime under RW_Realtime.
+6. Migrate remaining hybrid apps by domain, keeping their business UI and existing Edge/RPC single writers.
+7. Complete offline/service-worker standardization and authenticated app-by-app E2E.
+
+**NEXT EXACT EXECUTION:** Prepare the owner-review Core bootstrap/compatibility Change Set, with exact affected files, before/after code, dependency map, client initialization strategy, auth/context contract, API/RPC/Data wrapper contract, Realtime/offline impact, tests and rollback. Do not begin mass migration or touch Parent/operational apps until the owner approves that exact change under Master CTO §77.2.
+
+**STATUS:** LVE612 INVENTORY COMPLETE / 30 HTML FILES MAPPED / CORE CENTRALIZATION PARTIAL / NO SOURCE OR PRODUCTION MUTATION / CENTRALIZATION CHANGE SET NOT YET APPROVED.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-611 — Buyer / Parent / Core / Receiving / Runtime Revalidation
 
 **Timestamp:** 2026-11-04 — daily revalidation after LVE610.  
