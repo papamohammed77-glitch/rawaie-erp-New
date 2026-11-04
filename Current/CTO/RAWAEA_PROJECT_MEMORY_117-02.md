@@ -1293,7 +1293,7 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 
 
 ## LVE624 — Buyer Phase 1 executed (2026-11-04)
-- تم تطبيق 8 Supabase migrations على SMART ERP: supplier invoice duplicate guard، Buyer source/goods custody schema، PO/QM idempotency hardening، posting guard، handover progress، Realtime، ownership wrappers، ثم إعادة تثبيت غلاف Legacy بعد ربط duplicate guard.
+- تم تطبيق 9 Supabase migrations على SMART ERP: supplier invoice duplicate guard، Buyer source/goods custody schema، PO/QM idempotency hardening، posting guard، handover progress، Realtime، ownership wrappers، ثم إعادة تثبيت غلاف Legacy بعد ربط duplicate guard.
 - جدول `buyer_goods_custody_events` live مع RLS، SELECT policy واحدة، append-only trigger، Realtime membership. authenticated SELECT فقط؛ لا DML مباشر. جميع SECURITY DEFINER Buyer RPCs تضبط search_path فارغًا؛ anon EXECUTE=false.
 - Edge الحالي `save-purchase-order` ACTIVE v25، SHA-256 `793ba5412a27813aa715da4078971a150d592dd03b53833148b9e99a37b5be62`. العمليات الجديدة تستعمل profileClient/JWT. GET_DATA يحد فواتير وتفاصيل المشتري إلى المالك الحالي، مع توسيع للمالية/مدير المالية/مالك النظام.
 - Buyer source الوحيد المعدل: `companies/company-1/purchasing/buyer.html`, blob `9cc971d8c5ae9ce960c9395d53e36d43a30e9c73`, commit `3717c0279b856127d29fb9f912ec502523761da5`. منفصل PO/Quick Market، إخفاء cost_price، حجز عهدة نقدية دون double count، handover موثق إلى عهدة البضاعة مع مركبة اختيارية، رصيد مشتريات من ledger، فواتيري current-user default.
