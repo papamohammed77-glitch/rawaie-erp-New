@@ -1,3 +1,27 @@
+## LVE-2026-11-04-626 — Buyer Live Forensic Revalidation
+
+**Status:** BUYER PHASE 1 PRESENT / END-TO-END NOT CLOSED / CHANGESET APPROVAL GATE OPEN / RECEIVER DEFERRED.  
+**Report:** [Report626](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report626_BUYER_LIVE_FORENSIC_REVALIDATION_AND_PHASE2_CHANGESET_20261104.md) — commit `32c8716a6f23f79865d1a51a711c8da4975b09a5`.
+
+### Verified
+- Revalidated operational HEAD `bf0833c`, Buyer blob `d9ffb108`, CSS blob `7eb4ef08`; 19 commits since `e8ab54c` are limited to Buyer/CSS.
+- Confirmed Production migrations Buyer 01–09, goods-custody table/RLS/append-only, Edge save-purchase-order v25 and receive-purchase v13.
+- Confirmed Quick Market invoice modal lacks supplier invoice image and smart supplier search; goods-custody writes only Supplier→Buyer; Buyer Realtime omits the event table.
+- Confirmed QMP reservations are not considered by `buyer_custody_settle_atomic`; expense review remains PO/Receiving-bound; generic Edge `DELETE_DRAFT_INVOICE` remains callable without purchaser ownership or goods-event guard; invoice RLS remains company-wide.
+- Confirmed SupplierReturn SAR fallback/default, custodian exclusion, direct DML grants, missing acceptance schema/partial acceptance, missing cumulative-return guard and competing stock/financial writers.
+- Reconciled legacy invoice impacts: PINV-1000/1001 Posted SAR 3,970 combined, five PurchaseIn movements/50 units, supplier ledger credits and two Posted journals; later movements exist. QA-SR Draft is inconsistent and requires reconciliation. No deletion/reversal.
+
+### Not done
+- No Buyer/Receiver/Vouchers/Parent/Core source write.
+- No Production DDL/DML/RPC/Trigger/RLS/ACL/Storage/Realtime write.
+- No Edge or Cloudflare deployment; no new Edge Function.
+- No test fixture; no authenticated Browser E2E. Latest artifact for bf0833c remains unverified.
+
+### Execution boundary
+Read-only diagnostics and documentation only. Report614 §14 and charter §6.2 require the complete exact change package, impacts, tests and rollback to be presented and explicitly approved before operational/Production mutation. Receiver remains deferred until Buyer acceptance.
+
+---
+
 ## LVE-2026-11-04-621 — Integrated Buyer Goods Custody / Supplier Return / Quick Market
 
 **Status:** LVE620 RECONCILED / V4 SCHEMA SCAFFOLD PREPARED / REMAINING EXECUTABLE CHANGE SET OPEN / NO OPERATIONAL OR PRODUCTION WRITE.  
