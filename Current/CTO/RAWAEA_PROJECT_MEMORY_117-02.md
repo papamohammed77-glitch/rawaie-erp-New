@@ -1335,3 +1335,12 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - P2 open: Buyer does not subscribe to buyer_goods_custody_events; CSS cache-first SW version unchanged; Legacy Draft edit may normalize historical SAR to system EGP; event UI does not expose evidence link; 29 Buyer custody FKs unindexed.
 - Receiver remains PO-only (purchase_orders subscription, receive-purchase v13); Quick Market warehouse acceptance is not implemented. No Quick Market/custody test rows or business effects exist. Latest confirmed Cloudflare deployment remains 3717c027; bf0833c not deployment-verified; authenticated E2E/Staging unknown.
 - Report625: doc/Draft/Reprots/Report625_BUYER_PHASE1_SECURITY_INTEGRATION_REVALIDATION_20261104.md. No operational code/DB/Edge/deployment writes; next step is exact P1 ChangeSet and explicit owner approval.
+
+
+## LVE627 — Buyer Phase 1 hardening / Edge v25 recovered — 2026-11-04
+- Report627: `doc/Draft/Reprots/Report627_BUYER_PHASE1_HARDENING_EDGE_V25_RECOVERY_20261104.md` (commit e95fe0e73160ae9be05047d7dc7eaaa6949e0754).
+- Live `save-purchase-order` is ACTIVE v25, SHA256 793ba5412a27813aa715da4078971a150d592dd03b53833148b9e99a37b5be62, 30,017 bytes. Exact snapshot archived in `Current/CTO/EdgeSnapshots/20261104/save-purchase-order_v25/index.ts` (archive commit 8654dea3e0d93008d74f66b9f0a6fe5c695f2bc0; blob 632f207143574a6b26145aa01cc8abc0c283d12b); byte-for-byte match verified. Operational Git Edge file blob bc038be8c60a3d593f604c7b2ae445e807bacf57 (23,077 bytes) is stale; never redeploy it over v25.
+- Review drafts: Edge `save-purchase-order_v25_PHASE1_HARDENING_REVIEW_DRAFT.ts` commit 9779f48d373fe543ffe2c31e96d9d6bf118c9c09; SQL `01_buyer_phase1_hardening_REVIEW_DRAFT.sql` latest commit 4682d3f74213b09767e3faec8997220ef35ff1c2; Buyer patch `02_buyer_evidence_unknown_outcome_REVIEW.patch.md` commit 55846d16bce195198408da9767d15c4c966543cc.
+- Drafts cover fail-closed currency, generic invoice-delete ownership/source/goods-event guard, QMP reservation guard for custody settlement, required existing private evidence object/path on handover RPC, deletion guard after goods events, and safe unknown-commit file retention.
+- Storage bucket employee-documents is private. No buyer-goods-specific policy identified; inspect and draft least-privilege Storage access before any apply. Invoice RLS and purchase_returns direct-DML remain open pending consumer maps.
+- No operational or Production write/deploy; no Receiver edit; no QA fixtures. Approval gate remains open under permanent charter §§6.2–6.3.
