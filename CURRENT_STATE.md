@@ -1,3 +1,58 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-05-632 — Buyer Cash Custody / Operational Expense Hardening
+
+**LAST VERIFIED EVENT:** 2026-11-05 — Continued from LVE631 under explicit owner approval. Applied Production migration 20261104223538 for operational Buyer custody expenses and Quick Market reservation-safe available-cash calculation; deployed save-purchase-order v29 ACTIVE; synchronized its source to operational Git and archived exact live source; updated Buyer custody dashboard/modal/review/settlement UX; built Buyer Tailwind CSS successfully. No business rows, stock, treasury, AP or GL were modified.
+
+**Report632:** [Buyer Cash Custody, Operational Expenses and Quick Market Reservation Hardening](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report632_BUYER_CASH_CUSTODY_OPERATIONAL_EXPENSES_QMP_HARDENING_20261105.md) — commit c52554ebd276369141c935f271009b74f71c3261.
+
+## Applied Production state
+
+- Migration name buyer_custody_operational_expenses_20261105, recorded version 20261104223538; file in operational repo: supabase/migrations/20261104223538_buyer_custody_operational_expenses_20261105.sql.
+- buyer_custody_expenses now separates PURCHASE_INVOICE and OPERATIONAL, with category/reference/expense_account_id, checks, FK and review indexes.
+- Existing buyer_custody_submit_expense_atomic remains PO/Receiving-only and now counts outstanding Quick Market cash reservations in its server-side available-cash guard.
+- New buyer_custody_submit_other_expense_atomic records documented transport/fuel/tolls/other expenses as Submitted, verifies ownership, acknowledged custody, currency, path, Storage object, MIME/size, idempotency and available cash after reservations. No GL/AP/stock/Treasury posting on submission.
+- New buyer_custody_review_other_expense_atomic permits Finance/Finance Manager only, blocks self-review, rejects or posts one journal DR expense leaf / CR Employee Custody 127; no second treasury payment.
+- Existing purchase invoice review RPC rejects operational expense type.
+- buyer_custody_settle_atomic still blocks pending reviews, unacknowledged advances and open Quick Market invoices; now also refuses employee-payable balance without configured payment flow.
+- No new Storage policy, public bucket or Edge Function.
+
+## Edge runtime
+
+- save-purchase-order v29 ACTIVE, verify_jwt true.
+- SHA-256 35caa4f2759ba608a7f3bf86640b4773280bc84447872267d6e4d53896743e04; source 39,545 characters.
+- Added SUBMIT_OTHER_CUSTODY_EXPENSE, REVIEW_OTHER_CUSTODY_EXPENSE, VERIFY_CUSTODY_EXPENSE_OPERATION, GET_OTHER_CUSTODY_EXPENSE_ACCOUNTS.
+- Live source matches operational Git source and governance archive exactly.
+- Archive: Current/CTO/EdgeSnapshots/20261105/save-purchase-order_v29/index.ts and DEPLOYMENT_MANIFEST.md.
+
+## Buyer operational UI
+
+- File only: companies/company-1/purchasing/buyer.html.
+- Buyer-specific commit 21c35a5d02d36c32ecb3304f5cecb6f157911741; blob 5ab9f4e268cbf266e6ff950fe41bf5c9a4c9390a.
+- QMP invoices/reservations are listed inside each custody card; reservations are distinguished from approved expenses.
+- Separate PO expense and operational expense flows; operational form uploads receipt into private employee-documents/buyer-custody path and uses safe unknown-outcome verification.
+- Finance review uses selected active expense leaf. If none exists, document remains Submitted and UI explains why 51/52 cannot be used.
+- Close-custody button is suppressed with a reason when QMP invoices remain open, expenses await review, advances are unacknowledged or approved expenses exceed issued cash.
+- Inline JavaScript parse-only check PASS.
+- Buyer Tailwind workflow run 41927675334 completed success for 21c35a5. CSS blob 271d669599ddc23a914ca4ddb2f0b803264468f4.
+
+## Verified Production data snapshot after changes
+
+- Company currency EGP.
+- buyer_custodies 0; buyer_custody_advances 0; buyer_custody_expenses 0; buyer_goods_custody_events 0.
+- purchase_invoices 3; Quick Market invoices 0.
+- No test fixture, business documents, stock movement, supplier-ledger row, treasury transaction or journal created by this work.
+
+## Explicit blockers / remaining
+
+1. Production chart of accounts has only expense parent 5, COGS 51 and inventory variance 52; no valid active leaf expense account for transport/fuel/tolls. Submission is available and reserves funds; finance posting is intentionally blocked until proper COA leaves are configured. Never use 51/52 or guess account codes.
+2. Buyer cash increase from supplier return has NOT been implemented. Current SupplierReturn trigger clears custodian_user_id for SupplierReturn, contract requires supplier as endpoint, and current completion writer posts full AP/GL for full return without delegated Buyer custody or partial supplier acceptance. Need one linked return register/voucher, delegated Buyer custody, per-line supplier acceptance, proof of actual cash received vs credit note, and one financial posting path. No fake increase.
+3. Cloudflare Pages deployment for Buyer commit 21c35a5 UNVERIFIED. Browser security/context unavailable.
+4. Authenticated Buyer E2E NOT RUN. Tailwind build and source parse do not constitute E2E.
+5. Receiver remains deferred. No Parent/Core/Receiver/Vouchers file was changed. No new Edge Function.
+
+**Status:** OPERATIONAL EXPENSE SUBMISSION ENABLED / FINANCE POSTING COA-GATED / QMP RESERVATIONS VISIBLE / EDGE v29 ACTIVE / BUYER SOURCE COMMITTED / TAILWIND BUILD PASS / CLOUDFLARE UNVERIFIED / AUTHENTICATED E2E NOT RUN / SUPPLIER CASH REFUND OPEN.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-631 — Buyer Invoice Evidence / Security / Performance
 
 **LAST VERIFIED EVENT:** 2026-11-04 — Buyer Quick Market supplier-invoice attachment workflow added; `save-purchase-order` v28 ACTIVE and archived byte-for-byte; attachment metadata and Storage access scoped; purchase returns central-writer-only; Buyer/Purchase FK indexes closed; trigger-only SECURITY DEFINER execution revoked from public API roles.
