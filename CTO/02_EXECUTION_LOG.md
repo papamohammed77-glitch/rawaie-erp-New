@@ -38,6 +38,38 @@ No task is considered complete unless its evidence, decision, implementation sta
 
 ---
 
+## LVE-2026-11-04-615 — Integrated Buyer Goods Custody / Supplier Return / Quick Market Change Set
+
+**Status:** FORENSIC REVIEW AND INTEGRATED TARGET CONTRACT PREPARED / IMPLEMENTATION NOT APPLIED / GOVERNANCE GATE OPEN.  
+**Report:** Report615 commit `2b510a7d9212d998c828c24dcf80e1a3d459cee0`, blob `725287c05ed533ae97a74b534192d9192352b5a5`.  
+**Starting point:** LVE614 / operational HEAD observed `e8ab54c75572e15e71581212479d22be139c8020`.
+
+### Additional evidence
+- Read Report606 owner decisions and Reports603/605/608/609; verified live production function definitions, ACL/RLS, storage policies and publication.
+- Official competitor research: Odoo internal/transit vs vendor locations; Dynamics return PO, partial receiving and inspection; SAP returns lifecycle, inspection and credit follow-up.
+- CONFIRMED P0: PUBLIC/anon/authenticated have direct table DML privileges on purchase_returns and purchase_return_details; current company RLS ALL policies do not enforce purchase/finance permission gate for direct writes.
+- CONFIRMED cumulative-return defect: purchase_create_return_atomic does not subtract prior active/Draft/Posted returns from invoice received quantity; concurrent/separate operations can over-return.
+- CONFIRMED Receiver defects: purchase_order_details queried by po_code instead of po_id; parseInt truncates fractional quantities; all-zero receipt can still create a receipt header; Quick Market receipt is not supported by deployed receive-purchase v13.
+- CONFIRMED SupplierReturn: trigger clears custodian_user_id outside DirectSale/DirectReturn; current SupplierReturn sends branch stock out and full financial effect on completion; no Buyer custody or supplier accepted quantity.
+- CONFIRMED second writer: purchase_post_return_atomic independently posts stock/AP/GL without link to manual stock voucher.
+- Revalidated live Edge versions and hashes. Non-save-purchase-order deployed sources are missing from matching operational Git paths; byte-for-byte source restoration is mandatory before modifying those functions.
+- Report615 sets the one-writer design, line-level acceptance and custody ledger, quick market receiving, typed cash expenses and Parent recipient projection.
+
+### Actions
+- Created Report615.
+- Updated project memory LVE615 (commit `ac5ffad5e692272215bcd3c74e30960945dcf470`).
+- No source write, Parent main.html write, SQL/data/ACL/RLS/Trigger/RPC write, Edge update/deploy, new Edge function, test fixture or Cloudflare action.
+
+### Remaining / gate
+- Full executable additive migration and replacement function bodies are not yet authored.
+- Restore deployed live Edge sources into operational Git and verify exact parity before editing.
+- Exact Buyer/Vouchers/Receiver changes and owner-side Parent patch remain to be prepared.
+- Authenticated Browser E2E, Cloudflare artifact parity and full-schema Staging remain unverified / unavailable.
+- Do not apply any Production-affecting part before full exact change set and explicit approval under §77.2.
+- Status: NOT IMPLEMENTED / NOT PRODUCTION READY.
+
+---
+
 ## CTO WORKING METHOD — CURRENT OPERATING STANDARD
 
 ### Execution rhythm
