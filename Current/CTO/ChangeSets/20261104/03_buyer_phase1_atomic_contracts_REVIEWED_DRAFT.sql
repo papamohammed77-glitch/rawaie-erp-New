@@ -258,7 +258,7 @@ BEGIN
     hashtextextended('RAWAEA:QUICK-MARKET:'||p_company_id::text||':'||btrim(p_operation_id),0)
   );
 
-  IF p_settlement_source NOT IN ('EMPLOYEE_CUSTODY','SUPPLIER_CREDIT') THEN
+  IF p_settlement_source IS NULL OR p_settlement_source NOT IN ('EMPLOYEE_CUSTODY','SUPPLIER_CREDIT') THEN
     RAISE EXCEPTION 'QUICK_MARKET_SETTLEMENT_SOURCE_INVALID';
   END IF;
 
@@ -515,7 +515,7 @@ BEGIN
   WHERE company_id=p_company_id ORDER BY created_at,id LIMIT 1;
 
   IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}$' THEN RAISE EXCEPTION 'SYSTEM_CURRENCY_NOT_CONFIGURED'; END IF;
-  IF p_settlement_source NOT IN ('EMPLOYEE_CUSTODY','SUPPLIER_CREDIT') THEN
+  IF p_settlement_source IS NULL OR p_settlement_source NOT IN ('EMPLOYEE_CUSTODY','SUPPLIER_CREDIT') THEN
     RAISE EXCEPTION 'QUICK_MARKET_SETTLEMENT_SOURCE_INVALID';
   END IF;
 
@@ -544,7 +544,10 @@ BEGIN
       *(1+COALESCE(NULLIF(x->>'tax_rate','')::numeric,0)/100),2);
   END LOOP;
 
-  IF jsonb_typeof(p_items)<>'array' OR jsonb_array_length(p_items)<1 OR v_total<=0 THEN
+  IF COALESCE(jsonb_typeof(p_items),'')<>'array' THEN
+    RAISE EXCEPTION 'PURCHASE_INVOICE_ITEMS_MUST_BE_ARRAY';
+  END IF;
+  IF jsonb_array_length(p_items)<1 OR v_total<=0 THEN
     RAISE EXCEPTION 'PURCHASE_INVOICE_ITEMS_INVALID';
   END IF;
 
@@ -630,6 +633,7 @@ DECLARE
   v_fingerprint text;
   v_existing_count integer;
   v_inserted integer:=0;
+  v_event_id uuid;
   v_events jsonb:='[]'::jsonb;
 BEGIN
   SELECT * INTO v_actor FROM public.users
@@ -733,11 +737,11 @@ BEGIN
       evidence_path,actor_user_id,notes
     )
     VALUES(
-      p_company_id,v_invoice.branch_id,v_actor.id,p_vehicle_id,'SUPPLIER_TO_BUYER_QUICK_MARKET',v_qty,
+      p_company_id,v_invoice.branch_id,v_actor.id,v_detail.item_id,p_vehicle_id,'SUPPLIER_TO_BUYER_QUICK_MARKET',v_qty,
       'PurchaseInvoice',p_invoice_id,v_detail.id,p_operation_id,v_fingerprint,
       NULLIF(btrim(p_evidence_path),''),v_actor.id,NULLIF(btrim(p_notes),'')
     )
-    RETURNING id INTO v_detail.id;
+    RETURNING id INTO v_event_id;
 
     v_inserted:=v_inserted+1;
   END LOOP;
