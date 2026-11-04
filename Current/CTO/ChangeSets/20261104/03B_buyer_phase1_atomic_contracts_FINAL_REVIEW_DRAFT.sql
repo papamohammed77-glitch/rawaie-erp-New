@@ -23,7 +23,7 @@ ALTER TABLE public.purchase_invoices
   ADD COLUMN IF NOT EXISTS purchase_source text NOT NULL DEFAULT 'LEGACY_UNCLASSIFIED',
   ADD COLUMN IF NOT EXISTS settlement_source text NOT NULL DEFAULT 'UNSET',
   ADD COLUMN IF NOT EXISTS purchaser_user_id uuid,
-  ADD COLUMN IF NOT EXISTS buyer_custody_id uuid,
+  ADD COLUMN IF NOT EXISTS cash_custody_id uuid,
   ADD COLUMN IF NOT EXISTS receipt_status text NOT NULL DEFAULT 'LEGACY_UNVERIFIED',
   ADD COLUMN IF NOT EXISTS settlement_status text NOT NULL DEFAULT 'LEGACY_UNVERIFIED',
   ADD COLUMN IF NOT EXISTS source_payload_fingerprint text;
@@ -43,11 +43,11 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
     WHERE conrelid='public.purchase_invoices'::regclass
-      AND conname='purchase_invoices_buyer_cash_custody_fk'
+      AND conname='purchase_invoices_cash_custody_fk'
   ) THEN
     ALTER TABLE public.purchase_invoices
-      ADD CONSTRAINT purchase_invoices_buyer_cash_custody_fk
-      FOREIGN KEY (buyer_custody_id) REFERENCES public.buyer_custodies(id) ON DELETE RESTRICT NOT VALID;
+      ADD CONSTRAINT purchase_invoices_cash_custody_fk
+      FOREIGN KEY (cash_custody_id) REFERENCES public.buyer_custodies(id) ON DELETE RESTRICT NOT VALID;
   END IF;
 
   IF NOT EXISTS (
@@ -95,8 +95,8 @@ CREATE INDEX IF NOT EXISTS purchase_invoices_buyer_source_idx
   ON public.purchase_invoices(company_id, purchaser_user_id, purchase_source, status, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS purchase_invoices_cash_custody_reservation_idx
-  ON public.purchase_invoices(company_id, buyer_custody_id, status)
-  WHERE buyer_custody_id IS NOT NULL;
+  ON public.purchase_invoices(company_id, cash_custody_id, status)
+  WHERE cash_custody_id IS NOT NULL;
 
 -- ---------------------------------------------------------------------------
 -- 2. دفتر أحداث حيازة البضاعة — ليس رصيد مخزن ولا رصيد سيارة
@@ -393,7 +393,7 @@ BEGIN
     SELECT COALESCE(SUM(total_amount),0) INTO v_reserved
     FROM public.purchase_invoices
     WHERE company_id=p_company_id
-      AND buyer_custody_id=p_cash_custody_id
+      AND cash_custody_id=p_cash_custody_id
       AND purchase_source='QUICK_MARKET'
       AND status='Draft'
       AND settlement_status='UNSETTLED';
@@ -419,7 +419,7 @@ BEGIN
   SET purchase_source='QUICK_MARKET',
       settlement_source=p_settlement_source,
       purchaser_user_id=v_actor.id,
-      buyer_custody_id=p_cash_custody_id,
+      cash_custody_id=p_cash_custody_id,
       receipt_status='NOT_RECEIVED',
       settlement_status='UNSETTLED',
       source_payload_fingerprint=v_fingerprint,
@@ -580,7 +580,7 @@ BEGIN
     WHERE company_id=p_company_id AND custody_id=p_cash_custody_id AND status IN ('Submitted','Approved');
 
     SELECT COALESCE(SUM(total_amount),0) INTO v_reserved FROM public.purchase_invoices
-    WHERE company_id=p_company_id AND buyer_custody_id=p_cash_custody_id
+    WHERE company_id=p_company_id AND cash_custody_id=p_cash_custody_id
       AND purchase_source='QUICK_MARKET' AND status='Draft' AND id<>p_invoice_id
       AND settlement_status='UNSETTLED';
 
@@ -600,7 +600,7 @@ BEGIN
   SET purchase_source='QUICK_MARKET',
       settlement_source=p_settlement_source,
       purchaser_user_id=v_actor.id,
-      buyer_custody_id=p_cash_custody_id,
+      cash_custody_id=p_cash_custody_id,
       receipt_status='NOT_RECEIVED',
       settlement_status='UNSETTLED',
       source_payload_fingerprint=v_fingerprint,
