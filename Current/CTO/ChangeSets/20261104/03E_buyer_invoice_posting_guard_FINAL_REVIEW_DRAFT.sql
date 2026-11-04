@@ -31,8 +31,9 @@ BEGIN
   END IF;
 
   IF NOT (
-    app_private.current_user_has_effective_permission('purchases')
-    AND app_private.current_user_has_effective_permission('finance')
+    (app_private.current_user_has_effective_permission('purchases')
+      AND app_private.current_user_has_effective_permission('finance'))
+    OR COALESCE(v_actor.permissions,'[]'::jsonb) @> '["*"]'::jsonb
   ) THEN
     RAISE EXCEPTION 'PURCHASE_POST_REQUIRES_PURCHASES_AND_FINANCE';
   END IF;
