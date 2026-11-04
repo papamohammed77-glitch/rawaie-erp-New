@@ -1,3 +1,22 @@
+## LVE-2026-11-04-618 — Buyer Goods Custody / Quick Market UX Specification
+
+**Status:** APPLICATION SPECIFICATION PREPARED / NOT APPLIED.  
+**Report:** [Report618_BUYER_GOODS_CUSTODY_QUICK_MARKET_UX_SPEC_20261104.md](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report618_BUYER_GOODS_CUSTODY_QUICK_MARKET_UX_SPEC_20261104.md) — commit `440a32991d8b3a259ab77d7da81d801bfe5e2a34`.
+
+Prepared the exact Buyer UX and operation contract:
+- Replace static `رصيدي` placeholder with server-backed, paged event ledger.
+- Separate Draft invoice save from physical supplier-to-Buyer handover.
+- Add Buyer-to-Warehouse and Buyer-to-Supplier accepted-quantity flows.
+- Default Supplier Direct; Buyer Delegate exception; no vehicle dependency.
+- Hide last cost by default; preserve actual manual purchase price.
+- Keep cash custody separate and add invoice-ID Quick Market settlement.
+- Add Realtime sources and server-side pagination; preserve existing PO path.
+- Use existing Edge functions only; no new Edge.
+
+No operational source, Production schema/data, Edge deployment or test fixture was changed.
+
+---
+
 ## LVE-2026-11-04-617 — SupplierReturn Recipient & Currency Patch
 
 **Status:** PATCH SPECIFICATION PREPARED / NOT APPLIED.  
