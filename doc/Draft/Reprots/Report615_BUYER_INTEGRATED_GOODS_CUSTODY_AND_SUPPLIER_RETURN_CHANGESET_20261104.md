@@ -136,6 +136,26 @@ The current RLS policies on those tables use command ALL and only constrain comp
 - stock_vouchers.return_currency has DEFAULT 'SAR'.
 - Posting/conversion impact is not confirmed because the review snapshot has zero return rows. Do not silently convert historical values; all new contracts must derive currency from System Settings and reject mismatch.
 
+### 3.9 Existing Receiving and Cash Custody accounting writers
+
+**PO Receiving writer — CONFIRMED**
+- The live receive_purchase_atomic(p_company_id,p_po_code,p_user_email,p_items,p_operation_id) function posts stock movements using post_stock_movement(...,'PurchaseIn',...).
+- For the accepted PO quantity it creates a journal DR Inventory account 124 / CR Supplier AP account 211, and inserts a Supplier Ledger credit for the received value.
+- It updates purchase_order_details.qty_received and purchase_orders.status. It does not create a purchase_invoice_id link in receiving header/detail.
+- Therefore simply extending this function for Quick Market and reusing the PO posting block for every Quick Market invoice would be wrong for an invoice paid immediately from employee cash custody: it would create Supplier AP and Supplier Ledger despite the vendor having already been paid.
+
+**Cash Custody review writer — CONFIRMED**
+- buyer_custody_review_expense_atomic is a specific supplier-invoice settlement routine, not a general expense reviewer.
+- It requires a Draft invoice linked to a PO and completed PO Receiving; it checks full invoice-vs-PO quantities/prices, then posts DR Supplier AP 211 / CR Employee Custody 127, creates buyer_custody_payments, marks the invoice Paid and debits supplier_ledger.
+- It does not support fuel/transport/other expenses without supplier invoice, PO, and receiving.
+- Reusing it for an EMPLOYEE_CUSTODY_CASH Quick Market invoice would add a second Supplier AP/Payment route. Reusing it for operating expenses would be invalid.
+- This writer must be split by explicit settlement_source and expense_category. PURCHASE_CASH must reconcile accepted inventory to Employee Custody without AP/Supplier Ledger duplication; FUEL/TRANSPORT/OTHER use Finance-approved expense accounts without stock/AP. SUPPLIER_CREDIT keeps the AP route. TREASURY_CASH remains a separate actual-payment event.
+
+**Supplier-return acceptance financial nuance — CONFIRMED**
+- Manual SupplierReturn completion reverses tax by grouping stock_voucher_details.tax_code_id and creating finance_tax_transactions for the full return, in addition to the AP/Inventory journal.
+- Parent purchase_post_return_atomic does not follow the same tax-code flow; its return detail model currently only stores item/qty/unit_price/line_total.
+- The unified acceptance writer must calculate accepted value, discount and tax per accepted line from the authoritative source return line, reverse only the accepted tax amount, and create one balanced journal. It must not post the full line total when the supplier has accepted only part.
+
 ### 3.9 Live Production row snapshot
 
 At the LVE614/615 read-only review window:
@@ -218,6 +238,10 @@ Official sources:
    - SUPPLIER_CREDIT: Supplier AP is recognized once for accepted goods; cash payment remains a separate event.
    - TREASURY_CASH: treasury changes only on actual documented payment, independently of physical receipt.
 8. Status must distinguish invoice document state, physical receipt state and settlement state.
+
+### 5.4.1 Refund/credit treatment for a return of cash-paid goods
+
+A further mapping remains UNKNOWN and must not be guessed. If the original Quick Market invoice was settled using EMPLOYEE_CUSTODY_CASH and the supplier later accepts a return, there may be no Supplier AP balance to debit. The return may create a supplier refund receivable/credit balance, a supplier credit note available for offset against a later purchase, or an actual cash refund received by the employee/company. Finance must map those dispositions to the existing chart and treasury evidence before posting. The acceptance event must record which disposition occurred. Do not post a debit to Supplier AP as if it were an existing payable when the original purchase created no AP; do not increase cash or treasury merely because the supplier accepted the goods.
 
 ### 5.4 Cash custody and operating expenses
 
