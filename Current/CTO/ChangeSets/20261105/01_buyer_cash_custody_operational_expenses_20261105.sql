@@ -48,6 +48,9 @@ BEGIN
   END IF;
 END $$;
 
+CREATE INDEX IF NOT EXISTS buyer_custody_expenses_expense_account_id_fk_idx
+  ON public.buyer_custody_expenses(expense_account_id) WHERE expense_account_id IS NOT NULL;
+
 CREATE INDEX IF NOT EXISTS buyer_custody_expenses_operational_review_idx
   ON public.buyer_custody_expenses(company_id,custody_id,status,expense_date DESC)
   WHERE expense_type='OPERATIONAL';
@@ -362,7 +365,7 @@ BEGIN
     app_private.current_user_has_effective_permission('finance')
     OR app_private.current_user_has_effective_permission('finance_manager')
   ) THEN RAISE EXCEPTION 'CUSTODY_FINANCE_PERMISSION_REQUIRED'; END IF;
-  IF p_decision NOT IN ('Approved','Rejected') THEN RAISE EXCEPTION 'CUSTODY_REVIEW_DECISION_INVALID'; END IF;
+  IF COALESCE(p_decision,'') NOT IN ('Approved','Rejected') THEN RAISE EXCEPTION 'CUSTODY_REVIEW_DECISION_INVALID'; END IF;
 
   SELECT * INTO v_expense
   FROM public.buyer_custody_expenses
@@ -545,7 +548,7 @@ BEGIN
   SELECT * INTO v_account
   FROM public.chart_of_accounts a
   WHERE a.id=p_expense_account_id AND a.company_id=p_company_id AND a.is_active=true;
-  IF NOT FOUND OR v_account.account_type<>'expense'
+  IF NOT FOUND OR v_account.account_type IS DISTINCT FROM 'expense'
      OR v_account.account_code IN ('51','52')
      OR EXISTS(
        SELECT 1 FROM public.chart_of_accounts child
