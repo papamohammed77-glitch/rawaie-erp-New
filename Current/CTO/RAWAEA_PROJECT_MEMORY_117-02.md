@@ -1,3 +1,15 @@
+# LVE-2026-11-04-628 — Buyer Phase 1 Hardening Applied / E2E Open
+
+- Owner explicitly approved the reviewed Buyer Phase 1 changes. Report628: [Buyer Phase 1 Hardening Applied and Verification](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report628_BUYER_PHASE1_HARDENING_APPLIED_AND_VERIFICATION_20261104.md), commit `13ade99f2279c76957ba93147f64089144018578`.
+- Production migration `buyer_phase1_hardening_20261104`, version `20261104213909`, applied after full SQL compile in a transaction rolled back before application.
+- Three live RPC bodies hardened with signatures/ACL preserved: QMP open reservation blocks cash-custody settlement; goods handover requires company/user/invoice-bound evidence path and existing private Storage object; generic invoice delete blocks invoices with goods-custody events.
+- Existing `save-purchase-order` Edge v25 snapshot used as source (not stale Git file); deployed v26 ACTIVE, verify_jwt true, SHA256 `fb31ac953213d6f30a9e545f1da3b9075ca28638b5032450618769d20f2cb5b4`, deployed source matches approved ChangeSet exactly.
+- Buyer operational repo commit `240858a071736a416dcf302e8cfc28e453016c3f`, file `companies/company-1/purchasing/buyer.html`, blob `ecce26b3cbc108b4950bf083898fabd7d0e4a7d0`: fixed ambiguous RPC outcome so evidence is not deleted when verification fails; added goods custody events to Realtime and invoice/vehicle refresh targets.
+- `buyer_goods_custody_events` already belongs to `supabase_realtime`; RLS enabled. Existing generic private employee-document policies map first two path segments to company/user. No Storage ACL change.
+- Post-change data unchanged: app_settings currency EGP; purchase_invoices 3; buyer_custodies 0; goods events 0; Quick Market invoices 0. No test data, stock, treasury, AP or GL mutations.
+- Cloudflare Pages automatic deployments enabled; currently available dashboard snapshot is stale and only shows 3717c02, so deployment for 240858a is unverified. No authenticated Buyer session; E2E remains not run.
+- Remaining: buyer-only invoice RLS/consumer map; purchase_returns/details direct-DML consumer map; Quick Market invoice image/supplier search; Buyer→Warehouse/Supplier and partial acceptance; Quick Market expense settlement; Cloudflare parity and authenticated E2E. Receiver intentionally deferred. Do not delete/reverse historical Posted invoices or QA-SR without reconciliation.
+
 # LVE-2026-11-04-626 — Buyer Live Forensic Revalidation
 
 - Report626: [Buyer live forensic revalidation and Phase 2 ChangeSet](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report626_BUYER_LIVE_FORENSIC_REVALIDATION_AND_PHASE2_CHANGESET_20261104.md), commit `32c8716a6f23f79865d1a51a711c8da4975b09a5`.
