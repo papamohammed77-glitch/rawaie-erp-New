@@ -1,3 +1,36 @@
+## LVE-2026-11-04-621 — Integrated Buyer Goods Custody / Supplier Return / Quick Market
+
+**Status:** LVE620 RECONCILED / V4 SCHEMA SCAFFOLD PREPARED / REMAINING EXECUTABLE CHANGE SET OPEN / NO OPERATIONAL OR PRODUCTION WRITE.  
+**Report:** [Report621_BUYER_INTEGRATED_CONTRACT_GAP_REVIEW_AND_LVE620_RECONCILIATION_20261104.md](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report621_BUYER_INTEGRATED_CONTRACT_GAP_REVIEW_AND_LVE620_RECONCILIATION_20261104.md) — latest commit `080c03711154e544c126f5fa41ded2e895a6c11b`.  
+**CURRENT_STATE:** advanced from stale LVE616 to LVE621 — commit `a9e627e5ff83c7648e7e7f98eba9b59da1269f13`.
+
+### Work performed
+- Reconciled CURRENT_STATE vs Execution Log/Project Memory; recovered Report606 owner rules and Reports615–620.
+- Revalidated live operational source refs and fresh Production schema, counts, grants and key RPC behavior.
+- Confirmed P0 direct DML on purchase_returns/details, P0 SupplierReturn currency mismatch, duplicate stock/AP return writers, missing cumulative return guard, Receiver PO detail/decimal defect and Quick Market no-PO Receiving gap.
+- Reviewed v1/v2/v3 SQL scaffolds; rejected v1/v3 and documented v2 remaining gaps.
+- Created schema scaffold v4 (corrected after a text-generation defect found by self-review): blob `585b7091c3692be519d9455bc27036f5a1c93153`, correction commit `647fec6a9b7d7201cf06941bc016806849ee2cba`.
+- Ran a lexical/parenthesis scan on v4; balanced parentheses and closed quote/dollar blocks. Not a PostgreSQL compile or migration test.
+
+### Business design
+- Buyer goods events separate from cash custody.
+- Supplier Direct default; Buyer Delegate requires explicit supplier delegation and evidence.
+- Physical stock-out once; one linked financial return register; supplier accepted quantity only posts AP/GL; no duplicate stock movement.
+- Quick Market: Draft → Supplier-to-Buyer custody → invoice-ID Receiver acceptance → stock once → settlement by Supplier Credit / Employee Custody / Treasury Cash.
+- Existing PO cash-custody workflow, DirectSale/DirectReturn and Transfer remain regression-protected.
+- Competitive sources: Microsoft Dynamics 365 return PO/product receipt, Odoo staged two/three-step receipt, SAP supplier-return document flow (official links in Report621).
+
+### Not done / approval boundary
+- No operational Buyer/Vouchers/Receiver or Parent main.html write.
+- No Production DDL/DML/RPC/Trigger/RLS/ACL/grant/storage/publication change.
+- No Edge restore/deploy, no new Edge Function, no Cloudflare deployment.
+- No Production test fixture; no signed Browser E2E; current Staging remains non-parity.
+- Complete function bodies, Edge diffs, app diffs, storage policy, E2E and rollback still required. Explicit owner approval under §77.2 is mandatory before operational or Production writes.
+
+**Overall:** CHANGE SET PREPARATION IN PROGRESS / APPROVAL GATE OPEN / BUYER PROCUREMENT NOT PRODUCTION READY.
+
+---
+
 ## LVE-2026-11-04-620 — Existing Edge Extension Contract
 
 **Status:** EDGE PATCH CONTRACT PREPARED / NOT DEPLOYED.  
