@@ -84,7 +84,7 @@ quickPurchase:async function(invoiceId){
             var committed=expenses.filter(function(e){return e.custody_id===c.id&&['Submitted','Approved'].indexOf(e.status)!==-1;})
                 .reduce(function(n,e){return n+Number(e.amount||0);},0);
             var reserved=invoices.filter(function(i){
-                return i.id!==(current&&current.id)&&i.buyer_custody_id===c.id&&
+                return i.id!==(current&&current.id)&&i.cash_custody_id===c.id&&
                     i.purchase_source==='QUICK_MARKET'&&i.status==='Draft'&&i.settlement_status==='UNSETTLED';
             }).reduce(function(n,i){return n+Number(i.total_amount||0);},0);
             availableByCustody[c.id]=Math.max(0,acknowledged-committed-reserved);
@@ -92,7 +92,7 @@ quickPurchase:async function(invoiceId){
         custodies=custodies.filter(function(c){return availableByCustody[c.id]>0;});
 
         var defaultSettlement=current?current.settlement_source:(custodies.length?'EMPLOYEE_CUSTODY':'SUPPLIER_CREDIT');
-        var defaultCustody=current&&current.buyer_custody_id?current.buyer_custody_id:(custodies[0]&&custodies[0].id||'');
+        var defaultCustody=current&&current.cash_custody_id?current.cash_custody_id:(custodies[0]&&custodies[0].id||'');
         var html='<div dir="rtl" class="text-right space-y-4">'+
           '<div class="rounded-xl bg-purple-50 border border-purple-100 p-4"><b>شراء سوق سريع — دون أمر شراء</b>'+
           '<p class="text-xs text-slate-600 mt-1">فاتورة Draft، ثم إثبات مستقل لاستلام المورد إلى عهدتك. لا تدخل البضاعة مخزون الفرع من هذه الشاشة.</p></div>'+
