@@ -1,7 +1,7 @@
 ## LVE-2026-11-04-615 — Buyer / Receiver / Quick Market / Security Revalidation
 
 **Status:** FORENSIC REVALIDATION COMPLETE / ADDITIONAL P0-P1 DEFECTS CONFIRMED / IMPLEMENTATION NOT STARTED.  
-**Report:** [Report615_BUYER_RECEIVER_SECURITY_QUICK_MARKET_REVALIDATION_20261104.md](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reproets/Report615_BUYER_RECEIVER_SECURITY_QUICK_MARKET_REVALIDATION_20261104.md) — commit `64e0988cf7bae218c3d1e7766c0ffe45136cff7e`.
+**Report:** [Report615_BUYER_RECEIVER_SECURITY_QUICK_MARKET_REVALIDATION_20261104.md](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report615_BUYER_RECEIVER_SECURITY_QUICK_MARKET_REVALIDATION_20261104.md) — commit `64e0988cf7bae218c3d1e7766c0ffe45136cff7e`.
 
 ### New confirmed findings
 - Receiver queries `purchase_order_details.po_code`; Production table only has `po_id`. Fix header resolution + detail query by PO ID. Receiver uses `parseInt` for numeric qty, truncating fractional units.
