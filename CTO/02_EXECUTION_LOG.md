@@ -8,6 +8,35 @@ No task is considered complete unless its evidence, decision, implementation sta
 
 ---
 
+## LVE-2026-11-04-614 — Buyer Goods Custody / Supplier Return Lifecycle
+
+**Status:** READ-ONLY FORENSIC REVIEW COMPLETE / ROOT CAUSES CONFIRMED / IMPLEMENTATION NOT STARTED / OWNER APPROVAL GATE OPEN.  
+**Report:** [Report614_BUYER_GOODS_CUSTODY_RETURN_RECONCILIATION_20261104.md](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report614_BUYER_GOODS_CUSTODY_RETURN_RECONCILIATION_20261104.md) — commit `8ee6889e33e671c7996a73e55560e3163a0cfb60`.  
+**Starting point:** LVE613 / Report613; operational HEAD observed `e8ab54c75572e15e71581212479d22be139c8020`.
+
+### Evidence and findings
+- Read latest CURRENT_STATE, Report613, relevant Parent/Buyer/Vouchers/Receiver source, current governance §77.2–77.4, latest permanent CTO protocol and permanent operating charter.
+- Buyer `رصيدي` is a static explanatory placeholder; no live goods-custody table exists. `quickPurchase()` only creates a Draft invoice.
+- Cash `buyer_custodies` is not a goods ledger.
+- Warehouse manual SupplierReturn has no Buyer recipient picker; Production `enforce_stock_voucher_custodian()` nulls `custodian_user_id` except DirectSale/DirectReturn.
+- Existing Warehouse send posts branch stock-out; completion posts supplier ledger and GL for the return total. There is no intermediate Buyer-held state or supplier accepted-quantity proof.
+- Parent `purchase_returns` and manual `stock_vouchers.SupplierReturn` are separate writers. Their posting paths both can reduce stock and supplier AP/GL, with no unique link; duplicate posting risk is confirmed.
+- Quick no-PO invoice has no direct Receiving FK/link; `receive-purchase` v13 accepts PO code only. No direct quick invoice-to-warehouse receipt workflow.
+- Read-only Production counts for stock_vouchers, purchase_returns, inventory_log SupplierReturn, buyer_custodies were zero in the review snapshot.
+
+### Actions
+- Created Report614 with target lifecycle, one-writer return proposal, Buyer UX target, Parent recipient register target, exact change-set requirements, acceptance tests and rollback plan.
+- Updated project memory LVE614 (commit `da7899c229c319894fc5b15888ccf986345826e7`).
+- No operational app/source, Production schema/data, RPC/Trigger/RLS/GRANT, Edge source/deployment, or Cloudflare deployment writes. No new Edge Function. No test data created.
+
+### Remaining / gate
+- Exact implementation changeset still to be prepared; no change may be applied before exact proposal and explicit owner approval under §77.2.
+- Parent `main.html` remains locked by §77.3.
+- Authenticated Browser E2E and deployed Cloudflare artifact parity remain UNVERIFIED; Staging remains non-parity per LVE613.
+- Status: NOT CLOSED / NOT IMPLEMENTED / NOT PRODUCTION READY.
+
+---
+
 ## CTO WORKING METHOD — CURRENT OPERATING STANDARD
 
 ### Execution rhythm
