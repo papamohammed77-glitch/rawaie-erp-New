@@ -1,3 +1,13 @@
+# LVE-2026-11-04-629 — Buyer Quick Market Supplier Search / Storage Boundary
+
+- Report629: [Buyer Quick Market Supplier Search and Storage Boundary](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report629_BUYER_QUICK_MARKET_SUPPLIER_SEARCH_STORAGE_BOUNDARY_20261104.md), commit `74ec5ee64c4be4a7a8d180b64654c682cbad3e31`.
+- Latest Buyer source commit `a35cd59fab199e1614536cd4ce5421179a907608`, blob `0ac1cd20c5e879405b7d11af7a3349124ea374cf`; only `companies/company-1/purchasing/buyer.html` changed; local supplier search filters active supplier option text by name/code, preserving selection. Data cap remains 500; not server pagination.
+- LVE628 Production hardening remains: migration `20261104213909`; `save-purchase-order` v26 ACTIVE SHA256 `fb31ac953213d6f30a9e545f1da3b9075ca28638b5032450618769d20f2cb5b4`; three RPC guards in place; no business data changes.
+- Storage access discovery: employee_docs_storage_select permits owner or HR, not Finance/Warehouse; buyer_goods_custody_events SELECT allows custodian, Finance, Finance Manager, Owner, not Warehouse. Avoid broad Storage policy. Need specific least-privilege buyer-goods policy, with branch-scoped Warehouse/Receiver authorization.
+- purchase_attachments has storage_path/file metadata; authenticated SELECT only and service_role INSERT. Buyer Quick Market modal and invoice details do not currently upload/render supplier invoice image. Implement only with validated Edge registration, idempotency and signed URLs after defining Storage access.
+- Edge GET_DATA filters non-finance purchase invoices to purchaser_user_id/created_by; direct table RLS remains broad and requires consumer map.
+- Cloudflare commit deployment unverified; authenticated E2E not run. No test fixtures. Remaining invoice image, storage read policy, RLS/returns consumer maps, Buyer→Warehouse/Supplier and partial acceptance; Receiver deferred; legacy reconciliation.
+
 # LVE-2026-11-04-628 — Buyer Phase 1 Hardening Applied / E2E Open
 
 - Owner explicitly approved the reviewed Buyer Phase 1 changes. Report628: [Buyer Phase 1 Hardening Applied and Verification](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report628_BUYER_PHASE1_HARDENING_APPLIED_AND_VERIFICATION_20261104.md), commit `13ade99f2279c76957ba93147f64089144018578`.
