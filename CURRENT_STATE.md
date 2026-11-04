@@ -2,7 +2,7 @@
 
 **LAST VERIFIED EVENT:** 2026-11-04 — Read current Report614_NEW_P.md, permanent charter and LVE626; independently fetched live Supabase Edge save-purchase-order v25 and exact SQL definitions for Buyer custody settlement, invoice deletion and handover. Archived v25 byte-for-byte in governance repo; prepared Edge/SQL/Buyer review drafts and Report627. No operational app source, Production schema/data/RPC/ACL/Storage, Edge deployment or Cloudflare deployment was changed.
 
-**Report627:** [Buyer Phase 1 Hardening — Edge v25 Recovery](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report627_BUYER_PHASE1_HARDENING_EDGE_V25_RECOVERY_20261104.md) — commit `e95fe0e73160ae9be05047d7dc7eaaa6949e0754`.
+**Report627:** [Buyer Phase 1 Hardening — Edge v25 Recovery](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report627_BUYER_PHASE1_HARDENING_EDGE_V25_RECOVERY_20261104.md) — latest commit `3f3de2d2f2bd91e90abe778ad52a09eb9ebf540f` (includes consumer-scan addendum).
 
 **Live Edge snapshot:** `Current/CTO/EdgeSnapshots/20261104/save-purchase-order_v25/index.ts`; exact v25 source SHA-256 `793ba5412a27813aa715da4078971a150d592dd03b53833148b9e99a37b5be62`; 30,017 bytes; archive commit `8654dea3e0d93008d74f66b9f0a6fe5c695f2bc0`; blob `632f207143574a6b26145aa01cc8abc0c283d12b`. Re-read archive equals live Production source byte-for-byte. Operational Git file `supabase/functions/save-purchase-order/index.ts` blob `bc038be8c60a3d593f604c7b2ae445e807bacf57`, 23,077 bytes, differs from live v25; DO NOT redeploy it.
 
@@ -13,7 +13,7 @@
 
 **Confirmed draft scope:** fail-closed currency read; owner/source/event checks in generic draft-delete Edge branch; atomic QMP reservation guard in cash-custody settlement; server-side evidence path/object validation in handover RPC; append-only deletion guard for invoices with goods-custody events; UI distinction between committed/not-committed/unknown so evidence is not deleted when verification fails.
 
-**Remaining P1:** complete consumer map for generic delete; invoice RLS scope design; purchase_returns/details DML consumer map; dedicated buyer-goods Storage policy verification; Realtime/evidence UI patch; authenticated E2E and Cloudflare artifact parity. Buyer source HEAD remains bf0833c and no runtime deployment proof. Receiver remains intentionally deferred.
+**Consumer scan:** Buyer current source calls only `DELETE_BUYER_DRAFT_INVOICE` / `DELETE_QUICK_MARKET_DRAFT`; GitHub code search returned no generic-delete hits; main.html fetch returned empty content, so system-wide consumer map remains incomplete. Generic Edge route retained and guarded in draft. **Remaining P1:** complete consumer map for generic delete; invoice RLS scope design; purchase_returns/details DML consumer map; dedicated buyer-goods Storage policy verification; Realtime/evidence UI patch; authenticated E2E and Cloudflare artifact parity. Buyer source HEAD remains bf0833c and no runtime deployment proof. Receiver remains intentionally deferred.
 
 **Mutation ledger:** governance archive/draft/report/state files only. No operational app source write; no Production DDL/DML/RPC/Trigger/RLS/GRANT/Storage/Realtime write; no Edge deploy; no Cloudflare deploy; no fixtures; no test business effects.
 
