@@ -1344,3 +1344,5 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - Drafts cover fail-closed currency, generic invoice-delete ownership/source/goods-event guard, QMP reservation guard for custody settlement, required existing private evidence object/path on handover RPC, deletion guard after goods events, and safe unknown-commit file retention.
 - Storage bucket employee-documents is private. No buyer-goods-specific policy identified; inspect and draft least-privilege Storage access before any apply. Invoice RLS and purchase_returns direct-DML remain open pending consumer maps.
 - No operational or Production write/deploy; no Receiver edit; no QA fixtures. Approval gate remains open under permanent charter §§6.2–6.3.
+
+- Consumer scan addendum: Buyer blob d9ffb108 uses only `DELETE_BUYER_DRAFT_INVOICE` / `DELETE_QUICK_MARKET_DRAFT`; no generic `DELETE_DRAFT_INVOICE` hit returned by GitHub code search. Main.html fetch returned empty content, so do not infer no parent consumer. Generic Edge route retained with proposed owner/source/goods-event checks. Report627 latest commit 3f3de2d2f2bd91e90abe778ad52a09eb9ebf540f.
