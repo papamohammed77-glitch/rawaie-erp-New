@@ -1,3 +1,14 @@
+## LVE-2026-11-04-620 — Existing Edge Extension Contract
+
+**Status:** EDGE PATCH CONTRACT PREPARED / NOT DEPLOYED.  
+**Report:** [Report620_EXISTING_EDGE_EXTENSION_CONTRACT_20261104.md](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report620_EXISTING_EDGE_EXTENSION_CONTRACT_20261104.md) — commit `4052446b38b35a26b186ab9a861066a205d2a9fd`.
+
+Mapped the new operation branches and permission gates into the six existing Edge functions. Reuse `rep_id → p_rep_id` for Buyer Delegate, extend receive-purchase v13 for invoice_id and receiving_id while preserving po_code, use profileClient for auth.uid()-dependent new RPCs, and preserve existing PO/mobile-sales/Transfer paths. No new Edge function. Added fail-closed system-currency requirement to the Edge patch contract.
+
+No Edge source write/deploy or Production change.
+
+---
+
 ## LVE-2026-11-04-619 — Buyer Custody RPC / Single-Writer Posting Contract
 
 **Status:** SERVER CONTRACT DESIGN / NOT IMPLEMENTED.  
