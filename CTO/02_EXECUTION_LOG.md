@@ -1,3 +1,22 @@
+## LVE-2026-11-04-617 — SupplierReturn Recipient & Currency Patch
+
+**Status:** PATCH SPECIFICATION PREPARED / NOT APPLIED.  
+**Report:** [Report617_SUPPLIER_RETURN_RECIPIENT_CURRENCY_SURGICAL_PATCH_20261104.md](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report617_SUPPLIER_RETURN_RECIPIENT_CURRENCY_SURGICAL_PATCH_20261104.md).
+
+### Confirmed P0
+SupplierReturn UI/default uses SAR; company currency is EGP; save-contract RPC accepts SAR without validating app_settings; both financial posting functions ignore return_currency and post numeric amount directly. This can misstate the supplier ledger/GL. No SupplierReturn rows existed in the snapshot.
+
+### Prepared
+- Isolated Buyer reference list and Supplier Direct / Buyer Delegate recipient UX.
+- Existing `rep_id` parameter reuse in `create-stock-voucher` v12; no new Edge function.
+- Preserve buyer recipient during Draft edit and display recipient in voucher list/details.
+- Server-side EGP resolution/validation; remove SAR default/fallback.
+- Report614/615 updated with confirmed financial impact.
+
+No source or Production write, no test data, no deployment.
+
+---
+
 ## LVE-2026-11-04-616 — Receiver Patch + Buyer Custody Schema Draft
 
 **Status:** PATCH PREPARATION ONLY / NOT APPLIED / NOT APPROVED FOR EXECUTION.  
