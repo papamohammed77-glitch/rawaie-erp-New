@@ -34,6 +34,7 @@
 | 6 | `buyer_phase1_06_goods_custody_realtime` | عضوية أحداث الحيازة في Realtime |
 | 7 | `buyer_phase1_07_draft_ownership_guards` | منع مشتري من تعديل/حذف مسودة مشتري آخر |
 | 8 | `buyer_phase1_08_legacy_invoice_duplicate_guard` | إعادة تثبيت غلاف Legacy بعد إضافة حارس تكرار رقم فاتورة المورد إليه |
+| 9 | `buyer_phase1_09_effective_permission_only_rpc_guards` | إزالة أي تجاوز لصلاحية `*` من حقل المستخدم الخام؛ الاعتماد على `current_user_has_effective_permission` والمالك الفعلي فقط |
 
 ### 2.1 الدفتر المركزي
 
@@ -117,7 +118,7 @@
 ## 5. اختبارات وتحقق Production
 
 ### 5.1 التواقيع والحماية
-- جميع الوظائف المطلوبة موجودة بالتواقيع المتوقعة.
+- جميع الوظائف المطلوبة موجودة بالتواقيع المتوقعة؛ Migration 09 أعادت تثبيت الحارسين بعد إزالة wildcard الخام.
 - SECURITY DEFINER الجديدة لديها `search_path` فارغ.
 - anon لا يملك EXECUTE على الوظائف الجديدة.
 - جدول الحيازة RLS=ON، authenticated SELECT=true، وINSERT/UPDATE/DELETE=false.
