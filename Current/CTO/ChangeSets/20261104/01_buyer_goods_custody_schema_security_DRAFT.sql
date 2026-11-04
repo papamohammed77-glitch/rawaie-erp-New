@@ -36,7 +36,6 @@ ALTER TABLE public.stock_vouchers
 
 ALTER TABLE public.stock_voucher_details
   ADD COLUMN IF NOT EXISTS issued_qty numeric(14,4),
-  ADD COLUMN IF NOT EXISTS supplier_accepted_qty numeric(14,4) NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS returned_to_warehouse_qty numeric(14,4) NOT NULL DEFAULT 0;
 
 DO $$
@@ -51,15 +50,10 @@ BEGIN
       ADD CONSTRAINT stock_voucher_details_issued_qty_ck
       CHECK (issued_qty IS NULL OR (issued_qty >= 0 AND issued_qty <= qty));
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.stock_voucher_details'::regclass AND conname='stock_voucher_details_supplier_acceptance_ck') THEN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.stock_voucher_details'::regclass AND conname='stock_voucher_details_returned_qty_ck') THEN
     ALTER TABLE public.stock_voucher_details
-      ADD CONSTRAINT stock_voucher_details_supplier_acceptance_ck
-      CHECK (
-        supplier_accepted_qty >= 0
-        AND returned_to_warehouse_qty >= 0
-        AND supplier_accepted_qty + returned_to_warehouse_qty
-          <= COALESCE(issued_qty, qty)
-      );
+      ADD CONSTRAINT stock_voucher_details_returned_qty_ck
+      CHECK (returned_to_warehouse_qty >= 0 AND returned_to_warehouse_qty <= COALESCE(issued_qty, qty));
   END IF;
 END $$;
 
@@ -74,6 +68,7 @@ ALTER TABLE public.purchase_returns
 ALTER TABLE public.purchase_return_details
   ADD COLUMN IF NOT EXISTS stock_voucher_detail_id uuid,
   ADD COLUMN IF NOT EXISTS accepted_qty numeric(14,4) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS returned_to_warehouse_qty numeric(14,4) NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS accepted_amount numeric(14,2) NOT NULL DEFAULT 0;
 
 DO $$
@@ -114,7 +109,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.purchase_return_details'::regclass AND conname='purchase_return_details_accepted_qty_ck') THEN
     ALTER TABLE public.purchase_return_details
       ADD CONSTRAINT purchase_return_details_accepted_qty_ck
-      CHECK (accepted_qty >= 0 AND accepted_qty <= qty);
+      CHECK (accepted_qty >= 0 AND returned_to_warehouse_qty >= 0 AND accepted_qty + returned_to_warehouse_qty <= qty);
   END IF;
 END $$;
 
@@ -204,18 +199,21 @@ CREATE INDEX IF NOT EXISTS buyer_goods_custody_events_branch_idx
 ALTER TABLE public.receiving
   ADD COLUMN IF NOT EXISTS source_type text NOT NULL DEFAULT 'PURCHASE_ORDER',
   ADD COLUMN IF NOT EXISTS purchase_invoice_id uuid,
+  ADD COLUMN IF NOT EXISTS buyer_user_id uuid,
+  ADD COLUMN IF NOT EXISTS source_document_code text,
   ADD COLUMN IF NOT EXISTS branch_id uuid;
 
 ALTER TABLE public.receiving_details
   ADD COLUMN IF NOT EXISTS item_id uuid,
-  ADD COLUMN IF NOT EXISTS purchase_invoice_detail_id uuid;
+  ADD COLUMN IF NOT EXISTS purchase_invoice_detail_id uuid,
+  ADD COLUMN IF NOT EXISTS buyer_custody_event_id uuid;
 
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.receiving'::regclass AND conname='receiving_source_type_ck') THEN
     ALTER TABLE public.receiving
       ADD CONSTRAINT receiving_source_type_ck
-      CHECK (source_type IN ('PURCHASE_ORDER','QUICK_MARKET_INVOICE'));
+      CHECK (source_type IN ('PURCHASE_ORDER','QUICK_MARKET_INVOICE','BUYER_CUSTODY'));
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.receiving'::regclass AND conname='receiving_purchase_invoice_fk') THEN
     ALTER TABLE public.receiving
@@ -231,6 +229,16 @@ BEGIN
     ALTER TABLE public.receiving_details
       ADD CONSTRAINT receiving_details_item_fk
       FOREIGN KEY (item_id) REFERENCES public.items(id) ON DELETE RESTRICT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.receiving'::regclass AND conname='receiving_buyer_user_fk') THEN
+    ALTER TABLE public.receiving
+      ADD CONSTRAINT receiving_buyer_user_fk
+      FOREIGN KEY (buyer_user_id) REFERENCES public.users(id) ON DELETE RESTRICT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.receiving_details'::regclass AND conname='receiving_details_buyer_event_fk') THEN
+    ALTER TABLE public.receiving_details
+      ADD CONSTRAINT receiving_details_buyer_event_fk
+      FOREIGN KEY (buyer_custody_event_id) REFERENCES public.buyer_goods_custody_events(id) ON DELETE RESTRICT;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.receiving_details'::regclass AND conname='receiving_details_invoice_line_fk') THEN
     ALTER TABLE public.receiving_details
