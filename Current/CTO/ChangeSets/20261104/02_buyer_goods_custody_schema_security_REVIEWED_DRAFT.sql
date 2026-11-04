@@ -120,7 +120,9 @@ BEGIN
       ADD CONSTRAINT stock_vouchers_supplier_recipient_mode_ck
       CHECK (
         (type <> 'SupplierReturn' AND recipient_mode IS NULL)
-        OR (type = 'SupplierReturn' AND recipient_mode IN ('SUPPLIER_DIRECT','BUYER_DELEGATE'))
+        OR (type = 'SupplierReturn'
+            AND recipient_mode IS NOT NULL
+            AND recipient_mode IN ('SUPPLIER_DIRECT','BUYER_DELEGATE'))
       ) NOT VALID;
   END IF;
 
@@ -204,6 +206,16 @@ BEGIN
     ALTER TABLE public.purchase_returns
       ADD CONSTRAINT purchase_returns_physical_status_ck
       CHECK (physical_status IN ('LEGACY_UNVERIFIED','DRAFT','DISPATCHED','PARTIALLY_ACCEPTED','ACCEPTED','RETURNED_TO_WAREHOUSE','CANCELLED'));
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='public.purchase_returns'::regclass
+      AND conname='purchase_returns_accepted_amount_ck'
+  ) THEN
+    ALTER TABLE public.purchase_returns
+      ADD CONSTRAINT purchase_returns_accepted_amount_ck
+      CHECK (accepted_amount >= 0) NOT VALID;
   END IF;
 
   IF NOT EXISTS (
