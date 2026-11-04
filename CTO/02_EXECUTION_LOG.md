@@ -680,3 +680,5 @@ No Buyer/Parent/Core source write, no production DDL/RPC/RLS/ACL/data mutation, 
 - Report627 created: `doc/Draft/Reprots/Report627_BUYER_PHASE1_HARDENING_EDGE_V25_RECOVERY_20261104.md`; commit e95fe0e73160ae9be05047d7dc7eaaa6949e0754.
 - No operational code, Production schema/data/RPC/ACL/Storage/Realtime, Edge deployment, Cloudflare deployment, Receiver, or test fixtures were changed. Report626's P1 findings remain open until approved patch and E2E.
 - Next: finish full consumer maps + Storage/RLS policy draft and acceptance/rollback; present complete package for explicit owner approval. Receiver remains deferred.
+
+- Follow-up consumer scan: Buyer uses only the dedicated `DELETE_BUYER_DRAFT_INVOICE` and `DELETE_QUICK_MARKET_DRAFT` wrappers; GitHub code search returned no generic route hits; main.html fetch returned empty content, so complete system-wide consumer mapping remains UNVERIFIED. Generic Edge route retained with proposed guards, not removed. Report627 addendum commit 3f3de2d2f2bd91e90abe778ad52a09eb9ebf540f.
