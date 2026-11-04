@@ -1,3 +1,19 @@
+## LVE-2026-11-04-616 — Receiver Patch + Buyer Custody Schema Draft
+
+**Status:** PATCH PREPARATION ONLY / NOT APPLIED / NOT APPROVED FOR EXECUTION.  
+**Report:** [Report616_RECEIVER_SURGICAL_PATCH_AND_BUYER_CUSTODY_SCHEMA_DRAFT_20261104.md](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report616_RECEIVER_SURGICAL_PATCH_AND_BUYER_CUSTODY_SCHEMA_DRAFT_20261104.md) — commit `95d8b6322754672ce0b415e5d24689a6a675de1c`.  
+**SQL draft:** `Current/CTO/ChangeSets/20261104/01_buyer_goods_custody_schema_security_DRAFT.sql` — commit `193fe7cfa6946b67903ecdf47e6f3abbadd098d8`.
+
+### Work prepared
+- Exact Receiver patch: select PO id, query detail lines by `po_id`, show remaining qty only, handle query errors, and parse decimals safely.
+- Additive schema/security draft: append-only Buyer goods custody events; supplier return acceptance batches; recipient mode; actual issued/accepted/returned quantities; invoice source and settlement; Receiving invoice/header-line links; expense category; least-privilege return table grants/RLS; Realtime publication.
+- SQL file is scaffolding only; it intentionally omits full RPC/Trigger replacements and is not deployable by itself.
+
+### Boundary
+No operational app source, Production DDL/data, RLS/grants, RPC, Trigger, Edge deployment, or test fixture was changed. Full source/DB changeset, acceptance tests and rollback remain in preparation under the explicit Report614_NEW_P / Master CTO §77.2 gate.
+
+---
+
 ## LVE-2026-11-04-615 — Buyer / Receiver / Quick Market / Security Revalidation
 
 **Status:** FORENSIC REVALIDATION COMPLETE / ADDITIONAL P0-P1 DEFECTS CONFIRMED / IMPLEMENTATION NOT STARTED.  
