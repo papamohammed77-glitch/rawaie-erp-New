@@ -1,3 +1,16 @@
+## LVE-2026-11-04-629 — Buyer Supplier Search / Storage Access Boundary
+
+**Status:** Buyer local supplier search committed; invoice image and cross-role Storage reads remain open.  
+**Report:** [Report629](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report629_BUYER_QUICK_MARKET_SUPPLIER_SEARCH_STORAGE_BOUNDARY_20261104.md) — commit `74ec5ee64c4be4a7a8d180b64654c682cbad3e31`.
+
+- Buyer commit `a35cd59fab199e1614536cd4ce5421179a907608`, blob `0ac1cd20c5e879405b7d11af7a3349124ea374cf`; only Buyer file changed, +13/-1 over LVE628. Added local active-supplier selector search by option text (name/code); source list still capped at 500, no remote pagination.
+- Reconfirmed Edge v26 ACTIVE and SQL migration/function guards from LVE628; no additional Production writes.
+- New finding: employee-documents SELECT policy allows owner/HR, not Finance/Warehouse. Buyer goods events SELECT policy allows custodian/Finance/Finance Manager/Owner, not Warehouse. No broad policy added.
+- `purchase_attachments` supports storage_path and metadata; authenticated SELECT only, service_role insert; Buyer Quick Market invoice view does not currently display attachments. Invoice-image feature needs idempotent server-side registration, signed URL, and correct scoped Storage SELECT.
+- Edge GET_DATA scopes buyer invoice list to purchaser_user_id/created_by unless owner/Finance; direct RLS still broader and requires consumer map.
+- No E2E, no authenticated Buyer session, Cloudflare deployment unverified. No business test data or stock/finance effects.
+- Remaining: invoice image + Storage policy, RLS/returns consumer maps, Buyer→Warehouse/Supplier and partial acceptance, Receiver deferred, Cloudflare parity, E2E, legacy reconciliation.
+
 ## LVE-2026-11-04-628 — Buyer Phase 1 Hardening Applied / E2E Open
 
 **Status:** DB HARDENING APPLIED / EDGE v26 ACTIVE / BUYER SOURCE COMMITTED / CLOUDFLARE UNVERIFIED / AUTHENTICATED E2E OPEN.  
