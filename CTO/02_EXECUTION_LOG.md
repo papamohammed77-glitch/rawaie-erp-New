@@ -23,6 +23,7 @@ No task is considered complete unless its evidence, decision, implementation sta
 - Parent `purchase_returns` and manual `stock_vouchers.SupplierReturn` are separate writers. Their posting paths both can reduce stock and supplier AP/GL, with no unique link; duplicate posting risk is confirmed.
 - Quick no-PO invoice has no direct Receiving FK/link; `receive-purchase` v13 accepts PO code only. No direct quick invoice-to-warehouse receipt workflow.
 - Read-only Production counts for stock_vouchers, purchase_returns, inventory_log SupplierReturn, buyer_custodies were zero in the review snapshot.
+- Additional CONFIRMED source/schema mismatch: Warehouse Vouchers SupplierReturn form submits `SAR` as the default contract currency, while live `app_settings.currency=EGP` and `stock_vouchers.return_currency DEFAULT 'SAR'`. Posting impact remains UNVERIFIED; no existing return rows to reconcile.
 
 ### Actions
 - Created Report614 with target lifecycle, one-writer return proposal, Buyer UX target, Parent recipient register target, exact change-set requirements, acceptance tests and rollback plan.
