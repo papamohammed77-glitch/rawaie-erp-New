@@ -1,3 +1,14 @@
+# LVE-2026-11-04-617 — SupplierReturn Recipient & Currency Surgical Patch
+
+- Report617: [SupplierReturn recipient and currency surgical patch](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report617_SUPPLIER_RETURN_RECIPIENT_CURRENCY_SURGICAL_PATCH_20261104.md), latest update commit `a17a89f1e3e2846870773fdbc018597726dfe1e4`.
+- New **P0 financial finding CONFIRMED**: Production `app_settings.currency=EGP`; Vouchers UI and `stock_vouchers.return_currency DEFAULT 'SAR'`; `save_supplier_return_contract` accepts/falls back to SAR without checking app_settings; `complete_manual_stock_voucher_atomic_core_20260828` and `purchase_post_return_atomic` have zero references to `return_currency`, so they post the numeric total directly into supplier ledger/GL. No SupplierReturn rows existed in the snapshot.
+- Report617 prepares the surgical SupplierReturn recipient UI: add isolated `refs.buyers` (do not contaminate DirectSale/DirectReturn `refs.reps`), default Supplier Direct, Buyer Delegate exception, no vehicle, reuse existing `rep_id` argument to existing `create-stock-voucher` Edge v12, preserve Buyer selection on Draft edit, and show recipient in voucher list/details.
+- Currency fix must resolve company currency from `app_settings` server-side in `save_supplier_return_contract`, remove SAR fallback/default, enforce it in Trigger and financial posting paths, and reject client mismatch.
+- Report614 and Report615 were updated to mark the currency posting risk as CONFIRMED.
+- No operational source or Production write, no test rows, no Edge deployment. Status remains patch preparation only.
+
+---
+
 # LVE-2026-11-04-616 — Receiver Surgical Patch + Buyer Custody Schema Draft
 
 - Report616: [Receiver surgical patch and Buyer custody schema draft](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report616_RECEIVER_SURGICAL_PATCH_AND_BUYER_CUSTODY_SCHEMA_DRAFT_20261104.md), commit `95d8b6322754672ce0b415e5d24689a6a675de1c`.
