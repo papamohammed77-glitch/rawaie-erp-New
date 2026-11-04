@@ -29,6 +29,7 @@
 8. Quick no-PO Draft invoice has no proven invoice-to-Receiving header/line relation. Existing `receive-purchase` v13 accepts PO code and calls `receive_purchase_atomic` by PO code only.
 9. Read-only Production counts were zero for `stock_vouchers`, `purchase_returns`, `inventory_log` rows where movement_type='SupplierReturn', and `buyer_custodies`.
 10. The Parent Returns table reads `purchase_returns` only and has no recipient column. Current governance §77.3 prohibits editing `companies/company-1/main.html`.
+11. Additional CONFIRMED source/schema mismatch: SupplierReturn contract UI hardcodes `SAR` in the default and submitted payload; live Production `app_settings.currency=EGP`, and `stock_vouchers.return_currency` has `DEFAULT 'SAR'`. Financial posting/conversion impact remains UNVERIFIED; relevant return row counts were zero.
 
 ## Target contract proposed (not implemented)
 
