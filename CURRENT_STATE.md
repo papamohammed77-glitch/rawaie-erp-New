@@ -1,3 +1,53 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-610 — Buyer PO/Invoice Parent Integration, Creator, Currency & Barcode Review
+
+**Timestamp:** 2026-11-04 14:09 Africa/Cairo.  
+**LAST VERIFIED EVENT:** Re-read LVE609/Report609, current Buyer/Parent/Edge v22, Production currency/schema/RPC/data, Parent Realtime, and the current Cloudflare check. Confirmed Buyer and Parent use the same purchase_orders/purchase_invoices entities and central writer; confirmed Parent PO realtime subscription gap, missing creator/currency/branch/supplier display fields, independent purchase_settings.default_currency editor, Buyer camera barcode absence, and 300/500 row limits. Prepared Report610 Change Set 610. No operational source, Parent main.html, Production schema/RPC/ACL/Edge/data, Cloudflare deployment, fixtures, or E2E was changed.
+
+## Current State — LVE610
+
+- Operational repo/branch: papamohammed77-glitch/erp-frontend / main.
+- Operational HEAD: 2b94681bf0ce93ca9ea55066a3f52c0d1add1084.
+- Buyer blob: 7f82fceb0b2c2470d1f112aefeaa1341de5b71a8.
+- Parent companies/company-1/main.html blob: 53b5a9e9d0433a785c3d5471a9c0d68c25497882.
+- Core blob: f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1.
+- SMART ERP Production fiilmooggumokxanwiyx: PostgreSQL 17.6.1.121 / 737 migrations / app_settings.currency EGP / purchase_settings.default_currency EGP at this snapshot.
+- Edge save-purchase-order v22 and receive-purchase v13 remain ACTIVE / verify_jwt=true. No Edge Function created or deployed.
+- Cloudflare evidence update: check run for commit 2b94681 says Cloudflare Pages: rawaea-erp completed/success, “Deployed successfully” at 2026-11-04 11:26:14 UTC; preview URL https://eb86b615.rawaea-erp.pages.dev. This updates the previous failure in LVE609 for the automatic check, but served Buyer artifact hash and authenticated runtime remain UNVERIFIED.
+- Report610: doc/Draft/Reprots/Report610_BUYER_PO_INVOICE_PARENT_CYCLE_UX_CURRENCY_BARCODE_FORENSIC_20261104.md; blob SHA e88c15586a9a37025b04924b8b6553aa7fcfa5b2; report commit db82d92f45e6b122000453cacdf01382f9035c93.
+
+## CONFIRMED
+
+1. Buyer writes PO through save-purchase-order v22 CREATE_PO → purchase_create_po_atomic; same purchase_orders/details read by Parent.
+2. Buyer writes invoices through v22 CREATE_INVOICE → purchase_create_invoice_atomic_v2 → central invoice writer; same purchase_invoices/details read by Parent.
+3. purchase_orders.created_by is set by RPC from the authenticated user's email; purchase_invoices.created_by is populated through the authenticated Edge's user.email argument. No creator column is required.
+4. New PO/Invoice currency is sourced from app_settings.currency, and stored per document. Production currently has EGP for both app_settings.currency and purchase_settings.default_currency.
+5. Parent RW_PurchaseGold.orders() shows code/supplier/value/status only. Parent invoices() prints supplier_id UUID instead of supplier name and lacks created_by/currency/date/PO/branch fields.
+6. Parent ensurePurchaseRealtime() subscribes to purchase_invoices but not purchase_orders. Buyer app cache reads 500 max; Edge GET_DATA caps rowLimit at 500 and has no offset/search; Parent getData limits to 300.
+7. Parent Purchase Settings UI edits purchase_settings.default_currency independently; purchase_set_settings_atomic writes that field separately, while current PO/Invoice creators use app_settings.currency.
+8. Buyer PO list uses one this.currency for all rows and does not reload settings on render; invoice list loads system currency but lacks a visible currency column and operational context columns.
+9. Buyer item fields accept manual name/code/barcode text search, but no camera barcode scanner exists in Buyer. Parent inventory's existing scanner uses getUserMedia + BarcodeDetector with supported formats and stream/timer cleanup.
+10. Current Production data snapshot: purchase_orders has one Draft EGP PO; purchase_invoices has one Draft SAR and two Posted SAR invoices; creator fields are populated. Do not convert historical SAR documents.
+
+## OPEN / UNVERIFIED
+
+- Parent/Buyer authenticated runtime, live Realtime behavior, phone camera permission and BarcodeDetector, served artifact parity and E2E are UNVERIFIED.
+- A direct Preview page read was not accessible via the current verifier; Cloudflare check status is successful, but artifact-byte parity isn't proven.
+- rawaea-staging remains non-parity (62 migrations / 70 tables; missing Buyer invoice/custody schema); no fixtures/E2E were run.
+- created_by display should initially use stored email. Parent does not preload a company-wide users map in RW_STATE; friendly-name lookup requires an explicitly permission-safe lookup.
+- Currency discrepancy risk remains because purchase_settings.default_currency can diverge from app_settings.currency. Do not drop the column until a global consumer scan.
+
+## Next Exact Execution
+
+1. Present Report610 Change Set 610 for exact approval under Master CTO §77.2.
+2. On approval, perform surgical Buyer changes to PO/Invoice lists/forms and camera search helper; no schema duplication.
+3. Perform surgical Parent PurchaseGold changes to orders/invoices columns and supplier display, add purchase_orders to existing Realtime channel, and make purchase currency read-only from app_settings.
+4. If catalogue count exceeds 500, extend the existing save-purchase-order v22 GET_DATA/search path with bounded server-side filters/offset and exact barcode lookup; no new Edge Function.
+5. Obtain a schema-parity isolated test environment before fixtures; run two-user creator/tenant authorization, PO/Invoice Realtime, currency legacy/new rows, scanner/browser fallback, pagination, and negative tests. Reconcile stock/AP/GL/Treasury only when the related physical workflow is included.
+
+**STATUS:** FORENSIC REVIEW COMPLETE / CHANGE SET 610 PREPARED / NO SOURCE OR PRODUCTION WRITE / APPROVAL GATE OPEN / BUYER PO-INVOICE UX NOT CLOSED.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-609
 
 **Timestamp:** 2026-11-03 23:30 Africa/Cairo (21:30 UTC)  
