@@ -1,3 +1,42 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-629 — Buyer Quick Market Supplier Search / Storage Access Boundary
+
+**LAST VERIFIED EVENT:** 2026-11-04 — Continued after LVE628. Added local supplier search to Quick Market and re-fetched Buyer source. Discovered a material Storage authorization boundary: generic employee-document SELECT allows file owner or HR, not Finance/Warehouse; Buyer goods-custody event SELECT likewise excludes Warehouse. No broad policy was added. Invoice-image attachment contract and role/branch-scoped Storage reads remain open.
+
+**Report629:** [Buyer Quick Market Supplier Search and Storage Boundary](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report629_BUYER_QUICK_MARKET_SUPPLIER_SEARCH_STORAGE_BOUNDARY_20261104.md) — commit `74ec5ee64c4be4a7a8d180b64654c682cbad3e31`.
+
+## Current operational source
+- Repo `papamohammed77-glitch/erp-frontend`, Buyer file only.
+- Latest commit `a35cd59fab199e1614536cd4ce5421179a907608`; blob `0ac1cd20c5e879405b7d11af7a3349124ea374cf`.
+- Commit delta from LVE628 `240858a`: only `companies/company-1/purchasing/buyer.html`, 13 additions / 1 deletion.
+- Added local search over already loaded active supplier options (name + supplier code text), preserving current selection. GET_DATA cap is 500; this is not server-side pagination.
+- Previous LVE628 changes remain: unknown handover result preserves evidence; Realtime subscribes to `buyer_goods_custody_events` and refreshes invoices/vehicle tabs.
+
+## Production state unchanged from LVE628
+- SQL migration `buyer_phase1_hardening_20261104` version `20261104213909` applied.
+- `save-purchase-order` v26 ACTIVE, verify_jwt true, SHA256 `fb31ac953213d6f30a9e545f1da3b9075ca28638b5032450618769d20f2cb5b4`.
+- Three RPC hardening guards remain live; signatures and ACL preserved.
+- Currency EGP; purchase_invoices 3; buyer_custodies 0; goods events 0; Quick Market invoices 0. No test fixtures or business effects.
+
+## Newly confirmed access constraints
+- Existing `employee_docs_storage_insert` maps first two path segments to company/user.
+- Existing `employee_docs_storage_select` permits the employee owner or HR; it does NOT automatically permit Finance/Warehouse to read another user's `buyer-goods` objects.
+- `buyer_goods_custody_events_select_authorized` allows custodian, Finance, Finance Manager and Owner; not Warehouse.
+- `purchase_attachments` has columns for Storage path/file metadata, RLS with company SELECT, authenticated SELECT only, service_role INSERT. Buyer invoice detail currently does not read/render attachments.
+- Do NOT create a company-wide Storage read policy or expose the bucket. Need a least-privilege policy for buyer owner, Finance/Finance Manager, and branch-scoped Warehouse/Receiver after verifying branch authorization helpers.
+
+## Open P1
+- Quick Market supplier invoice image: no UI/attachment workflow yet; design a server-validated idempotent `purchase_attachments` registration and signed URL display.
+- Storage read policy for Buyer evidence / Finance review / Warehouse receiving.
+- Purchase invoice RLS direct access still broader than owner/finance; Edge GET_DATA already scopes non-finance invoices to `purchaser_user_id` or `created_by`, but direct RLS consumer map remains incomplete.
+- `purchase_returns` / details direct DML grants and broad policies; do not revoke before Parent/other consumers mapped.
+- Buyer→Warehouse / Buyer→Supplier / partial acceptance remain incomplete; Receiver deferred.
+- Cloudflare deployment parity and authenticated E2E unverified/not run.
+- Legacy Posted invoices and QA-SR require formal reconciliation, no direct deletion.
+
+**Status:** `DB HARDENING APPLIED / EDGE v26 ACTIVE / BUYER SOURCE SEARCH ADDED / INVOICE IMAGE OPEN / STORAGE READ ACCESS OPEN / CLOUDFLARE UNVERIFIED / E2E NOT RUN / BUYER NOT CLOSED`.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-628 — Buyer Phase 1 Hardening Applied / E2E Open
 
 **LAST VERIFIED EVENT:** 2026-11-04 — Owner explicitly approved the prepared Buyer Phase 1 hardening changes. Applied Production migration `buyer_phase1_hardening_20261104` (version `20261104213909`), deployed `save-purchase-order` v26 from the exact live v25 snapshot plus reviewed changes, and committed a surgical Buyer source fix. No business data or balances changed. Cloudflare deployment and authenticated E2E remain unverified.
