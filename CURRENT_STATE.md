@@ -1,3 +1,57 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-616 — Receiver Patch + Buyer Custody Schema Draft
+
+**Timestamp:** 2026-11-04 — Africa/Cairo.  
+**LAST VERIFIED EVENT:** Prepared Report616 with exact surgical Receiver source patch and a non-executable additive SQL/security scaffold. Updated project memory and CTO execution log. The previous LVE615 forensic findings remain current. No operational app source or Production schema/data was changed.
+
+## Latest documents and artifacts
+
+- Report615: `doc/Draft/Reprots/Report615_BUYER_RECEIVER_SECURITY_QUICK_MARKET_REVALIDATION_20261104.md`; commit `64e0988cf7bae218c3d1e7766c0ffe45136cff7e`.
+- Report616: `doc/Draft/Reprots/Report616_RECEIVER_SURGICAL_PATCH_AND_BUYER_CUSTODY_SCHEMA_DRAFT_20261104.md`; commit `95d8b6322754672ce0b415e5d24689a6a675de1c`.
+- SQL draft: `Current/CTO/ChangeSets/20261104/01_buyer_goods_custody_schema_security_DRAFT.sql`; commit `193fe7cfa6946b67903ecdf47e6f3abbadd098d8`.
+- Edge source snapshot directory: `Current/CTO/EdgeSnapshots/20261104/`.
+- Project memory LVE616 commit: `f13ab84c4fb76243cfc98857d6b94dc502a36441`.
+- CTO execution log LVE616 commit: `fc9829fd95fbabe1924d37449135242a7d6a26e6`.
+
+## Receiver patch prepared — not applied
+
+The exact patch in Report616:
+- add `id` to `purchase_orders` list query;
+- resolve PO header by `po_code`, query `purchase_order_details` by `po_id`;
+- include `qty_received`, display only remaining `qty_ordered - qty_received`;
+- handle query errors and empty lines without enabling the Receive button;
+- replace `parseInt` with decimal-safe `Number`, use `step=0.001`, reject invalid/over-remaining values and omit zero lines.
+
+## SQL schema/security scaffold — not executable alone
+
+The DRAFT SQL file adds proposed schema for:
+- Buyer item/quantity custody event ledger and append-only trigger;
+- SupplierReturn recipient mode, actual issued/accepted/returned quantities;
+- linked Parent purchase return and multiple supplier acceptance batches;
+- invoice source/settlement classification and Quick Market invoice-to-Receiving header/line links;
+- buyer expense category/payee/account;
+- RLS/least-privilege grants for purchase-return tables and Realtime publication.
+
+**It is not a complete deployable migration.** It omits full RPC/Trigger replacement bodies, Edge and app changes, test fixtures, acceptance results and rollback validation. Do not execute as-is.
+
+## Still confirmed from LVE615
+
+- Receiver queries a nonexistent `purchase_order_details.po_code`; Production has `po_id`.
+- `purchase_returns` and `purchase_return_details` have anon/authenticated DML grants and PUBLIC ALL policies; restrict to authorized SELECT and server-side writes.
+- Quick Market cash-custody review is PO-only; requires invoice-ID Receiving branch.
+- Two historical Posted SAR invoices have matching stock/AP/GL; preserve. Explicit QA-SR Draft PO/invoice has stale received flags but no stock/AP/GL effects; preserve history and use approved cancel/archive only.
+- Buyer `رصيدي` remains a static placeholder; no goods-custody ledger exists.
+- No SupplierReturn stock vouchers or purchase_returns exist in current Production snapshot.
+
+## Current status and boundaries
+
+Operational repository HEAD remains `e8ab54c75572e15e71581212479d22be139c8020`; Buyer/Vouchers/Receiver source blobs remain as LVE615. Parent `main.html` remains locked.
+
+No Production SQL/data write, no operational app edit, no Edge deployment, no Cloudflare deployment, no test fixture and no authenticated Browser E2E. The exact complete change set still needs full RPC/Trigger/Edge/UI bodies, RLS JWT tests, E2E and rollback. Follow Report614_NEW_P and Master CTO §77.2 before any operational write.
+
+**Overall:** Buyer goods custody / Quick Market receiving / Parent recipient register OPEN / NOT IMPLEMENTED / NOT PRODUCTION READY.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-615 — Buyer / Receiver / Quick Market / Return Security
 
 **Timestamp:** 2026-11-04 — Africa/Cairo.  
