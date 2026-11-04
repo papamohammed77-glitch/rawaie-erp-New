@@ -1,7 +1,7 @@
 # RAWAEA ERP — Buyer Phase 1
 # مصفوفة الاختبارات والقبول والتراجع
 
-**الحالة:** خطة اختبارات إلزامية؛ لم تنفذ بعد على قاعدة الإنتاج.  
+**الحالة:** ChangeSet SQL/Edge مطبق في Production؛ مصفوفة القبول المتبقية تشمل اختبار Buyer المصادق بعد تأكيد Cloudflare Pages، واختبارات rollback لعمليات الكتابة. لا توجد فواتير/أحداث QA دائمة.  
 **نطاقها:** PO invoice source / Quick Market Draft / Buyer goods custody / cash custody reservation / permissions / idempotency / no duplicate stock or AP.  
 **سياسة بيانات الاختبار:** استخدام معاملات SQL تنتهي بـ `ROLLBACK` فقط. لا تترك فواتير أو أحداث حيازة تجريبية دائمة؛ لا تُحذف أحداث الدفتر بعد اعتمادها، بل تعالج بأحداث عكسية، لذلك لا نستخدم أحداث Production دائمة للاختبار.
 
