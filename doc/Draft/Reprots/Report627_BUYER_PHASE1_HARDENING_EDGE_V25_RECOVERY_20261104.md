@@ -169,3 +169,12 @@
 6. تحديث الحالة وإغلاق P1 فقط بعد ثبوت اختبارات الأثر وعدم الأثر.
 
 **الحالة النهائية:** BUYER HARDENING CHANGESET PREPARED / NOT APPLIED / OWNER APPROVAL REQUIRED / RECEIVER DEFERRED.
+
+
+## ملحق تحقق المستهلكين — بعد إعداد المسودات
+
+- فُحص Buyer الحالي مباشرة: في مسار حذف «فواتيري» يستدعي التطبيق `DELETE_QUICK_MARKET_DRAFT` لفاتورة Quick Market و`DELETE_BUYER_DRAFT_INVOICE` لبقية فواتير Buyer؛ لا يستدعي `DELETE_DRAFT_INVOICE` العام.
+- بحث GitHub code search عن `DELETE_DRAFT_INVOICE` و`purchase_delete_draft_invoice_atomic` و`buyer_custody_settle_atomic` و`buyer_goods_custody_register_handover_atomic` لم يُرجع نتائج. هذه النتيجة لا تثبت غياب المستهلكين لأن فهرسة البحث قد لا تشمل كل الملفات.
+- جلب `companies/company-1/main.html` عبر أداة الملفات أعاد SHA المعروف لكن دون محتوى نصي، لذلك لا يمكن إعلان اكتمال consumer map للنظام الأم. لذلك أبقينا فرع Edge العام ولم نحذفه، وأضافت المسودة حواجز ملكية/مصدر/حدث قبل الكاتب المركزي بدل افتراض عدم وجود مستهلك.
+- ملف Buyer نفسه لا يزال blob `d9ffb1084a538b7f7baf48391d3048ac5e96bffa`; لم يتغير.
+- لا توجد سياسة Storage مخصصة باسم buyer-goods ضمن سياسات `storage.objects` الحالية. bucket `employee-documents` خاص، ويجب اختبار السياسات العامة الفعلية قبل إضافة سياسة جديدة أو تعديلها؛ لا يجوز توسيع الوصول أو جعل bucket عامًا.
