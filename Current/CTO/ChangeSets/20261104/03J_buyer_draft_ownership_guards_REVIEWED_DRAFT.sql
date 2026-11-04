@@ -59,7 +59,7 @@ BEGIN
   END IF;
 
   IF lower(COALESCE(v_invoice.created_by,''))<>lower(v_actor.email)
-     AND NOT (COALESCE(v_actor.permissions,'[]'::jsonb) @> '["*"]'::jsonb) THEN
+     AND NOT v_is_owner THEN
     RAISE EXCEPTION 'BUYER_INVOICE_NOT_OWNED_BY_CURRENT_USER';
   END IF;
 
