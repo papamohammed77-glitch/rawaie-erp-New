@@ -41,34 +41,37 @@ No task is considered complete unless its evidence, decision, implementation sta
 ## LVE-2026-11-04-615 — Integrated Buyer Goods Custody / Supplier Return / Quick Market Change Set
 
 **Status:** FORENSIC REVIEW AND INTEGRATED TARGET CONTRACT PREPARED / IMPLEMENTATION NOT APPLIED / GOVERNANCE GATE OPEN.  
-**Report:** Report615 commit `2b510a7d9212d998c828c24dcf80e1a3d459cee0`, blob `725287c05ed533ae97a74b534192d9192352b5a5`.  
+**Report:** Report615 commit `b133c9006591123e2c5e3e1f32e272547ad28c06`, blob `c5c2c710231c11a867e6f67f856adce3487c69f2`.  
 **Starting point:** LVE614 / operational HEAD observed `e8ab54c75572e15e71581212479d22be139c8020`.
 
-### Additional evidence
-- Read Report606 owner decisions and Reports603/605/608/609; verified live production function definitions, ACL/RLS, storage policies and publication.
-- Official competitor research: Odoo internal/transit vs vendor locations; Dynamics return PO, partial receiving and inspection; SAP returns lifecycle, inspection and credit follow-up.
-- CONFIRMED P0: PUBLIC/anon/authenticated have direct table DML privileges on purchase_returns and purchase_return_details; current company RLS ALL policies do not enforce purchase/finance permission gate for direct writes.
-- CONFIRMED cumulative-return defect: purchase_create_return_atomic does not subtract prior active/Draft/Posted returns from invoice received quantity; concurrent/separate operations can over-return.
-- CONFIRMED Receiver defects: purchase_order_details queried by po_code instead of po_id; parseInt truncates fractional quantities; all-zero receipt can still create a receipt header; Quick Market receipt is not supported by deployed receive-purchase v13.
-- CONFIRMED SupplierReturn: trigger clears custodian_user_id outside DirectSale/DirectReturn; current SupplierReturn sends branch stock out and full financial effect on completion; no Buyer custody or supplier accepted quantity.
+### Evidence and findings
+- Read Report606 owner decisions and Reports603/605/608/609; verified live Production function definitions, ACL/RLS, Storage policies, Realtime publication and deployed Edge source versions.
+- Official competitor research: Odoo internal/transit vs vendor locations; Dynamics return POs, line-level partial receipts and inspection; SAP supplier-return lifecycle with inspection and financial follow-up.
+- CONFIRMED P0: PUBLIC/anon/authenticated have direct table DML privileges on purchase_returns and purchase_return_details; current company RLS ALL policies do not enforce Edge-level purchase/finance permission checks on direct writes.
+- CONFIRMED cumulative-return defect: purchase_create_return_atomic does not subtract previous active/Draft/Posted return quantities from invoice received quantity; concurrent/separate operations can over-return.
+- CONFIRMED Receiver defects: purchase_order_details queried by po_code instead of po_id; parseInt truncates fractional quantities; all-zero receipt can still create a header; Quick Market receipt is not supported by deployed receive-purchase v13.
+- CONFIRMED SupplierReturn: Trigger clears custodian_user_id outside DirectSale/DirectReturn; current SupplierReturn sends branch stock out and full financial effect on completion; no Buyer custody or supplier accepted-quantity model.
 - CONFIRMED second writer: purchase_post_return_atomic independently posts stock/AP/GL without link to manual stock voucher.
-- Revalidated live Edge versions and hashes. Non-save-purchase-order deployed sources are missing from matching operational Git paths; byte-for-byte source restoration is mandatory before modifying those functions.
-- Report615 sets the one-writer design, line-level acceptance and custody ledger, quick market receiving, typed cash expenses and Parent recipient projection.
+- Revalidated live Edge versions and hashes. Non-save-purchase-order deployed source files are missing from matching operational Git paths; byte-for-byte source restoration is mandatory before modification.
+- New exact posting evidence: receive_purchase_atomic posts PurchaseIn + Journal DR Inventory 124 / CR Supplier AP 211 + supplier_ledger credit for accepted PO lines. buyer_custody_review_expense_atomic later posts DR Supplier AP / CR Employee Custody, creates buyer_custody_payments, marks invoice Paid and debits Supplier Ledger. This is a specific PO supplier settlement routine, not a generic expense routine.
+- Therefore Quick Market EMPLOYEE_CUSTODY_CASH must not reuse the PO AP posting block; accepted inventory should reconcile against Employee Custody without duplicate Supplier AP/Supplier Payment. Fuel/Transport/Other require active Finance-configured expense accounts.
+- Manual SupplierReturn completion reverses tax per tax code for the full voucher; Parent purchase_post_return_atomic uses a separate simplified line model without the same tax flow. Unified acceptance must reverse tax only for supplier-accepted quantity.
+- Cash-paid supplier returns may create a supplier refund/credit receivable or a cash refund event; no such account mapping is confirmed. Do not debit nonexistent Supplier AP or increase Treasury without actual refund evidence.
+- Report615 documents the integrated single-writer design, item-level Buyer custody ledger, Quick Market receipt, expense types, Parent recipient projection, exact acceptance and rollback scope.
 
 ### Actions
-- Created Report615.
-- Updated project memory LVE615 (commit `ac5ffad5e692272215bcd3c74e30960945dcf470`).
-- No source write, Parent main.html write, SQL/data/ACL/RLS/Trigger/RPC write, Edge update/deploy, new Edge function, test fixture or Cloudflare action.
+- Created and updated Report615.
+- Updated project memory LVE615 (latest memory commit `e91f200f20668e99e777be8523306a91a6a223e5`).
+- No operational source write, Parent main.html write, SQL/data/ACL/RLS/Trigger/RPC/Storage/Realtime publication write, Edge deployment, new Edge function, test fixture or Cloudflare action.
 
 ### Remaining / gate
-- Full executable additive migration and replacement function bodies are not yet authored.
+- Full executable additive migration and complete replacement function bodies are not yet authored.
 - Restore deployed live Edge sources into operational Git and verify exact parity before editing.
 - Exact Buyer/Vouchers/Receiver changes and owner-side Parent patch remain to be prepared.
-- Authenticated Browser E2E, Cloudflare artifact parity and full-schema Staging remain unverified / unavailable.
-- Do not apply any Production-affecting part before full exact change set and explicit approval under §77.2.
+- Supplier refund/credit mapping for cash-paid returns remains a Finance configuration dependency.
+- Authenticated Browser E2E and canonical Cloudflare artifact parity remain UNVERIFIED; Staging remains schema-non-parity.
+- Do not apply any Production-affecting part before the exact full change set and explicit approval under §77.2.
 - Status: NOT IMPLEMENTED / NOT PRODUCTION READY.
-
----
 
 ## CTO WORKING METHOD — CURRENT OPERATING STANDARD
 
