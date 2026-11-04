@@ -667,3 +667,16 @@ Report610 proposes surgical Buyer list/form/scanner improvements; Parent creator
 No Buyer/Parent/Core source write, no production DDL/RPC/RLS/ACL/data mutation, no Edge deploy, no Cloudflare deploy, no fixture or authenticated E2E. rawaea-staging remains non-parity. Exact owner approval remains required under Master CTO §77.2.
 
 **STATUS:** REPORT610 READY / CHANGE SET APPROVAL OPEN / NO OPERATIONAL OR PRODUCTION WRITE / NOT E2E-VERIFIED.
+
+
+## LVE627 — Buyer Phase 1 hardening / live Edge v25 recovery — 2026-11-04
+
+- Re-read Report614_NEW_P.md (current blob 15caa4c0...), permanent charter (d2afa896...), CURRENT_STATE LVE626 and Report626/625. Applied §6.2/§6.3: exact change + impact + tests + rollback must be presented and explicitly approved before operational/Production writes.
+- Fetched live Supabase `save-purchase-order` v25 (ACTIVE, verify_jwt=true, SHA256 793ba5412a27813aa715da4078971a150d592dd03b53833148b9e99a37b5be62; 30,017 bytes). Archived exact source to `Current/CTO/EdgeSnapshots/20261104/save-purchase-order_v25/index.ts`; re-read and byte-compared successfully. Operational Git file blob bc038be8... is 23,077 bytes and differs; do not redeploy.
+- Re-fetched live SQL definitions for `buyer_custody_settle_atomic`, `purchase_delete_draft_invoice_atomic`, `buyer_goods_custody_register_handover_atomic`; created complete-function review draft with QMP reservation guard, goods-event deletion guard and evidence path/object validation.
+- Created Edge v25 review draft with fail-closed currency lookup and source/owner/goods-event checks for generic draft deletion.
+- Created Buyer surgical patch note for tri-state RPC verification; evidence file is deleted only after a successful check explicitly proves the event was not committed.
+- Inspected private `employee-documents` bucket and current Storage policies. Buyer goods path is company/user/buyer-goods/invoice; no dedicated buyer-goods policy was found. Policy verification remains open.
+- Report627 created: `doc/Draft/Reprots/Report627_BUYER_PHASE1_HARDENING_EDGE_V25_RECOVERY_20261104.md`; commit e95fe0e73160ae9be05047d7dc7eaaa6949e0754.
+- No operational code, Production schema/data/RPC/ACL/Storage/Realtime, Edge deployment, Cloudflare deployment, Receiver, or test fixtures were changed. Report626's P1 findings remain open until approved patch and E2E.
+- Next: finish full consumer maps + Storage/RLS policy draft and acceptance/rollback; present complete package for explicit owner approval. Receiver remains deferred.
