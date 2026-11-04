@@ -419,3 +419,30 @@ No source HTML edit, Production DDL/RLS/ACL/RPC/data mutation, Edge deployment, 
 **Current State:** LVE-607 at top of `CURRENT_STATE.md`; commit `2e535fc8a0ca152ec9d4ca49cb38fde7efd9358f`; blob `81b10a79e766a0fc09cf8395bb18ae81be816e56`.
 
 **STATUS:** Workstream A source-level complete; B–E open; overall Buyer OPEN / NOT PRODUCTION-READY.
+
+
+---
+
+## 2026-11-04 — Buyer LVE-610: PO/Invoice Parent Integration, Creator, Currency & Barcode Forensic Change Set
+
+**Starting checkpoint:** LVE-2026-11-03-609 / Report609.  
+**Operational HEAD:** 2b94681bf0ce93ca9ea55066a3f52c0d1add1084.  
+**Buyer blob:** 7f82fceb0b2c2470d1f112aefeaa1341de5b71a8.  
+**Parent blob:** 53b5a9e9d0433a785c3d5471a9c0d68c25497882.  
+**Report610:** doc/Draft/Reprots/Report610_BUYER_PO_INVOICE_PARENT_CYCLE_UX_CURRENCY_BARCODE_FORENSIC_20261104.md (blob e88c15586a9a37025b04924b8b6553aa7fcfa5b2, commit db82d92f45e6b122000453cacdf01382f9035c93).
+
+### Confirmed
+- Buyer and Parent use the same central purchase_orders/purchase_invoices tables and existing save-purchase-order v22 RPC writers; no duplicate schema needed.
+- created_by already stores the authenticated creator email in PO and Invoice; Parent currently omits it. Parent invoices show supplier_id UUID instead of supplier name.
+- Parent Realtime subscribes to purchase_invoices but not purchase_orders.
+- New document currency is derived server-side from app_settings.currency (EGP); purchase_settings.default_currency is separately editable and can diverge. Historical SAR docs must retain their stored currency.
+- Buyer lacks camera scanning in PO/Invoice inputs; Parent inventory has a BarcodeDetector/getUserMedia implementation to adapt independently.
+- Parent and Buyer data loading are limited to 300 and 500 rows respectively; Edge GET_DATA currently has no offset/server filters.
+- Cloudflare Pages check for HEAD 2b94681 succeeded 2026-11-04 11:26:14 UTC; served artifact/runtime parity remains unverified.
+
+### Change Set / verification boundary
+Report610 proposes surgical Buyer list/form/scanner improvements; Parent creator/supplier/currency display, PO Realtime subscription and authoritative app_settings currency; and optional bounded extension of existing Edge v22 GET_DATA for pagination/exact barcode lookup. No new Edge Function or duplicate tables.
+
+No Buyer/Parent/Core source write, no production DDL/RPC/RLS/ACL/data mutation, no Edge deploy, no Cloudflare deploy, no fixture or authenticated E2E. rawaea-staging remains non-parity. Exact owner approval remains required under Master CTO §77.2.
+
+**STATUS:** REPORT610 READY / CHANGE SET APPROVAL OPEN / NO OPERATIONAL OR PRODUCTION WRITE / NOT E2E-VERIFIED.
