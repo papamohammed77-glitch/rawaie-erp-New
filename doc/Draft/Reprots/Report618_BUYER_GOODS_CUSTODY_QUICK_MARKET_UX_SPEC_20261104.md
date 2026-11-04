@@ -121,7 +121,7 @@ The Buyer selects custody lines and quantities to hand over. The Receiver app mu
 - Accepted quantity reduces Buyer custody and increases branch stock once.
 - Rejected/unpresented quantity remains in Buyer custody.
 - The invoice-to-Receiving header and line links are mandatory.
-- A Quick Market invoice is eligible for cash-custody expense review only after the required Receiving quantity is complete and the supplier AP liability exists.
+- An EMPLOYEE_CUSTODY Quick Market invoice is eligible for cash-custody expense review only after the invoice-linked Receiving evidence and accepted quantities reconcile; it must not require or create Supplier AP/Supplier Payment if the supplier was already paid from the Buyer advance. SUPPLIER_CREDIT instead requires its Supplier AP recognition. TREASURY_CASH requires a separately evidenced actual payment.
 - Existing PO receiving and its validation remain unchanged.
 
 ## 6. Buyer → Supplier return
@@ -154,7 +154,7 @@ Balance totals must be server aggregated and paged; do not truncate at 500 rows.
 
 - `عهدتي` continues to show cash advances, expenses, payments and settlement.
 - Quick Market invoices selected for cash custody create a `PURCHASE` expense reference only after warehouse acceptance evidence is complete.
-- Finance review must match invoice ID, invoice line receipt quantities, supplier AP credit and actual custody payment.
+- Finance review must match invoice ID, invoice-line accepted quantities and the existing custody ID/expense evidence. Only the SUPPLIER_CREDIT route reconciles Supplier AP; EMPLOYEE_CUSTODY must clear Employee Custody without duplicate Supplier AP/Payment.
 - Review remains performed by Finance/Finance Manager, not self-approved by Buyer.
 - Fuel, transport and other operating expenses use their own categories/accounts; they are not supplier purchases and do not create stock/AP.
 
@@ -166,7 +166,7 @@ No new Edge Function:
 - `create-stock-voucher` v12 / `send-stock-voucher` v20 use the existing `rep_id` → `p_rep_id` for the optional Buyer custodian, after Trigger/RPC validation.
 - `complete-stock-voucher` v4 remains the warehouse completion route; linked financial posting is delegated to the single canonical acceptance/return RPC.
 
-All new operations must use deterministic operation IDs and server-side validation. No client-side direct insert/update into event, return, receiving or supplier-ledger tables.
+Every physical event receives one fresh stable operation UUID; exact retries reuse that same UUID and identical payload, while a distinct physical event (even with identical quantities) receives a new UUID. The server rejects reuse of an operation ID with a different payload. No client-side direct insert/update into event, return, receiving or supplier-ledger tables.
 
 ## 10. UX and safety improvements
 
@@ -192,6 +192,10 @@ All new operations must use deterministic operation IDs and server-side validati
 - Realtime and pagination show correct balances beyond 500 events.
 - Other Buyers and companies cannot read this user's custody.
 - Duplicate request, timeout/retry, refresh and concurrent acceptance produce no duplicate stock/AP/GL/custody effect.
+
+
+### LVE618 reconciliation note — settlement vocabulary and posting boundary
+The Quick Market settlement source uses the owner-aligned values `EMPLOYEE_CUSTODY`, `SUPPLIER_CREDIT`, and `TREASURY_CASH`. The earlier phrase `BUYER_CASH_CUSTODY` is superseded. The invoice source field is `purchase_source='QUICK_MARKET'`. Employee-custody cash purchases require a complete linked Receiving proof but do not require Supplier AP credit and must not create a second Supplier Payment; the existing PO supplier-credit custody-review routine must remain isolated to its current PO branch. A new physical event receives a fresh UUID, with the same UUID reused only for retries of that event.
 
 ## 12. Status
 
