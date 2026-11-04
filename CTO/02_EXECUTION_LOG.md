@@ -1,3 +1,25 @@
+## LVE-2026-11-04-615 — Buyer / Receiver / Quick Market / Security Revalidation
+
+**Status:** FORENSIC REVALIDATION COMPLETE / ADDITIONAL P0-P1 DEFECTS CONFIRMED / IMPLEMENTATION NOT STARTED.  
+**Report:** [Report615_BUYER_RECEIVER_SECURITY_QUICK_MARKET_REVALIDATION_20261104.md](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reproets/Report615_BUYER_RECEIVER_SECURITY_QUICK_MARKET_REVALIDATION_20261104.md) — commit `64e0988cf7bae218c3d1e7766c0ffe45136cff7e`.
+
+### New confirmed findings
+- Receiver queries `purchase_order_details.po_code`; Production table only has `po_id`. Fix header resolution + detail query by PO ID. Receiver uses `parseInt` for numeric qty, truncating fractional units.
+- `purchase_returns` and `purchase_return_details` grant DML to anon/authenticated and have PUBLIC ALL policies scoped only to company. Restrict direct writes; retain authorized Edge/RPC writer.
+- `buyer_custody_review_expense_atomic` requires PO and PO-code Receiving, so it cannot settle no-PO Quick Market invoices.
+- `purchase_post_invoice_atomic` rejects no-PO invoices until invoice-ID Receiving is supported; create invoice RPC already allows no-PO Draft and enforces app_settings currency.
+- Live Production has 3 invoices / 6 lines, 1 Draft PO / 1 line, no Receiving rows, no SupplierReturn vouchers/returns/cash custodies/custody expenses.
+- Two old Posted no-PO SAR invoices have matching stock/AP/GL entries; preserve. Explicit QA-SR Draft PO/invoice pair has false received flags but no stock/AP/GL effects; preserve audit links and use approved cancel/archive, not hard delete.
+- Exact source of six deployed Edge functions recovered and archived under `Current/CTO/EdgeSnapshots/20261104/`; no deploy or new Edge Function.
+
+### Competitive references
+D365 return POs (invoice/partial/unplanned/consignment), SAP return PO → outbound delivery → goods issue → vendor credit memo, and Odoo staged receiving underpin the recommended document chain. Full citations in Report615.
+
+### No writes
+No Production data cleanup, DDL/RPC/Trigger/RLS/grant/publication changes, operational source edit, Edge deploy, Cloudflare deploy, test fixture, or E2E. Exact-change gate remains mandatory.
+
+---
+
 # RAWAEA ERP — CENTRAL CTO EXECUTION LOG
 
 ## Purpose
