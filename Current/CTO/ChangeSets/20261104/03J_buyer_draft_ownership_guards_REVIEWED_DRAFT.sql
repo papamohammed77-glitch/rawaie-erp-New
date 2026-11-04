@@ -26,6 +26,7 @@ AS $function$
 DECLARE
   v_actor public.users%ROWTYPE;
   v_invoice public.purchase_invoices%ROWTYPE;
+  v_is_owner boolean:=COALESCE((public.get_my_effective_profile()->>'isOwner')::boolean,false);
 BEGIN
   SELECT * INTO v_actor
   FROM public.users
@@ -39,7 +40,7 @@ BEGIN
 
   IF NOT (
     app_private.current_user_has_effective_permission('purchases')
-    OR COALESCE(v_actor.permissions,'[]'::jsonb) @> '["*"]'::jsonb
+    OR v_is_owner
   ) THEN
     RAISE EXCEPTION 'BUYER_PURCHASE_PERMISSION_REQUIRED';
   END IF;
@@ -88,7 +89,7 @@ AS $function$
 DECLARE
   v_actor public.users%ROWTYPE;
   v_invoice public.purchase_invoices%ROWTYPE;
-  v_owner boolean;
+  v_owner boolean:=COALESCE((public.get_my_effective_profile()->>'isOwner')::boolean,false);
 BEGIN
   SELECT * INTO v_actor
   FROM public.users
@@ -115,8 +116,6 @@ BEGIN
   IF NOT FOUND OR v_invoice.purchase_source NOT IN ('PURCHASE_ORDER','LEGACY_UNCLASSIFIED') THEN
     RAISE EXCEPTION 'BUYER_DRAFT_INVOICE_NOT_FOUND_OR_WRONG_SOURCE';
   END IF;
-
-  v_owner:=COALESCE(v_actor.permissions,'[]'::jsonb) @> '["*"]'::jsonb;
 
   IF NOT v_owner THEN
     IF v_invoice.purchase_source='PURCHASE_ORDER'
