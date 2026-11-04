@@ -1,3 +1,79 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-621 — Integrated Buyer Goods Custody / Supplier Return / Quick Market
+
+**Date:** 2026-11-04 — Africa/Cairo.  
+**LAST VERIFIED EVENT:** Reconciled CURRENT_STATE LVE616 against Execution Log/Project Memory LVE620; re-read Reports606 and 615–620, permanent charter and Master CTO governance; re-fetched current operational source and Production schema/ACL/RPC/data; prepared Report621 and schema/security scaffold v4. No operational source or Production write occurred.
+
+## Current State — LVE621
+
+- Operational repo: `papamohammed77-glitch/erp-frontend` / `main`; latest operational HEAD observed `e8ab54c75572e15e71581212479d22be139c8020`.
+- Buyer blob `311f2673a90149df6f56d59a9a187a3379e6981c`.
+- Warehouse Vouchers blob `85e709d0f41c189c6624a6160965d3b1a41960ba`.
+- Receiver blob `3111b5e801d1bc021cf18fd66d633fbdc54ac0d6`.
+- Parent `main.html` blob `f6ec4ab41dc517f86e17dd3d74a9d5f8add264ca` remains locked by §77.3.
+- Core blob `f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1`.
+- Report621: `doc/Draft/Reprots/Report621_BUYER_INTEGRATED_CONTRACT_GAP_REVIEW_AND_LVE620_RECONCILIATION_20261104.md`; latest report commit `080c03711154e544c126f5fa41ded2e895a6c11b`.
+- Schema scaffold v4: `Current/CTO/ChangeSets/20261104/04_buyer_goods_custody_schema_security_REVIEWED_DRAFT_v4.sql`; corrected blob `585b7091c3692be519d9455bc27036f5a1c93153`; correction commit `647fec6a9b7d7201cf06941bc016806849ee2cba`. NOT executable / not approved / not run.
+- Report620: `doc/Draft/Reprots/Report620_EXISTING_EDGE_EXTENSION_CONTRACT_20261104.md`; commit `4052446b38b35a26b186ab9a861066a205d2a9fd`.
+- Permanent charter blob `d2afa896514b1cb6abd247d2af7a862251ce0604`; applicable rules Master CTO §77.2–77.4.
+
+## Checkpoint reconciliation
+
+CURRENT_STATE previously opened at LVE616 while Execution Log and Project Memory had advanced through LVE620. LVE621 is now the top checkpoint; keep all earlier checkpoint history below it.
+
+## CONFIRMED — current Production/process gaps
+
+1. Buyer `رصيدي` remains a static placeholder; no item-level goods-custody event table exists. `buyer_custodies` is the separate cash advance ledger.
+2. Buyer `quickPurchase()` is only a Draft invoice alias; no Supplier→Buyer physical handover or later Buyer→Receiver flow exists.
+3. Warehouse SupplierReturn UI lacks recipient selection; Production `enforce_stock_voucher_custodian()` currently clears `custodian_user_id` except DirectSale/DirectReturn.
+4. Manual SupplierReturn and Parent `purchase_returns` are separate stock/AP/GL writers with no unique document link; duplicate posting risk is real.
+5. `purchase_create_return_atomic` lacks a cumulative prior-return quantity lock/guard.
+6. Receiver queries `purchase_order_details.po_code` while Production uses `po_id`; Receiver `parseInt` truncates fractional units; all-zero submission must be rejected client/server.
+7. Quick no-PO invoice posting is deliberately blocked pending invoice-ID Receiving. Existing `receive-purchase` v13 is PO-code-only; Receiving header/lines lack quick invoice linkage.
+8. Existing cash custody review is a PO/AP workflow and must remain intact; add a separate Quick Market employee-custody branch to prevent fake Supplier AP/duplicate supplier payment.
+9. P0 ACL: anon/authenticated still have direct DML grants to `purchase_returns` and details with broad company-only ALL policies.
+10. P0 currency: company currency is EGP; SupplierReturn UI/default and DB default are SAR; Save Contract accepts/falls back SAR; financial posting functions ignore `return_currency`.
+11. Fresh Production counts: purchase_invoices=3 (Draft=1, Posted=2, no-PO=2); purchase_returns=0; stock_vouchers=0; receiving=0; buyer_custodies=0. Preserve historic Posted SAR invoices and QA-SR Draft audit graph.
+
+## Binding target contract
+
+- Keep cash custody `buyer_custodies` separate from append-only item goods custody.
+- Supplier Direct is the default SupplierReturn recipient. Buyer Delegate requires explicit supplier delegation evidence, active same-company Purchasing Officer, purchases permission and branch scope. Vehicle is optional.
+- Warehouse voucher owns one physical stock-out; Buyer custody event ledger owns Buyer quantity; linked Parent `purchase_returns` is the financial register; supplier acceptance batch owns accepted quantities and AP/GL only after Finance approval. Linked financial posting must never post stock again.
+- Quick Market: Draft invoice → Supplier→Buyer physical handover → Receiver invoice-ID accepted/rejected quantities → accepted stock enters branch once → Finance settlement by explicit source.
+- EMPLOYEE_CUSTODY Quick Market uses account 127 to clear employee custody for accepted invoice-backed goods; no Supplier AP/duplicate Supplier Payment. SUPPLIER_CREDIT recognizes AP once; actual payment is separate. TREASURY_CASH changes only with actual payment evidence.
+- Cash-paid supplier return cannot debit nonexistent AP or increase Treasury without an approved refund/credit disposition and account mapping.
+- Parent recipient is projected from linked stock voucher; Parent main.html patch remains owner-side only.
+
+## Schema draft review
+
+- v1 and v3 rejected; v3 is unsafe (drops invoice NOT NULL, changes existing status check, defaults SupplierReturn recipient mode on all voucher types, omits delegation evidence and duplicates counters).
+- v2 is a reviewed scaffold but still had multiple acceptance/Receiving source-of-truth gaps.
+- v4 corrects the identified schema scaffold issues: no duplicated acceptance aggregates on return details; AWAITING_FINANCE batch status; Receiving event-allocation table; expanded Receiving sources and source-line links; recipient_mode NULL for non-SupplierReturn; SAR default removed in favour of server-set company currency; client access is SELECT-only for new custody/acceptance records.
+- v4 remains NOT EXECUTABLE: no complete RPC/Trigger/Edge bodies, storage policies, validated migration/rollback or schema-parity E2E. Its text/parenthesis scan passed after correcting one generation defect; this is not a PostgreSQL compile.
+
+## Existing Edge functions / constraints
+
+Exact live snapshots are archived under `Current/CTO/EdgeSnapshots/20261104/` and Report615/619/620 record matching hashes:
+- save-purchase-order v22 `a0885a8a636b0d57ef9ab54b476001be8e3dd1f4227b921f511b002f58642ffb`
+- receive-purchase v13 `50ab45ae026a0bb4d1de7837c872c4cc42da47b6a603f340e48d023d839310cc`
+- create-stock-voucher v12 `c4ee58c5c94538bcb02a2a76c247996fa9368be7c5b2f7b4d44c98336d29ea4d`
+- send-stock-voucher v20 `864129274b4a23d74b3378c44d8fbf8f2a269eb76d9b623350ad57c818c8805b`
+- receive-stock-voucher v22 `62f6e97936997ab0ab58379bb683a08431eb2a5c96d1063943e5a3e03d24bf29`
+- complete-stock-voucher v4 `8cf684456cd82f4f331c909ad4adf5afaf1ad46ffa34d9927fded06276fed855`
+Five current Edge snapshots are not yet restored to matching operational Git paths; byte-for-byte restore precedes minimal patch after approval. No new Edge Function. New auth.uid()-based operations use authenticated profileClient. save-purchase-order currency lookup must fail closed, never fallback to EGP.
+
+## Verification boundaries
+
+No operational Buyer/Vouchers/Receiver/Parent write; no Production DDL/DML/RPC/Trigger/RLS/GRANT/storage/publication write; no Edge deployment; no Cloudflare deployment; no Production fixtures. Authenticated Browser E2E and canonical Cloudflare artifact parity remain UNVERIFIED. Staging remains non-parity (62 migrations/70 tables per LVE613).
+
+**Overall:** CHANGE SET PREPARATION IN PROGRESS / APPROVAL GATE OPEN / BUYER PROCUREMENT NOT PRODUCTION READY.
+
+## Next exact execution unit
+
+Complete full replacement SQL RPC/Trigger bodies, existing six Edge source diffs, surgical Buyer/Vouchers/Receiver diffs, Parent owner-side patch, private evidence storage policy, RLS JWT tests, return/cash/inventory reconciliation, schema-parity E2E and rollback. Present this exact package for explicit owner approval under §77.2 before operational/Production writes.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-616 — Receiver Patch + Buyer Custody Schema Draft
 
 **Timestamp:** 2026-11-04 — Africa/Cairo.  
