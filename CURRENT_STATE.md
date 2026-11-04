@@ -1,3 +1,67 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-615 — Integrated Buyer Goods Custody / Supplier Return / Quick Market Change Set
+
+**Timestamp:** 2026-11-04 — Africa/Cairo.  
+**LAST VERIFIED EVENT:** Continued from LVE614; rechecked historical Buyer decisions, current operational source, deployed Production schema/ACL/RLS/Storage/Realtime, Trigger/RPC definitions and live Edge versions/source hashes. Researched official Odoo, Microsoft Dynamics 365 and SAP processes. Created Report615 and updated project memory and CTO execution log. No operational or Production write was made.
+
+## Current State — LVE615
+
+- Operational repo/branch: papamohammed77-glitch/erp-frontend / main.
+- Latest operational HEAD observed: e8ab54c75572e15e71581212479d22be139c8020.
+- Buyer blob: 311f2673a90149df6f56d59a9a187a3379e6981c.
+- Parent main.html blob: f6ec4ab41dc517f86e17dd3d74a9d5f8add264ca.
+- Warehouse Vouchers blob: 85e709d0f41c189c6624a6160965d3b1a41960ba.
+- Receiver blob: 3111b5e801d1bc021cf18fd66d633fbdc54ac0d6.
+- Report615: doc/Draft/Reprots/Report615_BUYER_INTEGRATED_GOODS_CUSTODY_AND_SUPPLIER_RETURN_CHANGESET_20261104.md; report commit 2b510a7d9212d998c828c24dcf80e1a3d459cee0; blob 725287c05ed533ae97a74b534192d9192352b5a5.
+- Project memory LVE615 commit: ac5ffad5e692272215bcd3c74e30960945dcf470.
+- CTO execution log LVE615 commit: aabae50f518ee8a4f43b7a0a119c98bc26e4af49.
+- Permanent operating charter blob: d2afa896514b1cb6abd247d2af7a862251ce0604.
+- Master CTO governance §77.2–77.4 remains binding; no main.html writes and no new Edge Functions.
+
+## CONFIRMED — additional P0 and lifecycle defects
+
+1. Buyer رصيدي is static, not a live goods ledger; cash buyer_custodies is a separate cash-advance ledger. QuickPurchase only creates a Draft invoice.
+2. SupplierReturn recipient picker is absent in Vouchers; Production Trigger enforce_stock_voucher_custodian clears custodian_user_id except DirectSale/DirectReturn.
+3. Manual SupplierReturn sends branch stock out at dispatch and creates full Supplier AP/GL on completion without supplier accepted-quantity evidence.
+4. Parent purchase_returns path is a second independent stock/AP/GL writer; it has no unique link to stock_vouchers. Cumulative return quantities are not subtracted from prior Draft/Posted returns in purchase_create_return_atomic.
+5. ACL direct-write vulnerability: PUBLIC/anon/authenticated have direct table DML privileges on purchase_returns and purchase_return_details; current RLS command ALL company-scope policy does not enforce Edge-level purchase/finance permission checks on direct writes.
+6. Receiver loads purchase_order_details by po_code, while actual relation is po_id. It uses parseInt for quantity and can submit all-zero receipts that still create a Receiving header. Deployed receive-purchase v13 is PO-only; no Quick Market invoice receipt link.
+7. New physical receipt needs a fresh operation_id; the current deterministic fallback can collide for later physically separate receipts with identical payload.
+8. SupplierReturn UI sends SAR; system currency is EGP and stock_vouchers.return_currency default remains SAR. Posting/conversion consequence is not verified because there were no SupplierReturn rows at the review snapshot.
+9. Deployed live Edge functions exist, but the current operational Git source has exact path parity only for save-purchase-order among the purchase/stock voucher Edge functions reviewed. Restore exact deployed sources before edits.
+
+## Target design adopted
+
+- Keep supplier direct receipt as default. Purchasing Officer only receives supplier returns with explicit supplier delegation proof.
+- Keep Buyer goods custody as a separate append-only item event ledger; do not reuse cash buyer_custodies or vehicle stock.
+- Link every SupplierReturn physical stock voucher to one Parent purchase_returns financial header. Branch stock-out writer is the manual voucher send only; accepted supplier quantity event is the only Supplier AP/GL writer. Prevent duplicate stock-out and cumulative return beyond received/dispatched quantity.
+- Buyer delegated custody increases only on warehouse-to-Buyer physical handover; Buyer balance decreases only on warehouse acceptance or supplier acceptance/physical return.
+- Quick Market Draft has no stock/AP/GL/Treasury impact. Supplier-to-Buyer handover creates goods custody; Receiver accepts invoice-linked quantities and transfers accepted goods to branch once.
+- Settlement source determines the single financial counter-entry: Employee Custody, Supplier AP or Treasury. No duplicate AP/payment where supplier already received Buyer cash.
+- Fuel/Transport/Other are operating expenses using Finance-approved COA mapping; no stock/AP by default.
+- Parent Returns register should show the true recipient (Buyer if delegated, supplier if direct); main.html remains owner-side locked.
+
+## Competitor model
+
+- Odoo distinguishes internal/transit (company-owned) goods from external Vendor/Customer locations.
+- Dynamics 365 return POs mark return lines against original inventory transactions and record vendor shipment with product-receipt/packing-slip evidence; receiving allows partial quantities and quality inspection.
+- SAP Advanced Returns Management separates return document, material inspection, logistics decision, vendor replacement and financial processing.
+- Official sources and the exact RAWAEA mapping are recorded in Report615.
+
+## Verification boundaries and work not performed
+
+- No operational source write and no main.html edit.
+- No SQL/DDL/DML/ACL/GRANT/RLS/Trigger/RPC/publication/storage-policy change.
+- No Edge source/deployment update and no new Edge function.
+- No Production test data or persistent fixtures.
+- No authenticated Browser E2E or Cloudflare canonical artifact parity. Staging remains schema-non-parity per LVE613.
+- Overall: ROOT CAUSES CONFIRMED / TARGET CONTRACT DOCUMENTED / FULL EXECUTABLE IMPLEMENTATION BUNDLE NOT YET AUTHORED / NOT IMPLEMENTED / NOT PRODUCTION READY.
+
+## Next exact execution unit
+
+Author the complete executable additive migration and replacement bodies for the ledger, recipient/acceptance, receiving and cash-expense contracts; restore all existing live Edge sources byte-for-byte into operational Git; then prepare exact Buyer/Vouchers/Receiver diffs and owner-side Parent patch, with full ACL/RLS/Storage/Realtime, acceptance, accounting reconciliation and rollback tests. Submit the exact set for explicit owner approval under §77.2 before any Production-affecting write. Do not ask for decisions already present in Report606.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-614 — Buyer Goods Custody / Supplier Return / Quick Market Receipt
 
 **Timestamp:** 2026-11-04 18:45 Africa/Cairo.  
