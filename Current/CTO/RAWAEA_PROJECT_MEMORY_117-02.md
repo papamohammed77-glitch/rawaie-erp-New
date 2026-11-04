@@ -1,3 +1,22 @@
+## LVE-2026-11-04-612 — Shared-Core Centralization Application Matrix
+
+- Report: [Report612_CORE_CENTRALIZATION_FORENSIC_APPLICATION_MATRIX_20261104.md](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report612_CORE_CENTRALIZATION_FORENSIC_APPLICATION_MATRIX_20261104.md); report commit `9cc489a7171a3e1675500488767a99d3a07cfcfa`.
+- Operational repo `papamohammed77-glitch/erp-frontend` / main / HEAD `68d222b20251049daddc2f159f2b8c80cd6ffb89`; Core blob `f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1`.
+- Complete inventory: 30 HTML files under companies/company-1; 26 load core.js. Three operational entry/app files do not: main.html, warehouse/picker.html, app.html. index.html is static navigation and is exempt.
+- main.html independent: 178 direct Supabase table-query references, 75 Auth references, 61 RPC references, 68 functions/v1 references, 11 channel declarations and 39 postgres_changes references. Its internal RW_* modules are distinct from shared Core.
+- picker.html owns independent Supabase client/Auth, four raw Edge fetch call sites, Dexie and service-worker code. app.html owns independent client/login/password recovery/session/role routing.
+- Buyer is current closest Core-aligned PWA: RW_Auth/API/UI/Realtime; no direct table/RPC/channel/fetch call sites in current Buyer source. This does not imply business/Runtime closure; LVE611 remains open.
+- Core's RW_DB is a Dexie/local-store wrapper exposing getDB/syncDown/syncUp/getItems/getCustomers/getBranches, not a comprehensive server repository. RW_API exposes Edge call/callWithRetry only, not an RPC contract. RW_Realtime is adopted by six apps; Parent/Sales Manager/Vouchers have independent channels and Core defaults to INSERT/UPDATE.
+- Driver is high-risk hybrid: uses user_metadata for permission derivation, direct users/credit_block_events/service_complaints/driver_liabilities DML and four raw Edge fetches. Review authoritative effective profile, server policies, and single-writer paths; this is not by itself proof of a live exploit.
+- Returns has direct run_sheet_details.qty_returned update alongside the Edge return flow; reconcile its authoritative writer before changing.
+- Many Core-loaded pages still query Supabase or call RPC directly. See Report612 for the full 30-file matrix and per-app reference counts/patterns.
+- Public Storefront/Tracking must use shared public API contracts without employee Auth.
+- Target Core: versioned bootstrap/injected page-local client, RW_Auth+verified RW_Context, RW_API+RW_RPC, RW_Data, RW_Realtime, RW_Offline, RW_SW, RW_UI and observability. Keep apps separate; preserve RLS and existing Edge/RPC business writers. Do not add new Edge functions just for wrappers.
+- No operational source, Production DB, RPC/RLS/GRANTS/Edge or deployment changes in LVE612.
+- Next: exact Core bootstrap/compatibility/API/RPC/Data owner-review package. Never blindly add core.js to main.html/app.html because client/global initialization must be reconciled first. Migrate Picker and Parent incrementally after approval. CURRENT_STATE advanced to LVE612.
+
+---
+
 ## LVE-2026-11-04-611 — Buyer / Parent / Core / Receiving Revalidation
 
 - Report: [Report611_BUYER_PARENT_CORE_RECEIVING_RUNTIME_REVALIDATION_20261104.md](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report611_BUYER_PARENT_CORE_RECEIVING_RUNTIME_REVALIDATION_20261104.md); report commit `c2ae71d778a65679afb7d55358606b763901fac7`.
