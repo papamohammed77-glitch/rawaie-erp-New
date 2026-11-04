@@ -29,6 +29,7 @@
 | `03H_buyer_goods_custody_realtime_REVIEWED_DRAFT.sql` | عضوية جدول أحداث الحيازة في Realtime |
 | `03J_buyer_draft_ownership_guards_REVIEWED_DRAFT.sql` | منع تعديل/حذف مسودات مشتري آخر |
 | `03K_buyer_supplier_invoice_duplicate_guard_REVIEWED_DRAFT.sql` | منع تكرار رقم فاتورة المورد لنفس المورد |
+| `03L_buyer_effective_permission_only_rpc_hardening.sql` | إزالة wildcard الخام من حارسي Quick Market وLegacy |
 | `04A_buyer_edge_ui_integration_patch_FINAL_REVIEW_DRAFT.md` | العمليات ومواضع التعديل في Buyer وEdge |
 | `04D_buyer_draft_ownership_edge_routes_REVIEWED_DRAFT.md` | توصيل أغلفة الملكية بمدخل Edge الحالي |
 | `04E_buyer_cash_reservation_and_dashboard_exact_patch_REVIEWED_DRAFT.md` | حساب المتاح بعد حجوزات السوق السريع دون ازدواج |
