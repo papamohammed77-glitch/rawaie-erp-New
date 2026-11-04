@@ -5806,3 +5806,26 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - Detailed Arabic report: `doc/Draft/Reprots/Report623_BUYER_FIRST_CHANGESET_REVALIDATION_20261104.md`, current blob SHA `5846a567cd765d08c492412864d9a278451e903f` (348 lines). It records business model, source findings, cash custody, future Receiver/SupplierReturn, DDL persistence/cleanup, advisors, change list and rollout gate.
 - Status: BUYER DIAGNOSIS + CHANGESET DESIGN + SQL VALIDATION/CLEANUP COMPLETE; OPERATIONAL BUYER UI/EDGE ROLLOUT NOT APPLIED. No new Edge Function, branch, app source change, or deployment. Report614 approval gate remains for applying the exact consolidated SQL/UI/Edge package. Receiver follows only after Buyer acceptance.
 - Next action: consolidate the exact final Buyer UI patch into the operational buyer.html diff and the exact routing/scope patch into the existing save-purchase-order Edge diff; compare against current blobs and test compatibility. Then present the unified, exact change package and acceptance/rollback matrix before production deployment; do not execute the old draft migrations directly.
+
+
+## LVE624 — Buyer Phase 1 Production schema + Edge + Buyer source (2026-11-04)
+- Supersedes the prior LVE623 status for Buyer execution. The earlier statement that Buyer SQL/UI/Edge had not been applied is historical and no longer current.
+- Applied SMART ERP migrations in order:
+  1. `buyer_phase1_01_supplier_invoice_guard`
+  2. `buyer_phase1_02_core_quick_market_and_goods_custody`
+  3. `buyer_phase1_03_po_idempotency_and_permission_hardening`
+  4. `buyer_phase1_04_invoice_posting_guard`
+  5. `buyer_phase1_05_invoice_handover_progress`
+  6. `buyer_phase1_06_goods_custody_realtime`
+  7. `buyer_phase1_07_draft_ownership_guards`
+  8. `buyer_phase1_08_legacy_invoice_duplicate_guard`
+- Live verification: Buyer goods custody table exists; RLS ON; authenticated SELECT only, no authenticated INSERT/UPDATE/DELETE; one authorized SELECT policy; append-only trigger enabled; Realtime publication membership true. New Buyer SECURITY DEFINER RPCs have empty search_path. anon EXECUTE is false; authenticated EXECUTE only on intended RPCs.
+- Live business rows after migrations: purchase_invoices=3, all 3 LEGACY_UNCLASSIFIED; PO-source=0; Quick Market=0; buyer_goods_custody_events=0; buyer_custodies=0; buyer_custody_expenses=0; purchase_returns=0; inventory_log=76; supplier_ledger=2; journal_entries Posted=17 and Cancelled=2; app_settings currency=EGP. No test or financial/stock rows created.
+- Existing invoices PINV-1000/1001/QA-SR-INV remain unchanged in historical SAR; no reversal/deletion/reclassification.
+- Edge `save-purchase-order` is ACTIVE version 25, SHA-256 `793ba5412a27813aa715da4078971a150d592dd03b53833148b9e99a37b5be62`. New routes use authenticated profileClient; GET_DATA filters invoice headers/details to current purchaser unless finance/finance_manager/owner.
+- Operational Buyer file only changed: `companies/company-1/purchasing/buyer.html`; blob SHA `9cc971d8c5ae9ce960c9395d53e36d43a30e9c73`; commit `3717c0279b856127d29fb9f912ec502523761da5`. Adds separate PO and Quick Market flows, no cost_price display/default, cash reservation netting, evidenced supplier→Buyer handover with optional vehicle, goods custody ledger tab, current-user invoice default, ownership-aware routes. Inline JavaScript parse passed; current Tailwind CSS contains all used utility classes.
+- Cloudflare Pages deployment is NOT VERIFIED: last visible Cloudflare dashboard snapshot still showed production commit `e8ab54c75572e15e71581212479d22be139c8020`, before the Buyer source commit. Automatic deployments are enabled but no current deployment evidence was visible. Do not claim Buyer UI is live until Pages reports the new commit.
+- Authenticated Buyer E2E is not yet performed because no Buyer session was open. Unauthenticated RPC guard checks passed. No real invoice/handover was created for testing.
+- Receiver.html remains explicitly untouched and deferred. No new Edge Function, branch, PR, Mother/Core/other-app edit, or SupplierReturn change.
+- Detailed report: `doc/Draft/Reprots/Report624_BUYER_PHASE1_PRODUCTION_SCHEMA_EDGE_UI_20261104.md`, blob SHA `e9cfa3beb19ee1b635473ff25f3283551cc07781` (189 lines).
+- Next action: verify/trigger the Cloudflare Pages deployment for Buyer commit `3717c027`, then perform authenticated read-only and transaction-rollback acceptance tests. Do not create persistent QA invoice or append-only event. Receiver comes only after Buyer acceptance.
