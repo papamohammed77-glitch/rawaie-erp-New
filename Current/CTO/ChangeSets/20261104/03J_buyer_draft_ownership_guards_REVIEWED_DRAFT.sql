@@ -103,7 +103,6 @@ BEGIN
 
   IF NOT (
     app_private.current_user_has_effective_permission('purchases')
-    OR COALESCE(v_actor.permissions,'[]'::jsonb) @> '["*"]'::jsonb
   ) THEN
     RAISE EXCEPTION 'BUYER_PURCHASE_PERMISSION_REQUIRED';
   END IF;
