@@ -103,6 +103,7 @@ It does not validate a Purchasing Officer as custodian and does not preserve `p_
 - Existing send function/core (`send_stock_voucher_atomic`) posts the stock-out movement from the source branch and marks the voucher Sent.
 - Existing completion function/core (`complete_manual_stock_voucher_atomic_core_20260828`) validates supplier/return-contract details and posts the supplier-ledger debit and GL journal for the return total before marking the voucher Completed.
 - The existing contract validates supplier, return reason, return address, inspection/disposition and positive item/value amounts.
+- **Currency mismatch:** the current Vouchers UI initializes SupplierReturn contract currency as `SAR` and also submits `currency:'SAR'` in the modal payload (two source occurrences). The live Production `app_settings.currency` is `EGP`, while `stock_vouchers.return_currency` is `text DEFAULT 'SAR'`. This source/schema mismatch is CONFIRMED. Its exact effect on the currently deployed contract save/posting functions is not fully verified; current return/voucher row counts are zero, so no extant return rows were modified.
 - It does not establish Buyer intermediate custody, per-line supplier-accepted quantity, or supplier acceptance evidence for a partial receipt.
 - The current list/report logic treats SupplierReturn as a creator/admin completion task after Sent; there is no Buyer-held stage that remains open until the supplier accepts the goods.
 
@@ -356,6 +357,7 @@ Production real operating rows must not be used as test fixtures. Staging is cur
 | SupplierReturn UI recipient picker absent | CONFIRMED | Current Vouchers source blob `85e709d0...` |
 | SupplierReturn Trigger strips custodian | CONFIRMED | Production `enforce_stock_voucher_custodian()` |
 | Current SupplierReturn stock/AP posting | CONFIRMED | Production send/complete function definitions and current code contracts |
+| SupplierReturn currency default mismatch | CONFIRMED source/schema mismatch; posting impact UNVERIFIED | Vouchers UI hardcodes SAR; Production app_settings.currency=EGP; stock_vouchers.return_currency default SAR; no return rows exist |
 | Separate Parent purchase_returns writer | CONFIRMED | Parent source and `purchase_post_return_atomic` |
 | Buyer goods custody schema absent | CONFIRMED | Production public-table inventory |
 | Quick invoice Receiving linkage absent | CONFIRMED | Production Receiving schema and Edge v13 input contract |
@@ -381,6 +383,7 @@ Production real operating rows must not be used as test fixtures. Staging is cur
 
 ### Not performed
 
+- Additional review finding: SupplierReturn UI writes SAR as the contract currency while Production system currency is EGP and the column default is SAR; actual posting/conversion impact remains unverified.
 - No operational HTML/JS write.
 - No `main.html` edit.
 - No SQL migration or data write.
