@@ -1,3 +1,57 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-615 — Buyer / Receiver / Quick Market / Return Security
+
+**Timestamp:** 2026-11-04 — Africa/Cairo.  
+**LAST VERIFIED EVENT:** Re-read Report614, Report614_NEW_P (all 1,438 lines), Report606, Report610, Report613, current Master CTO governance and permanent charter. Revalidated current Buyer/Vouchers/Receiver sources, Production table schema, RPCs, triggers, RLS policies, grants, Edge versions and live purchasing rows. Recovered and archived exact deployed source snapshots for six existing Edge functions. Created Report615 and updated project memory/execution log. No operational source or Production data was changed.
+
+## Current checkpoint
+
+- Operational repository: `papamohammed77-glitch/erp-frontend` / `main`.
+- Latest operational HEAD observed: `e8ab54c75572e15e71581212479d22be139c8020`.
+- Buyer blob: `311f2673a90149df6f56d59a9a187a3379e6981c`.
+- Warehouse Vouchers blob: `85e709d0f41c189c6624a6160965d3b1a41960ba`.
+- Receiver blob: `3111b5e801d1bc021cf18fd66d633fbdc54ac0d6`.
+- Parent `main.html` blob: `f6ec4ab41dc517f86e17dd3d74a9d5f8add264ca`; protected by the active governance lock.
+- Report615: `doc/Draft/Reprots/Report615_BUYER_RECEIVER_SECURITY_QUICK_MARKET_REVALIDATION_20261104.md`; commit `64e0988cf7bae218c3d1e7766c0ffe45136cff7e`.
+- Project memory LVE615 commit: `c75ece3a42508c73556744b7b0b5578e4e6e52c9`.
+- CTO execution log LVE615 commit: `c983ee905aaf4779d9e9dcd00a0d43438d826275`.
+- Edge source snapshots archived in governance repo under `Current/CTO/EdgeSnapshots/20261104/`; manifest `README.md`.
+
+## CONFIRMED — Additional defects and data facts
+
+1. **Receiver query/schema mismatch:** Production `purchase_order_details` has `po_id`, not `po_code`; Receiver UI queries `po_code`. Resolve `purchase_orders.id` by code, then query details by `po_id`. Receiver also uses `parseInt` on numeric quantities, truncating fractional quantities.
+2. **Return-table DML exposure:** `anon` and `authenticated` have INSERT/UPDATE/DELETE grants on `purchase_returns` and `purchase_return_details`; both tables have permissive PUBLIC ALL policies scoped only by company. This bypasses the intended permission-gated Edge/RPC write path. Change must revoke direct DML and replace with SELECT-only role-scoped policies.
+3. **Quick Market settlement gap:** `buyer_custody_review_expense_atomic` requires PO, PO-based Receiving and supplier-ledger reference by PO code. It cannot settle a no-PO Quick Market invoice. Preserve the PO branch and add invoice-ID Receiving validation for Quick Market.
+4. **Invoice posting contract:** `purchase_create_invoice_atomic` correctly reads `app_settings.currency`, rejects a different client currency and allows a no-PO Draft invoice. `purchase_post_invoice_atomic` explicitly rejects no-PO invoices until invoice-ID Receiving is supported.
+5. **Production rows:** 3 purchase invoices / 6 invoice lines; 1 Draft PO / 1 PO line; no Receiving headers/details. Two historical no-PO invoices are Posted in SAR with matching PurchaseIn inventory movements (total 50), supplier-ledger entries and PurchaseInvoice journals; preserve these posted historical transactions and do not retroconvert. One explicitly QA-labelled Draft PO/invoice pair has received flags set to 5 but no Receiving docs, stock movement, AP/GL/payment/return/custody effects; it has 4 document links and 1 status-history row. Preserve its audit graph; only cancel/archive via approved path, not hard delete.
+6. Return/custody rows remain zero at this snapshot: stock_vouchers=0, SupplierReturn vouchers=0, purchase_returns=0, inventory_log SupplierReturn=0, buyer_custodies=0, buyer_custody_expenses=0.
+
+## Existing Edge source recovery
+
+Live versions and hashes are indexed in `Current/CTO/EdgeSnapshots/20261104/README.md`: `save-purchase-order` v22, `receive-purchase` v13, `create-stock-voucher` v12, `send-stock-voucher` v20, `receive-stock-voucher` v22, `complete-stock-voucher` v4. These are read-only deployed source snapshots; no function was deployed or modified. No new Edge Function was created. `save-purchase-order` v22 is byte-identical to tracked operational source.
+
+## Competitive design direction
+
+Follow mature ERP document chains: D365 return PO/partial/unplanned/consignment returns; SAP return PO → outbound delivery → goods issue → vendor credit memo with inspection/follow-up; Odoo staged supplier/input → warehouse-stock receiving. See Report615 official references.
+
+## Implementation contract (not yet applied)
+
+- Append-only item-level Buyer goods custody event ledger separate from cash custody.
+- Default Supplier Direct return; Buyer Delegate is an explicit exception, with validated active Purchasing Officer and no Vehicle requirement.
+- Warehouse voucher is the only physical stock-out writer; linked purchase return/acceptance is the only supplier AP/GL writer for accepted quantities. Linked financial posting must not post stock a second time.
+- Quick Market: invoice-ID receipt via existing `receive-purchase` Edge; accepted warehouse quantities update stock once; then Accounts can settle the no-PO invoice from cash custody with receipt evidence.
+- Fix Receiver PO detail query and decimal-safe quantity parsing.
+- Revoke direct DML on Parent return tables and enforce server-side permissions.
+- SupplierReturn currency must come from `app_settings`, never SAR fallback/hardcode.
+- Parent `المستلم` column remains blocked while `main.html` is locked.
+
+## Verification boundaries / current status
+
+No SQL/DDL/RPC/Trigger/RLS/grant/publication change; no Production data cleanup; no operational HTML/JS change; no Edge deployment; no Cloudflare deployment; no E2E/browser validation. No test rows created. Staging schema parity remains unverified/non-parity per earlier checkpoints.
+
+**Overall:** Buyer goods custody / Quick Market invoice receiving / Parent recipient register OPEN / NOT IMPLEMENTED / NOT PRODUCTION READY. Continue preparing the exact SQL + RPC/Trigger + existing Edge + Buyer/Vouchers/Receiver source change set and rollback under the explicit gate in Report614_NEW_P and the permanent charter.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-615 — Integrated Buyer Goods Custody / Supplier Return / Quick Market Change Set
 
 **Timestamp:** 2026-11-04 — Africa/Cairo.  
