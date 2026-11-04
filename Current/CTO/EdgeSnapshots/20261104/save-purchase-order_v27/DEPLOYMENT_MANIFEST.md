@@ -23,3 +23,7 @@
 - `storage.objects` is read-only from SQL; Edge reads object metadata only and all object writes use the Storage API.
 - Bucket `employee-documents` remains private.
 - Warehouse/Receiver file access remains deferred until branch-scoped authorization is established.
+
+## Superseded
+- v27 was superseded by v28 immediately after reviewing Supabase Storage API schema exposure. The v27 attachment branch queried `storage.objects` through a schema-qualified PostgREST table name; v28 uses the documented `storage.from(...).info(path)` API instead.
+- Current production version is v28 ACTIVE. Do not deploy or use v27 as current.
