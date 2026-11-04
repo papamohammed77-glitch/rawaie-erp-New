@@ -62,6 +62,10 @@ BEGIN
     RAISE EXCEPTION 'BUYER_INVOICE_NOT_OWNED_BY_CURRENT_USER';
   END IF;
 
+  IF p_purchase_order_id IS DISTINCT FROM v_invoice.purchase_order_id THEN
+    RAISE EXCEPTION 'BUYER_LEGACY_INVOICE_SOURCE_CONVERSION_FORBIDDEN';
+  END IF;
+
   RETURN public.purchase_update_draft_invoice_atomic(
     p_company_id,p_invoice_id,p_supplier_id,p_purchase_order_id,p_branch_id,
     p_due_date,p_currency,v_actor.email,p_supplier_invoice_no,p_notes,p_items,p_operation_id
