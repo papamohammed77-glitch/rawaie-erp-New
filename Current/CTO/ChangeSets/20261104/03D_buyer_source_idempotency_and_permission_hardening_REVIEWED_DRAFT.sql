@@ -134,7 +134,7 @@ BEGIN
   SET purchase_source='PURCHASE_ORDER',
       settlement_source='SUPPLIER_CREDIT',
       purchaser_user_id=v_actor.id,
-      buyer_custody_id=NULL,
+      cash_custody_id=NULL,
       receipt_status='NOT_RECEIVED',
       settlement_status='UNSETTLED',
       source_payload_fingerprint=v_fingerprint,
@@ -300,7 +300,7 @@ BEGIN
   SET purchase_source='PURCHASE_ORDER',
       settlement_source='SUPPLIER_CREDIT',
       purchaser_user_id=v_actor.id,
-      buyer_custody_id=NULL,
+      cash_custody_id=NULL,
       receipt_status='NOT_RECEIVED',
       settlement_status='UNSETTLED',
       source_payload_fingerprint=v_fingerprint,
@@ -541,7 +541,7 @@ BEGIN
       ),0),0)),0) INTO v_reserved
     FROM public.purchase_invoices pi
     WHERE pi.company_id=p_company_id
-      AND pi.buyer_custody_id=p_cash_custody_id
+      AND pi.cash_custody_id=p_cash_custody_id
       AND pi.purchase_source='QUICK_MARKET'
       AND pi.status='Draft'
       AND pi.id<>p_invoice_id
@@ -563,7 +563,7 @@ BEGIN
   SET purchase_source='QUICK_MARKET',
       settlement_source=p_settlement_source,
       purchaser_user_id=v_actor.id,
-      buyer_custody_id=p_cash_custody_id,
+      cash_custody_id=p_cash_custody_id,
       receipt_status='NOT_RECEIVED',
       settlement_status='UNSETTLED',
       source_payload_fingerprint=v_fingerprint,
