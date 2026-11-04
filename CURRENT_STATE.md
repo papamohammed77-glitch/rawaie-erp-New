@@ -5829,3 +5829,5 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - Receiver.html remains explicitly untouched and deferred. No new Edge Function, branch, PR, Mother/Core/other-app edit, or SupplierReturn change.
 - Detailed report: `doc/Draft/Reprots/Report624_BUYER_PHASE1_PRODUCTION_SCHEMA_EDGE_UI_20261104.md`, blob SHA `e9cfa3beb19ee1b635473ff25f3283551cc07781` (189 lines).
 - Next action: verify/trigger the Cloudflare Pages deployment for Buyer commit `3717c027`, then perform authenticated read-only and transaction-rollback acceptance tests. Do not create persistent QA invoice or append-only event. Receiver comes only after Buyer acceptance.
+
+- LVE624 deployment follow-up (2026-11-04): Cloudflare Pages now confirms Production deployment of Buyer commit `3717c0279b856127d29fb9f912ec502523761da5`; Preview URL `https://633d858b.rawaea-erp.pages.dev/`. This supersedes the earlier LVE624 note that deployment was not yet visible. Deployment is confirmed, but authenticated Buyer runtime/E2E remains untested. Report624 current blob SHA: `5b20448251415846bc627ddb59453278fdc77dda`.
