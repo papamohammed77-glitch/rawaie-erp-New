@@ -1,3 +1,25 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-626 — Buyer Live Forensic Revalidation
+
+**LAST VERIFIED EVENT:** 2026-11-04 — Read-only revalidation after LVE625. Current Buyer HEAD bf0833c; 19 commits since e8ab54c limited to Buyer/CSS; Production migrations Buyer 01–09 present; Edge save-purchase-order ACTIVE v25 and receive-purchase v13; buyer_goods_custody_events exists with append-only/RLS; SupplierReturn and cash-custody blockers re-confirmed. No operational or Production write occurred in this review.
+
+**Report626:** [Buyer Live Forensic Revalidation and Phase 2 ChangeSet](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report626_BUYER_LIVE_FORENSIC_REVALIDATION_AND_PHASE2_CHANGESET_20261104.md) — commit `32c8716a6f23f79865d1a51a711c8da4975b09a5`.
+
+**Current source:** operational repo `papamohammed77-glitch/erp-frontend` / main HEAD `bf0833c3c71d7a2dea6167bfac9b5403e8044cf7`; Buyer blob `d9ffb1084a538b7f7baf48391d3048ac5e96bffa`; CSS blob `7eb4ef089a1903e405179f23f921328cad1c06e9`. No Receiver, Parent, Core, Vouchers, or other app changes.
+
+**Production:** Buyer migrations 01–09 are already applied; `save-purchase-order` ACTIVE v25 SHA256 `793ba5412a27813aa715da4078971a150d592dd03b53833148b9e99a37b5be62`; `receive-purchase` v13 SHA256 `50ab45ae026a0bb4d1de7837c872c4cc42da47b6a603f340e48d023d839310cc`. `app_settings.currency=EGP`. Goods-custody table exists, but no events; no Quick Market invoices or cash custodies exist.
+
+**Newly re-confirmed blockers:** Quick Market modal lacks supplier-invoice image and smart supplier search; goods custody has Supplier→Buyer only; Buyer Realtime excludes buyer_goods_custody_events; custody settlement ignores open Quick Market reservations; custody expense review is PO/Receiving-only; generic Edge draft-delete remains ownership-unsafe and misses goods events; invoice RLS is company-wide; SupplierReturn still has SAR fallback, direct DML, no acceptance table/partial acceptance, no cumulative return guard and competing stock writers.
+
+**Legacy data safety:** PINV-1000 and PINV-1001 are Posted SAR with five PurchaseIn movements (50 units), supplier-ledger credits totaling SAR 3,970 and two Posted journals. Later stock movements exist for affected items. Do not delete; formal stock/AP/GL reconciliation and reversal are required. QA-SR remains Draft SAR with is_received=true/received_qty=5 but no matching Receiving, inventory, AP or journal; reconcile the PO line before cleanup.
+
+**Deployment/runtime:** current Cloudflare artifact for bf0833c is UNVERIFIED; last confirmed deployment in project history is 3717c027. Authenticated Buyer E2E and Staging remain UNKNOWN.
+
+**Mutation ledger:** only Report626, CURRENT_STATE, execution log and project-memory documentation are updated. No app source, Mother/Core, DB schema/data/RPC/trigger/RLS/ACL, Edge deployment, Cloudflare deployment, stock, supplier balance, journal, treasury or test fixture was changed. No Receiver edit. No new Edge Function or branch.
+
+**Status:** BUYER PHASE 1 PRESENT / BUYER E2E NOT CLOSED / OWNER CHANGESET APPROVAL GATE OPEN / RECEIVER DEFERRED. Follow charter §6.2 and Report614 §14: exact complete change text, impact, tests and rollback must be presented and explicitly approved before operational/Production writes.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-621 — Integrated Buyer Goods Custody / Supplier Return / Quick Market
 
 **Date:** 2026-11-04 — Africa/Cairo.  
@@ -5851,3 +5873,16 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - آخر نشر Cloudflare الموثق هو commit 3717c027؛ commit Buyer الحالي bf0833c غير مثبت النشر. لا جلسة Buyer مصادق، ولا authenticated E2E أو Staging أو WebSocket runtime test.
 - هذه المراجعة قراءة فقط؛ لم يتغير أي كود تشغيلي أو Schema/RPC/RLS/Edge/Cloudflare أو بيانات أعمال. الحكم READY WITH LIMITATIONS. الخطوة التالية: ChangeSet P1 محدد لتحصين الحذف العام وتسوية حجوزات QMP وإثبات الحيازة، مع استعادة Edge v25 إلى Git، ثم عرض النصوص والاختبارات والتراجع لاعتماد المالك الصريح قبل أي كتابة Production.
 - التقرير: doc/Draft/Reprots/Report625_BUYER_PHASE1_SECURITY_INTEGRATION_REVALIDATION_20261104.md؛ blob ac7f74c439a7567bbc66e7e5f9f2d6c5f7d5206c؛ commit 479ad022b297b9bfc8793457c2ea7c8dec3a792a.
+
+
+## LVE626 — Buyer Live Forensic Revalidation — 2026-11-04
+
+- Report626: `doc/Draft/Reprots/Report626_BUYER_LIVE_FORENSIC_REVALIDATION_AND_PHASE2_CHANGESET_20261104.md`; commit `32c8716a6f23f79865d1a51a711c8da4975b09a5`.
+- Current operational main HEAD `bf0833c3c71d7a2dea6167bfac9b5403e8044cf7`; Buyer blob `d9ffb1084a538b7f7baf48391d3048ac5e96bffa`; CSS blob `7eb4ef089a1903e405179f23f921328cad1c06e9`. Nineteen commits since `e8ab54c` limited to Buyer/CSS. Receiver and Mother/Core unchanged.
+- Production migrations Buyer 01–09 exist; `buyer_goods_custody_events` exists with RLS/append-only policy. No Quick Market invoice, goods-custody event, cash custody, Receiving or SupplierReturn record exists in the current sample.
+- Quick Market UI still lacks invoice image and smart supplier search; goods custody supports Supplier→Buyer only. Buyer Realtime does not subscribe to `buyer_goods_custody_events`.
+- P1: `buyer_custody_settle_atomic` ignores Quick Market cash reservations; `buyer_custody_review_expense_atomic` requires PO and completed Receiving; generic `DELETE_DRAFT_INVOICE` remains in Edge v25 without purchaser ownership or goods-event guard; invoice RLS is company-wide.
+- SupplierReturn remains incomplete: SAR default/fallback, custodian trigger excludes Buyer delegate, direct DML on purchase_returns/details, no acceptance-batch schema, no cumulative return quantity guard, and competing stock/AP/GL writers.
+- Existing Posted test invoices PINV-1000/1001 have five PurchaseIn movements, 50 units, supplier-ledger credits SAR 3,970 and two Posted journals; later item movements exist. No direct deletion/reversal. QA-SR Draft is inconsistent (is_received=true, received_qty=5, PO qty_received=5, no Receiving/inventory/AP/journal).
+- No app/DB/Edge/Cloudflare write and no test data created. Deployment of bf0833c and authenticated E2E remain UNVERIFIED/UNKNOWN. Receiver remains deferred.
+- Status: Buyer Phase 1 present; end-to-end not closed; exact ChangeSet approval gate open under Report614 §14 and charter §6.2.
