@@ -1,5 +1,6 @@
 -- RAWAEA ERP — Buyer Phase 1
 -- تراجع محكوم — لا ينفذ إلا بعد إرجاع Buyer وEdge إلى الإصدار السابق أولًا.
+-- شغّل 06A أولًا لفك عضوية Realtime وفحص سجلات idempotency.
 -- يمنع هذا الملف الإسقاط إذا وُجدت أي حركة حيازة أو فاتورة مصنفة جديدة.
 -- لا يلمس الفواتير التاريخية أو قيودها أو المخزون أو دفتر المورد.
 
@@ -73,7 +74,9 @@ ALTER TABLE public.purchase_invoices
   DROP CONSTRAINT IF EXISTS purchase_invoices_purchase_source_ck,
   DROP CONSTRAINT IF EXISTS purchase_invoices_settlement_source_ck,
   DROP CONSTRAINT IF EXISTS purchase_invoices_receipt_status_ck,
-  DROP CONSTRAINT IF EXISTS purchase_invoices_settlement_status_ck;
+  DROP CONSTRAINT IF EXISTS purchase_invoices_settlement_status_ck,
+  DROP CONSTRAINT IF EXISTS purchase_invoices_source_relation_ck,
+  DROP CONSTRAINT IF EXISTS purchase_invoices_cash_custody_source_ck;
 
 ALTER TABLE public.purchase_invoices
   DROP COLUMN IF EXISTS purchase_source,
