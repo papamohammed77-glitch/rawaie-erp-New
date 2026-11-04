@@ -479,7 +479,10 @@ DECLARE
 BEGIN
   SELECT * INTO v_actor FROM public.users
   WHERE auth_id=auth.uid() AND company_id=p_company_id AND COALESCE(status,'Active')='Active';
-  IF NOT FOUND OR NOT app_private.current_user_has_effective_permission('purchases') THEN
+  IF NOT FOUND OR NOT (
+    app_private.current_user_has_effective_permission('purchases')
+    OR COALESCE(v_actor.permissions,'[]'::jsonb) @> '["*"]'::jsonb
+  ) THEN
     RAISE EXCEPTION 'BUYER_PURCHASE_PERMISSION_REQUIRED';
   END IF;
 
