@@ -1,3 +1,15 @@
+# LVE-2026-11-04-618 — Buyer Goods Custody / Quick Market UX Specification
+
+- Report618: [Buyer goods custody and Quick Market UX specification](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report618_BUYER_GOODS_CUSTODY_QUICK_MARKET_UX_SPEC_20261104.md), commit `440a32991d8b3a259ab77d7da81d801bfe5e2a34`.
+- Exact UX contract: replace static `renderVehicleBalance` with server-backed event-ledger dashboard; separate invoice Draft save from physical Supplier→Buyer handover; Buyer→Warehouse accepted quantities; Buyer→Supplier accepted quantities; default Supplier Direct / Buyer Delegate exception; no mandatory vehicle; hide last cost by default; separate cash custody from goods custody.
+- Read model must server-aggregate and paginate; do not calculate balance from 500-row client cache. Realtime must include custody events, acceptance batches, receiving and voucher sources.
+- Existing Edge only: extend save-purchase-order v22, receive-purchase v13, create-stock-voucher v12, send-stock-voucher v20, complete-stock-voucher v4; no new Edge Function.
+- Existing PO receiving path and current cash-custody PO branch must remain unchanged; add explicit Quick Market invoice-ID branch.
+- No Buyer source or Production write was made. Report618 is a specification only; implementation still subject to exact change-set approval and E2E.
+- Current status remains OPEN / NOT IMPLEMENTED / NOT PRODUCTION READY.
+
+---
+
 # LVE-2026-11-04-617 — SupplierReturn Recipient & Currency Surgical Patch
 
 - Report617: [SupplierReturn recipient and currency surgical patch](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report617_SUPPLIER_RETURN_RECIPIENT_CURRENCY_SURGICAL_PATCH_20261104.md), latest update commit `a17a89f1e3e2846870773fdbc018597726dfe1e4`.
