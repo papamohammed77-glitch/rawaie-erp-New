@@ -21,7 +21,7 @@
 
 كل ملف SQL مستقل ويحتوي BEGIN/COMMIT. عند تحويله إلى migration، لا تلصق ملفين في migration واحدة ولا تنفذ ترتيبًا متوازيًا. بعد كل migration: افحص تعريف الوظائف والقيود والمنح من قاعدة البيانات الحية.
 
-**ما تم فعليًا في 4 نوفمبر:** طبقت migrations 01–07 بالتسلسل، ثم أعيد تطبيق ملف 03J مرة ثانية باسم `buyer_phase1_08_legacy_invoice_duplicate_guard` بعد إدخال استدعاء duplicate guard داخل مسار تعديل Legacy. لذلك النسخة المنشورة من غلاف Legacy هي التي تستدعي `app_private.assert_unique_purchase_supplier_invoice`. راجع Report624 للـversion/hash وحالة Production.
+**ما تم فعليًا في 4 نوفمبر:** طبقت migrations 01–07، ثم 08 لإضافة duplicate guard إلى Legacy، ثم 09 لإزالة أي wildcard خام من QMP create وLegacy update والاعتماد على resolver الفعال والمالك الحقيقي. ملف التنفيذ الدقيق هو `03L_buyer_effective_permission_only_rpc_hardening.sql`. راجع Report624 للـversion/hash وحالة Production.
 
 ## 2. Edge Function القائمة فقط
 
