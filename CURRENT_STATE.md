@@ -1,3 +1,54 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-630 — Purchase Returns Central Writer Enforced
+
+**LAST VERIFIED EVENT:** 2026-11-04 — Completed consumer mapping across 34 company-1 HTML/JS files and six Supabase Edge function files. Parent reads purchase returns directly under RLS but creates/posts only through `save-purchase-order` Edge operations; Buyer reads only. The two central RPC writers are SECURITY DEFINER and executable only by service_role/postgres. Applied migration `buyer_purchase_returns_central_writer_only_20261104` version `20261104214839`, removing anon/authenticated DML and retaining authenticated company-scoped SELECT.
+
+**Report630:** [Purchase Returns Central Writer Hardening](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report630_PURCHASE_RETURNS_CENTRAL_WRITER_HARDENING_20261104.md) — latest report commit `222ad88f4196e754d67bad7024766bb053b117ac`.
+
+## LVE630 — Returns writer hardening
+
+- Production migration: `buyer_purchase_returns_central_writer_only_20261104`, version `20261104214839`.
+- Operational migration file: `supabase/migrations/20261104214839_buyer_purchase_returns_central_writer_only_20261104.sql`, blob `abbb1aa308c4325b2db7aecc3d49bd530f5218db`.
+- `purchase_returns` and `purchase_return_details`: anon no privileges; authenticated SELECT only; service_role retains SELECT/INSERT/UPDATE/DELETE.
+- RLS policies now SELECT-only and company-scoped. Parent direct reads remain supported.
+- `purchase_create_return_atomic` and `purchase_post_return_atomic` remain SECURITY DEFINER with EXECUTE only for service_role/postgres. Edge v26 remains the central write route.
+- Full source consumer scan: 34 company-1 HTML/JS files and 6 Edge function files. Parent `main.html` uses direct SELECT for `purchase_returns` and calls Edge `CREATE_RETURN`/`POST_RETURN`; no direct DML references found in the apps. Buyer reads only.
+- Verified post-migration table privileges and policies; simulated authenticated read under `SET LOCAL ROLE authenticated` resolved company and selected both tables successfully (0 rows). Transaction rolled back.
+- SQL source files in operational repo:
+  - `supabase/migrations/20261104213909_buyer_phase1_hardening_20261104.sql`, blob `eff1da92b8045b6f439b3aae67008dab17303042`.
+  - `supabase/migrations/20261104214839_buyer_purchase_returns_central_writer_only_20261104.sql`, blob `abbb1aa308c4325b2db7aecc3d49bd530f5218db`.
+
+## LVE629 — Buyer Quick Market supplier search / Storage boundary
+
+- Report629: [Supplier Search and Storage Boundary](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report629_BUYER_QUICK_MARKET_SUPPLIER_SEARCH_STORAGE_BOUNDARY_20261104.md), report commit `74ec5ee64c4be4a7a8d180b64654c682cbad3e31`.
+- Latest Buyer operational commit at LVE629: `a35cd59fab199e1614536cd4ce5421179a907608`; blob `0ac1cd20c5e879405b7d11af7a3349124ea374cf`.
+- Added local search to Quick Market active-supplier selector by option text (supplier name/code); loaded list remains capped at 500, not remote pagination.
+- Discovered Storage SELECT allows file owner or HR, not Finance/Warehouse; goods event SELECT allows custodian/Finance/Finance Manager/Owner, not Warehouse. No broad policy added.
+- Invoice image attachment and role/branch-scoped Storage access remain open.
+
+## LVE628 — Buyer Phase 1 hardening applied
+
+- Report628: [Buyer Phase 1 Hardening Applied and Verification](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report628_BUYER_PHASE1_HARDENING_APPLIED_AND_VERIFICATION_20261104.md), report commit `13ade99f2279c76957ba93147f64089144018578`.
+- Production migration `buyer_phase1_hardening_20261104` version `20261104213909`, blob `eff1da92b8045b6f439b3aae67008dab17303042`.
+- Hardened three RPCs: QMP reservation blocks cash-custody settlement; goods handover requires a company/user/invoice-bound evidence path and existing private Storage object; invoice deletion blocked after goods-custody events.
+- `save-purchase-order` v26 ACTIVE, verify_jwt true, SHA256 `fb31ac953213d6f30a9e545f1da3b9075ca28638b5032450618769d20f2cb5b4`.
+- v26 archived byte-for-byte at `Current/CTO/EdgeSnapshots/20261104/save-purchase-order_v26/index.ts`, blob `577442e1b8fd22be056374292438a7074b966ff1`, manifest `DEPLOYMENT_MANIFEST.md`, commit `8cdf7790362f73e0394299803636e5c8c1279a6c`.
+- Buyer commit `240858a071736a416dcf302e8cfc28e453016c3f` added safe unknown-outcome handling and Realtime events; later LVE629 adds supplier search.
+- Post-change counts at LVE628: EGP, 3 purchase invoices, 0 cash custodies, 0 goods events, 0 Quick Market invoices. No test fixtures/business data.
+
+## Current open P1 / verification boundaries
+
+- Quick Market supplier invoice image: not implemented. `purchase_attachments` supports path/metadata but Buyer does not display it; implement a server-validated idempotent attachment registration and signed URL flow.
+- Storage SELECT must allow Buyer owner and authorized Finance; Warehouse/Receiver access must be branch-scoped. Do not make bucket public or grant broad company read.
+- Purchase invoice direct RLS remains broader than the Edge GET_DATA owner/finance filter; consumer map still needed before RLS changes.
+- Buyer→Warehouse / Buyer→Supplier handover and partial acceptance remain incomplete; Receiver deferred.
+- Parent `main.html` has hardcoded `currency: 'SAR'` in purchasing quote/invoice payloads, but Edge v26 `CREATE_QUOTATION` and `CREATE_INVOICE` ignore client currency and use `getSystemCurrency()` (EGP). Parent source was not changed; remove stale UI constants in a separate authorized parent change. Sales Quote SAR references are outside Buyer.
+- Cloudflare deployment for Buyer commits `240858a`/`a35cd59` remains UNVERIFIED. Authenticated Buyer E2E NOT RUN; no active authenticated browser session.
+- Historical Posted invoices and QA-SR remain untouched pending full stock/AP/GL reconciliation.
+
+**Status:** `RETURNS CENTRAL WRITER ENFORCED / DB HARDENING APPLIED / EDGE v26 ACTIVE / BUYER SOURCE SEARCH ADDED / STORAGE IMAGE ACCESS OPEN / CLOUDFLARE UNVERIFIED / E2E NOT RUN / BUYER NOT CLOSED / RECEIVER DEFERRED`.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-629 — Buyer Quick Market Supplier Search / Storage Access Boundary
 
 **LAST VERIFIED EVENT:** 2026-11-04 — Continued after LVE628. Added local supplier search to Quick Market and re-fetched Buyer source. Discovered a material Storage authorization boundary: generic employee-document SELECT allows file owner or HR, not Finance/Warehouse; Buyer goods-custody event SELECT likewise excludes Warehouse. No broad policy was added. Invoice-image attachment contract and role/branch-scoped Storage reads remain open.
