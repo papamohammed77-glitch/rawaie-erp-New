@@ -287,8 +287,7 @@ BEGIN
     AND COALESCE(status,'Active')='Active';
   IF NOT FOUND THEN RAISE EXCEPTION 'BUYER_AUTH_REQUIRED'; END IF;
 
-  IF NOT app_private.current_user_has_effective_permission('purchases')
-     AND NOT (COALESCE(v_actor.permissions,'[]'::jsonb) @> '["*"]'::jsonb) THEN
+  IF NOT app_private.current_user_has_effective_permission('purchases') THEN
     RAISE EXCEPTION 'BUYER_PURCHASE_PERMISSION_REQUIRED';
   END IF;
 
