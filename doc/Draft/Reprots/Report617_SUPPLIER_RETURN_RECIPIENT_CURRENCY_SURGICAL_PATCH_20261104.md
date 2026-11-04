@@ -32,6 +32,7 @@ Required fix:
 File: `companies/company-1/warehouse/vouchers.html`.
 
 - `loadRefs()` loads active users with role `مندوب بيع مباشر` into `refs.reps`; no Purchasing Officer list is loaded.
+- Initial `refs` object must add `buyers:[]`. Append the new Purchasing Officer query as the final entry in the existing `Promise.all` list, then assign `s.refs.buyers=r[7]||[]`; do not insert it before the existing return-reason/tax-code queries or their indexes will shift.
 - `pickArr('wsRep')` returns `refs.reps`, with mobile-sales vehicle assignment rules for DirectSale/DirectReturn.
 - SupplierReturn `routeHtml()` displays only Source Branch + Supplier + return contract button. It has no recipient mode or Purchasing Officer picker.
 - `submit()` already reads `wsRep` into `rep` and passes `rep_id` to the existing `create-stock-voucher` Edge function. That Edge v12 maps `rep_id` to `p_rep_id` for the existing atomic RPC.
