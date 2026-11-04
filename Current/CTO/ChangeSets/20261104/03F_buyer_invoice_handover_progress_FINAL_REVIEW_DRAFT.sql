@@ -28,7 +28,6 @@ BEGIN
     app_private.current_user_has_effective_permission('purchases')
     OR app_private.current_user_has_effective_permission('finance')
     OR app_private.current_user_has_effective_permission('finance_manager')
-    OR COALESCE(v_actor.permissions,'[]'::jsonb) @> '["*"]'::jsonb
   ) THEN
     RAISE EXCEPTION 'BUYER_PURCHASE_PERMISSION_REQUIRED';
   END IF;
@@ -45,7 +44,6 @@ BEGIN
     AND NOT (
       app_private.current_user_has_effective_permission('finance')
       OR app_private.current_user_has_effective_permission('finance_manager')
-      OR COALESCE(v_actor.permissions,'[]'::jsonb) @> '["*"]'::jsonb
     )
   ) THEN
     RAISE EXCEPTION 'QUICK_MARKET_INVOICE_NOT_FOUND_OR_FORBIDDEN';
