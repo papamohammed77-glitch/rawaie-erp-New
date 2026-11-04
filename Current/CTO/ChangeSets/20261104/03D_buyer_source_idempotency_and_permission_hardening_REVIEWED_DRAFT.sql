@@ -574,16 +574,18 @@ BEGIN
     SELECT COALESCE(SUM(GREATEST(
       pi.total_amount-COALESCE(pi.paid_amount,0)-COALESCE((
         SELECT SUM(e.amount) FROM public.buyer_custody_expenses e
-        WHERE e.company_id=p_company_id AND e.purchase_invoice_id=pi.id
-          AND e.custody_id=p_cash_custody_id AND e.status='Submitted'
+        WHERE e.company_id=p_company_id
+          AND e.purchase_invoice_id=pi.id
+          AND e.custody_id=p_cash_custody_id
+          AND e.status IN ('Submitted','Approved')
       ),0),0)),0) INTO v_reserved
     FROM public.purchase_invoices pi
     WHERE pi.company_id=p_company_id
       AND pi.cash_custody_id=p_cash_custody_id
       AND pi.purchase_source='QUICK_MARKET'
-      AND pi.status='Draft'
+      AND pi.status IN ('Draft','Posted','PartiallyPaid')
       AND pi.id<>p_invoice_id
-      AND pi.settlement_status='UNSETTLED';
+      AND pi.settlement_status IN ('UNSETTLED','PENDING_FINANCE','AP_OPEN','PARTIALLY_SETTLED');
 
     IF v_committed+v_reserved+v_total>v_acknowledged+0.005 THEN
       RAISE EXCEPTION 'QUICK_MARKET_CASH_CUSTODY_LIMIT_EXCEEDED';
