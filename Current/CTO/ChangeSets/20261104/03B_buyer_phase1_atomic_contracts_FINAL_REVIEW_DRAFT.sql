@@ -89,7 +89,48 @@ BEGIN
       ADD CONSTRAINT purchase_invoices_settlement_status_ck
       CHECK (settlement_status IN ('LEGACY_UNVERIFIED','UNSETTLED','PENDING_FINANCE','AP_OPEN','PARTIALLY_SETTLED','SETTLED','PAID'));
   END IF;
-END $$;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='public.purchase_invoices'::regclass
+      AND conname='purchase_invoices_source_relation_ck'
+  ) THEN
+    ALTER TABLE public.purchase_invoices
+      ADD CONSTRAINT purchase_invoices_source_relation_ck
+      CHECK (
+        (purchase_source='LEGACY_UNCLASSIFIED')
+        OR
+        (purchase_source='PURCHASE_ORDER'
+          AND purchase_order_id IS NOT NULL
+          AND purchaser_user_id IS NOT NULL
+          AND settlement_source='SUPPLIER_CREDIT'
+          AND cash_custody_id IS NULL
+          AND source_payload_fingerprint IS NOT NULL)
+        OR
+        (purchase_source='QUICK_MARKET'
+          AND purchase_order_id IS NULL
+          AND branch_id IS NOT NULL
+          AND purchaser_user_id IS NOT NULL
+          AND NULLIF(btrim(supplier_invoice_no),'') IS NOT NULL
+          AND settlement_source IN ('EMPLOYEE_CUSTODY','SUPPLIER_CREDIT')
+          AND source_payload_fingerprint IS NOT NULL)
+      );
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='public.purchase_invoices'::regclass
+      AND conname='purchase_invoices_cash_custody_source_ck'
+  ) THEN
+    ALTER TABLE public.purchase_invoices
+      ADD CONSTRAINT purchase_invoices_cash_custody_source_ck
+      CHECK (
+        (settlement_source='EMPLOYEE_CUSTODY' AND cash_custody_id IS NOT NULL)
+        OR
+        (settlement_source IN ('UNSET','SUPPLIER_CREDIT') AND cash_custody_id IS NULL)
+      );
+  END IF;
+END $;
 
 CREATE INDEX IF NOT EXISTS purchase_invoices_buyer_source_idx
   ON public.purchase_invoices(company_id, purchaser_user_id, purchase_source, status, created_at DESC);
@@ -274,9 +315,13 @@ BEGIN
 
   IF p_branch_id IS NULL OR NOT EXISTS (
     SELECT 1 FROM public.branches
-    WHERE id=p_branch_id AND company_id=p_company_id
+    WHERE id=p_branch_id AND company_id=p_company_id AND COALESCE(is_active,true)=true
   ) THEN
     RAISE EXCEPTION 'QUICK_MARKET_BRANCH_REQUIRED';
+  END IF;
+
+  IF NULLIF(btrim(p_supplier_invoice_no),'') IS NULL THEN
+    RAISE EXCEPTION 'QUICK_MARKET_SUPPLIER_INVOICE_NUMBER_REQUIRED';
   END IF;
 
   IF NOT EXISTS (
@@ -308,8 +353,9 @@ BEGIN
     SELECT * INTO v_item
     FROM public.items
     WHERE company_id=p_company_id
-      AND item_code=btrim(x->>'item_code');
-    IF NOT FOUND THEN RAISE EXCEPTION 'PURCHASE_INVOICE_ITEM_INVALID:%',x->>'item_code'; END IF;
+      AND item_code=btrim(x->>'item_code')
+      AND COALESCE(is_active,true)=true;
+    IF NOT FOUND THEN RAISE EXCEPTION 'PURCHASE_INVOICE_ITEM_INVALID_OR_INACTIVE:%',x->>'item_code'; END IF;
 
     IF COALESCE(NULLIF(x->>'qty','')::numeric,0)<=0
        OR COALESCE(NULLIF(x->>'unit_price','')::numeric,0)<=0
