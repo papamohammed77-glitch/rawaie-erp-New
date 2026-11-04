@@ -1,3 +1,50 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-613 — Buyer / Parent PO-Invoice Surgical Execution
+
+**Timestamp:** 2026-11-04 15:32 Africa/Cairo onward.  
+**LAST VERIFIED EVENT:** Continued from LVE612 and Report610/611; reviewed latest Buyer/Parent source and owner approval, committed surgical Parent PO/Invoice list + currency + PO Realtime changes, executed existing PO and Invoice Draft RPCs in Production transactions with explicit ROLLBACK, verified no persistent test rows and unchanged stock/AP/GL snapshots. No permanent QA data, no DDL/RPC/Edge/RLS/grant/deployment write.
+
+## Current State — LVE613
+
+- Operational repo: `papamohammed77-glitch/erp-frontend` / main.
+- Current operational HEAD: `e8ab54c75572e15e71581212479d22be139c8020` (one later commit after our Parent patch only adds `_forensic_current_main_extract.md`).
+- Parent `companies/company-1/main.html` blob: `f6ec4ab41dc517f86e17dd3d74a9d5f8add264ca`.
+- Buyer `companies/company-1/purchasing/buyer.html` blob: `311f2673a90149df6f56d59a9a187a3379e6981c`.
+- Core blob: `f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1`.
+- Parent source patch commit: `3f4d48b6acfc5c5e70d2d6a09278a4bc3fd5d954`.
+- Report613: `doc/Draft/Reprots/Report613_BUYER_PARENT_PO_INVOICE_SURGICAL_EXECUTION_20261104.md`; report commit `1e188fc9003ada9cb87b5759d3213a1883598599`; blob `67aeec56e134a1cc215de904b25d997ff9a6fdeb`.
+
+## Executed Parent source changes
+
+- Existing Parent PO Realtime channel now subscribes to `purchase_orders`.
+- Parent PO register now resolves supplier/branch names, creator email, PO date, expected delivery date, stored currency, and recorded PO line quantities.
+- Parent invoice register now resolves supplier name instead of UUID and displays invoice date, linked PO, branch, creator, due date, stored currency, total, paid, and outstanding.
+- Parent Purchase Settings currency is read-only from `app_settings.currency`; this UI no longer submits `purchase_settings.default_currency`.
+- Changes were surgical string-fragment edits only. No schema, RPC, Edge Function, or other app was changed.
+
+## Production transactional RPC evidence
+
+- Production currency remains EGP; `purchase_settings.default_currency` also EGP.
+- Production counts after tests: PO=1, Invoice=3.
+- Existing `purchase_create_po_atomic` created a Draft EGP PO inside an explicit transaction; result success=true; rollback.
+- Existing `purchase_create_invoice_atomic_v2` created a Draft EGP invoice linked to that PO inside the same transaction; result success=true; rollback.
+- Inside the transaction: `inventory_log`, `supplier_ledger`, `journal_entries`, and `stock_branches` counts were unchanged.
+- After rollback: test PO and invoice IDs queried as zero persisted rows; Production totals remained PO=1 and Invoice=3.
+- No posted documents, receiving records, stock, AP, journal, treasury or supplier balance effects were created. No persistent QA fixtures remain.
+
+## Remaining OPEN / NOT VERIFIED
+
+- Buyer receipt label still derives from invoice flags/received quantities and may state «مستلم بالكامل» without a linked approved Receiving document. Report611's known QA invoice inconsistency remains unresolved; do not edit it without reconciliation.
+- Buyer receipt wording patch was not committed; connector security checks rejected that attempted Buyer write.
+- Browser tab is at the Parent login form; no authenticated Buyer/Parent browser E2E.
+- GitHub `browser-e2e` check failed. Cloudflare `rawaea-erp` check remained in progress at last observation; canonical deployed artifact hash/runtime parity unverified.
+- Physical camera test and live Buyer-to-Parent Realtime event test unverified.
+- Staging remains non-parity (62 migrations); pagination remains open (Parent 300 / Buyer-Edge 500).
+- Overall Buyer/Parent purchasing cycle remains OPEN / NOT DECLARED PRODUCTION-READY.
+
+**Next exact work:** correct Buyer receipt evidence semantics without changing historic records; complete signed-in Browser E2E and camera/Realtime tests; verify successful Cloudflare artifact and pagination plan. Preserve transaction+rollback as the Production QA safety pattern.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-612 — Complete Shared-Core Centralization Application Matrix
 
 **Timestamp:** 2026-11-04 — follow-up to LVE611.  
