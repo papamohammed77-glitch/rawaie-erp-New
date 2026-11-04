@@ -1,3 +1,59 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-614 — Buyer Goods Custody / Supplier Return / Quick Market Receipt
+
+**Timestamp:** 2026-11-04 18:45 Africa/Cairo.  
+**LAST VERIFIED EVENT:** Read the current permanent operating charter and Master CTO governance; re-fetched current operational Buyer, Warehouse Vouchers, Receiver and Parent source; inspected Production schema, Trigger/RPC/Edge contracts and read-only return/custody counts; created Report614 and updated the project memory and CTO execution log. No operational or Production writes were made.
+
+## Current State — LVE614
+
+- Operational repository: `papamohammed77-glitch/erp-frontend` / `main`.
+- Latest operational HEAD observed: `e8ab54c75572e15e71581212479d22be139c8020`.
+- Buyer blob: `311f2673a90149df6f56d59a9a187a3379e6981c`.
+- Parent `main.html` blob: `f6ec4ab41dc517f86e17dd3d74a9d5f8add264ca`.
+- Warehouse Vouchers blob: `85e709d0f41c189c6624a6160965d3b1a41960ba`.
+- Receiver blob: `3111b5e801d1bc021cf18fd66d633fbdc54ac0d6`.
+- Report614: `doc/Draft/Reprots/Report614_BUYER_GOODS_CUSTODY_RETURN_RECONCILIATION_20261104.md`; report commit `8ee6889e33e671c7996a73e55560e3163a0cfb60`.
+- Project memory LVE614 commit: `da7899c229c319894fc5b15888ccf986345826e7`.
+- CTO execution log LVE614 commit: `d41d8d7965c829a0c8e8ccc37226793cceafd196`.
+- Permanent charter read in full: `doc/Draft/Reprots/الدستور التشغيلي الدائم.md`, blob `d2afa896514b1cb6abd247d2af7a862251ce0604`.
+- Applicable gates: Master CTO §77.2–77.4; permanent charter §§6.1–6.3 and §§7–10.
+
+## CONFIRMED — Buyer goods custody / supplier return
+
+1. Buyer `رصيدي` is a static explanatory placeholder; it does not read a live goods ledger. Buyer Realtime does not subscribe to an item-level custody ledger or the required SupplierReturn events.
+2. Buyer `quickPurchase()` is an alias for Draft invoice creation; it does not record supplier-to-Buyer handover, Buyer custody, or the later handover to Warehouse.
+3. `buyer_custodies` and dependent tables are cash custody only. There is no dedicated item-level Buyer goods custody ledger.
+4. Warehouse manual SupplierReturn UI selects Branch and Supplier only; no Purchasing Officer recipient picker exists.
+5. Production `enforce_stock_voucher_custodian()` clears `custodian_user_id` unless type is DirectSale/DirectReturn. The current SupplierReturn contract therefore cannot preserve a Buyer custodian.
+6. Manual SupplierReturn sends branch stock out at dispatch and its completion path reduces supplier payable and posts GL for the full return amount. It has no Buyer-held stage or partial supplier acceptance quantity/evidence.
+7. Parent `purchase_returns` is a second independent stock/AP/GL writer. It is not linked by a unique FK to the manual `stock_vouchers` SupplierReturn. Posting both paths for the same physical goods can double-decrease inventory and supplier AP.
+8. Quick no-PO Draft invoice has no proven invoice-to-Receiving header/line relation. Existing `receive-purchase` v13 accepts PO code and calls `receive_purchase_atomic` by PO code only.
+9. Read-only Production counts were zero for `stock_vouchers`, `purchase_returns`, `inventory_log` rows where movement_type='SupplierReturn', and `buyer_custodies`.
+10. The Parent Returns table reads `purchase_returns` only and has no recipient column. Current governance §77.3 prohibits editing `companies/company-1/main.html`.
+
+## Target contract proposed (not implemented)
+
+- Keep cash `buyer_custodies` for cash advances/expenses.
+- Create a distinct append-only, item-level Buyer goods custody event ledger; derive balance from events; corrections via compensating events.
+- Explicit event types: Warehouse→Buyer, Supplier→Buyer (Quick Market), Buyer→Warehouse accepted, Buyer→Supplier accepted, Direct Supplier receipt, and correction/reversal.
+- A physical Warehouse voucher must be the single stock-out writer for a linked manual SupplierReturn. A unique linked financial return record must own supplier AP/GL only after actual supplier-accepted quantity is evidenced. The linked financial posting must not post stock a second time.
+- Direct supplier receipt remains the default route with Supplier as the physical recipient and no Buyer custody event. When Buyer receives the goods, the register records the validated Purchasing Officer.
+- Quick market invoice remains Draft until approved warehouse receipt evidence; Buyer custody tracks physical possession without premature branch stock/AP/GL/treasury effects.
+- Extend existing authorized RPC/Edge contracts only; no new Edge Function.
+- Parent recipient column remains an owner-side patch / blocked under the current `main.html` lock unless governance explicitly changes.
+
+## Verification boundaries
+
+- No operational HTML/JS write, no `main.html` edit, no SQL/DDL/RPC/Trigger/RLS/GRANT/Realtime publication change, no Edge Function change/deployment, no Production data write, no test fixture, and no Cloudflare deployment.
+- No authenticated Browser E2E. Canonical deployed artifact parity remains UNVERIFIED. Staging remains non-parity per LVE613.
+- Report614 contains the detailed findings, proposed flow, acceptance matrix and rollback strategy.
+- Overall status: Buyer procurement and goods custody OPEN / NOT IMPLEMENTED / NOT PRODUCTION READY.
+
+## Next exact execution
+
+Prepare the exact implementation Change Set before any operational write: additive SQL/migration; full RPC/Trigger definitions; recovered existing Edge source diffs; Buyer/Vouchers/Receiver source patches; Parent owner-side patch proposal or approved alternative; RLS/grants/realtime impact; acceptance tests and rollback. Submit that exact set for explicit approval under §77.2. Preserve all existing cash-custody and DirectSale/DirectReturn contracts.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-613 — Buyer / Parent PO-Invoice Surgical Execution
 
 **Timestamp:** 2026-11-04 15:32 Africa/Cairo onward.  
