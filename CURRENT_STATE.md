@@ -1,3 +1,65 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-611 — Buyer / Parent / Core / Receiving / Runtime Revalidation
+
+**Timestamp:** 2026-11-04 — daily revalidation after LVE610.  
+**LAST VERIFIED EVENT:** Read current CURRENT_STATE at LVE610, the full current Permanent Operating Constitution, Master CTO Governance & Continuous Execution OS including §77.2, and Reports608–610; then re-fetched operational GitHub main, Buyer/Parent/Core/Receiver/Picker/Loader/app.html, live SMART ERP Production Edge/RPC/schema/data/Realtime/migrations, Staging schema, and GitHub Cloudflare check runs. Created Report611. No operational app/Core/source code, Production schema/data/RPC/RLS/Edge, or deployment was changed.
+
+## Current State — LVE611
+
+- **Operational repository/branch:** papamohammed77-glitch/erp-frontend / main.
+- **Operational HEAD:** `68d222b20251049daddc2f159f2b8c80cd6ffb89`.
+- **HEAD movement:** three commits ahead of the LVE610 recorded HEAD `2b94681bf0ce93ca9ea55066a3f52c0d1add1084`; zero commits behind. Changes in this range are Buyer source (+211/-34) and Buyer Tailwind CSS (+1/-1).
+- **Buyer source:** `companies/company-1/purchasing/buyer.html`, blob `311f2673a90149df6f56d59a9a187a3379e6981c`.
+- **Parent source:** `companies/company-1/main.html`, blob `53b5a9e9d0433a785c3d5471a9c0d68c25497882`, unchanged in the compared range.
+- **Core source:** `companies/company-1/core.js`, blob `f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1`.
+- **Receiver source:** `companies/company-1/warehouse/receiver.html`, blob `3111b5e801d1bc021cf18fd66d633fbdc54ac0d6`.
+- **Report611:** `doc/Draft/Reprots/Report611_BUYER_PARENT_CORE_RECEIVING_RUNTIME_REVALIDATION_20261104.md`; created in commit `c2ae71d778a65679afb7d55358606b763901fac7`.
+
+## CONFIRMED — New Source and Architecture Findings
+
+1. Buyer gained creator/branch/receipt/currency/overdue list context and camera barcode scanning in commit `07ea8bb6175c3ae7db2cfd5d9754f88f7ab7e976`; HEAD `68d222b` fixes awaiting BarcodeDetector supported formats. This supersedes portions of Report610's source snapshot. Buyer runtime/camera E2E remains UNVERIFIED.
+2. Buyer receipt-state UI derives "received" from invoice flags/dates/received quantities and PO progress from `qty_received / qty_ordered`; it does not itself require an approved Receiving header/detail.
+3. Core contains RW_Auth, RW_DB, RW_API, RW_UI, RW_ImageCache, RW_SW and RW_Realtime. Buyer/Receiver/Loader consume Core. Parent main.html, Picker and app.html contain direct Supabase/Auth/Realtime paths and do not load the shared Core. This is a mixed architecture; do not describe the whole ERP as fully centralized through Core.
+4. Parent `RW_PurchaseGold.ensurePurchaseRealtime()` subscribes to purchase invoices but not purchase_orders, although Production purchase_orders is in supabase_realtime publication. Parent PO live refresh is therefore a confirmed source gap; event delivery/runtime is UNVERIFIED.
+5. Buyer GET_DATA requests are capped at 500 rows; Parent legacy getData path caps at 300. No complete server-side pagination/offset contract was verified.
+6. Operational Git contains `supabase/functions/save-purchase-order/index.ts`, byte-identical to deployed Edge v22. It does not contain `supabase/functions/receive-purchase/index.ts`, although Production Edge receive-purchase v13 is active. Source parity for this Edge is unresolved.
+7. Receiver source still queries `purchase_order_details` by `po_code`, while Production details use `po_id`; it uses parseInt for received quantities, lacks branch filtering in its PO list, and does not send operation_id in the receive call.
+8. Core RW_API does not automatically send an Idempotency-Key or operation_id. receive-purchase v13 derives a deterministic fallback ID from user/company/PO/items when the client sends none, creating a collision risk for two distinct physical receipts with identical payloads.
+
+## CONFIRMED — Production and Staging
+
+- SMART ERP Production `fiilmooggumokxanwiyx`: ACTIVE_HEALTHY, PostgreSQL 17.6.1.121, 737 migrations.
+- `save-purchase-order`: ACTIVE v22, verify_jwt=true, SHA-256 `a0885a8a636b0d57ef9ab54b476001be8e3dd1f4227b921f511b002f58642ffb`; its deployed source exactly matches the operational Git file.
+- `receive-purchase`: ACTIVE v13, verify_jwt=true, SHA-256 `50ab45ae026a0bb4d1de7837c872c4cc42da47b6a603f340e48d023d839310cc`; its source file is absent from the operational Git tree.
+- Current Production sample: PO=1, PO details=1, invoices=3, invoice details=6, receiving headers=0, receiving details=0.
+- System currency app_settings.currency=EGP; purchase_settings.default_currency=EGP. Parent Purchase Settings still edits purchase_settings.default_currency, whereas central PO/Invoice creation and Edge GET_SETTINGS use app_settings.currency. Values match now, but there are two independently writable currency settings; source-of-truth conflict remains.
+- QA PO `QA-SR-PO-20260927` is Draft / EGP with qty_ordered=5 and qty_received=5. Linked invoice `QA-SR-INV-20260927` is Draft / SAR with is_received=true, received_date=NULL, qty=5 and received_qty=5. No Receiving header/detail exists. This is a confirmed data/evidence inconsistency; whether physical delivery occurred is UNKNOWN. Do not edit/delete this record without owner-approved reconciliation.
+- Live `receive_purchase_atomic` five-argument RPC and deployed Edge v13 permit zero quantities: RPC creates a Receiving header before the detail loop, skips each received_qty<=0 with CONTINUE, has no total_received_qty>0 rejection, then updates PO status and audit log and returns success. With total_value=0 it does not post stock/journal/supplier-ledger amount. This is a confirmed production code-path defect; no write test was run.
+- Staging `rawaea-staging` / `hfzznsiprnwkpayskzhu`: ACTIVE_HEALTHY, 62 migrations; has purchase_orders/purchase_order_details/receiving but lacks purchase_invoices, purchase_invoice_details and buyer_custodies. Not suitable for full Buyer invoice/custody E2E.
+
+## Deployment / Runtime
+
+- GitHub Cloudflare check for `rawaea-erp` on HEAD `68d222b`: completed/success, deployed successfully to Preview `https://61aedb51.rawaea-erp.pages.dev` at 2026-11-04 12:58:35 UTC.
+- On the same HEAD, Cloudflare Pages checks for `warehouse-supervisor`, `rawaea-store`, and `erp-frontend` failed. The cause and impact on current users are UNKNOWN until logs and dependency/route impact are checked.
+- Canonical production artifact byte parity and authenticated Buyer/Receiver Browser E2E remain UNVERIFIED. Browser session was at login overlay; no authenticated session, Console/Network E2E or camera scan test was run.
+
+## Open Blockers / Owner Gates
+
+1. **P1 receiving integrity:** all-zero receive must be rejected before inserting a Receiving header or changing PO status; fix Edge/RPC/Receiver together, with a unique operation_id for each physical receipt and stable reuse only for retries of that event.
+2. **P1 Receiver contract:** replace detail lookup by po_id, preserve decimal quantities, calculate remaining quantities, scope PO list to authorized branches, handle query errors, and pass operation_id.
+3. **P1 evidence semantics:** Buyer must not label an invoice/PO fully received solely from flags/qty when an approved Receiving record is absent; reconcile the QA mismatch without altering Production data until approved.
+4. **P2 Parent realtime:** subscribe Parent to purchase_orders and related detail updates, then prove event-to-UI behavior.
+5. **P2 currency:** reconcile Parent purchase_settings editor with app_settings system currency without deleting history or rewriting documents.
+6. **P2 scale:** implement approved pagination/server-side search contract; current 300/500 row limits are not complete enterprise list handling.
+7. **Source parity:** recover the exact deployed receive-purchase v13 source into operational Git before any extension; do not substitute stale copies.
+8. **Staging parity:** build complete isolated Staging schema for Buyer invoice/receiving/custody tests under its own approved plan.
+9. **Deployment:** investigate the three failed Pages checks and verify canonical production artifact lineage.
+
+**NEXT EXACT EXECUTION:** Prepare the exact owner-review Change Set for receiving integrity first: zero-quantity rejection, idempotency per physical event, Receiver po_id/decimal/branch contract and acceptance/regression tests. Present exact source/RPC/Edge diffs, data effects, dependencies, test evidence and rollback under Master CTO §77.2. Wait for explicit approval before any operational source or Production change.
+
+**STATUS:** LVE611 FORENSIC REVALIDATION COMPLETE / NO OPERATIONAL OR PRODUCTION MUTATION / CHANGE SET B STILL OPEN / OWNER APPROVAL GATE OPEN / BUYER-RECEIVER NOT PRODUCTION READY / CANONICAL RUNTIME UNVERIFIED.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-610 — Buyer PO/Invoice Parent Integration, Creator, Currency & Barcode Review
 
 **Timestamp:** 2026-11-04 14:09 Africa/Cairo.  
