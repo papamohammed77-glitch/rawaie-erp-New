@@ -130,7 +130,7 @@ BEGIN
         (settlement_source IN ('UNSET','SUPPLIER_CREDIT') AND cash_custody_id IS NULL)
       );
   END IF;
-END $;
+END $$;
 
 CREATE INDEX IF NOT EXISTS purchase_invoices_buyer_source_idx
   ON public.purchase_invoices(company_id, purchaser_user_id, purchase_source, status, created_at DESC);
