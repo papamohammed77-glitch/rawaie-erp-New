@@ -56,6 +56,17 @@ BEGIN
   IF jsonb_array_length(p_items)<1 OR jsonb_array_length(p_items)>500 THEN
     RAISE EXCEPTION 'PURCHASE_INVOICE_ITEM_COUNT_INVALID';
   END IF;
+  IF EXISTS (
+    SELECT 1 FROM jsonb_to_recordset(p_items) x(item_code text)
+    WHERE NOT EXISTS (
+      SELECT 1 FROM public.items i
+      WHERE i.company_id=p_company_id
+        AND i.item_code=btrim(x.item_code)
+        AND COALESCE(i.is_active,true)=true
+    )
+  ) THEN
+    RAISE EXCEPTION 'PURCHASE_INVOICE_ITEM_INVALID_OR_INACTIVE';
+  END IF;
 
   PERFORM pg_advisory_xact_lock(
     hashtextextended('RAWAEA:PO-INVOICE:'||p_company_id::text||':'||btrim(p_operation_id),0)
@@ -91,7 +102,8 @@ BEGIN
   END IF;
 
   IF p_branch_id IS NOT NULL AND NOT EXISTS (
-    SELECT 1 FROM public.branches WHERE id=p_branch_id AND company_id=p_company_id
+    SELECT 1 FROM public.branches
+    WHERE id=p_branch_id AND company_id=p_company_id AND COALESCE(is_active,true)=true
   ) THEN
     RAISE EXCEPTION 'PURCHASE_BRANCH_INVALID';
   END IF;
@@ -205,6 +217,17 @@ BEGIN
   IF jsonb_array_length(p_items)<1 OR jsonb_array_length(p_items)>500 THEN
     RAISE EXCEPTION 'PURCHASE_INVOICE_ITEM_COUNT_INVALID';
   END IF;
+  IF EXISTS (
+    SELECT 1 FROM jsonb_to_recordset(p_items) x(item_code text)
+    WHERE NOT EXISTS (
+      SELECT 1 FROM public.items i
+      WHERE i.company_id=p_company_id
+        AND i.item_code=btrim(x.item_code)
+        AND COALESCE(i.is_active,true)=true
+    )
+  ) THEN
+    RAISE EXCEPTION 'PURCHASE_INVOICE_ITEM_INVALID_OR_INACTIVE';
+  END IF;
 
   v_request:=jsonb_build_object(
     'invoice_id',p_invoice_id,'supplier_id',p_supplier_id,
@@ -282,6 +305,13 @@ BEGIN
 
   IF NOT FOUND OR upper(COALESCE(v_po.currency,''))<>v_currency THEN
     RAISE EXCEPTION 'PURCHASE_PO_SUPPLIER_OR_CURRENCY_INVALID';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.suppliers
+    WHERE id=p_supplier_id AND company_id=p_company_id AND COALESCE(is_active,false)=true
+  ) THEN
+    RAISE EXCEPTION 'PURCHASE_SUPPLIER_INVALID';
   END IF;
 
   v_fingerprint:=md5(jsonb_build_object(
@@ -388,6 +418,10 @@ BEGIN
     RAISE EXCEPTION 'QUICK_MARKET_SETTLEMENT_SOURCE_INVALID';
   END IF;
 
+  IF NULLIF(btrim(p_supplier_invoice_no),'') IS NULL THEN
+    RAISE EXCEPTION 'QUICK_MARKET_SUPPLIER_INVOICE_NUMBER_REQUIRED';
+  END IF;
+
   IF EXISTS (
     SELECT 1 FROM jsonb_to_recordset(p_items) x(item_code text,qty numeric,unit_price numeric)
     GROUP BY btrim(item_code) HAVING count(*)>1
@@ -397,6 +431,12 @@ BEGIN
 
   FOR x IN SELECT value FROM jsonb_array_elements(p_items) LOOP
     IF NULLIF(btrim(x->>'item_code'),'') IS NULL
+       OR NOT EXISTS (
+         SELECT 1 FROM public.items i
+         WHERE i.company_id=p_company_id
+           AND i.item_code=btrim(x->>'item_code')
+           AND COALESCE(i.is_active,true)=true
+       )
        OR COALESCE(NULLIF(x->>'qty','')::numeric,0)<=0
        OR COALESCE(NULLIF(x->>'unit_price','')::numeric,0)<=0
        OR COALESCE(NULLIF(x->>'discount_percent','')::numeric,0)<0
@@ -482,7 +522,8 @@ BEGIN
   END IF;
 
   IF p_branch_id IS NULL OR NOT EXISTS (
-    SELECT 1 FROM public.branches WHERE id=p_branch_id AND company_id=p_company_id
+    SELECT 1 FROM public.branches
+    WHERE id=p_branch_id AND company_id=p_company_id AND COALESCE(is_active,true)=true
   ) THEN
     RAISE EXCEPTION 'QUICK_MARKET_BRANCH_REQUIRED';
   END IF;
