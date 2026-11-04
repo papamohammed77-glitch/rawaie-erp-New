@@ -467,9 +467,6 @@ BEGIN
       AND source_document_type='PurchaseInvoice'
       AND source_document_id=p_invoice_id
   ) OR EXISTS (
-    SELECT 1 FROM public.receiving
-    WHERE company_id=p_company_id AND purchase_invoice_id=p_invoice_id
-  ) OR EXISTS (
     SELECT 1 FROM public.buyer_custody_expenses
     WHERE company_id=p_company_id AND purchase_invoice_id=p_invoice_id
   ) THEN
@@ -734,9 +731,6 @@ BEGIN
     SELECT 1 FROM public.buyer_goods_custody_events
     WHERE company_id=p_company_id AND source_document_type='PurchaseInvoice'
       AND source_document_id=p_invoice_id
-  ) OR EXISTS (
-    SELECT 1 FROM public.receiving
-    WHERE company_id=p_company_id AND purchase_invoice_id=p_invoice_id
   ) OR EXISTS (
     SELECT 1 FROM public.buyer_custody_expenses
     WHERE company_id=p_company_id AND purchase_invoice_id=p_invoice_id
