@@ -244,7 +244,8 @@ serve(async (req) => {
       const invoiceId = String(p.invoice_id || "").trim();
       const storagePath = String(p.storage_path || "").trim();
       const fileName = String(p.file_name || "").trim().slice(0, 255);
-      if (!invoiceId || !storagePath || !fileName) throw new Error("QUICK_MARKET_ATTACHMENT_INPUT_REQUIRED");
+      const uploadedBy = String(user.email || "").trim();
+      if (!invoiceId || !storagePath || !fileName || !uploadedBy) throw new Error("QUICK_MARKET_ATTACHMENT_INPUT_REQUIRED");
       const { data: invoice, error: invoiceError } = await sb.from("purchase_invoices")
         .select("id,purchase_source,purchaser_user_id,status,is_received,received_date")
         .eq("id", invoiceId).eq("company_id", companyId).maybeSingle();
@@ -284,7 +285,7 @@ serve(async (req) => {
         file_name: fileName,
         file_url: null,
         mime_type: mimeType,
-        uploaded_by: user.email
+        uploaded_by: uploadedBy
       };
       if (existingAttachment) {
         const { data: updatedAttachment, error: updateAttachmentError } = await sb.from("purchase_attachments")
@@ -302,7 +303,7 @@ serve(async (req) => {
             storage_path: storagePath,
             file_url: null,
             mime_type: mimeType,
-            uploaded_by: user.email
+            uploaded_by: uploadedBy
           })
           .select("id,document_type,document_id,file_name,storage_path,mime_type,uploaded_by,created_at").single();
         if (createAttachmentError) {
