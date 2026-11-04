@@ -1,3 +1,52 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-628 — Buyer Phase 1 Hardening Applied / E2E Open
+
+**LAST VERIFIED EVENT:** 2026-11-04 — Owner explicitly approved the prepared Buyer Phase 1 hardening changes. Applied Production migration `buyer_phase1_hardening_20261104` (version `20261104213909`), deployed `save-purchase-order` v26 from the exact live v25 snapshot plus reviewed changes, and committed a surgical Buyer source fix. No business data or balances changed. Cloudflare deployment and authenticated E2E remain unverified.
+
+**Report628:** [Buyer Phase 1 Hardening Applied and Verification](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report628_BUYER_PHASE1_HARDENING_APPLIED_AND_VERIFICATION_20261104.md) — commit `13ade99f2279c76957ba93147f64089144018578`.
+
+## Applied Production changes
+
+- Migration `buyer_phase1_hardening_20261104`, version `20261104213909`, applied successfully after a full SQL `BEGIN/ROLLBACK` compile pass.
+- Replaced exact existing function bodies, preserving signatures/ACL:
+  - `buyer_custody_settle_atomic`: refuses cash custody settlement while linked Quick Market employee-custody invoices remain open reservations.
+  - `buyer_goods_custody_register_handover_atomic`: requires evidence path under company/user/buyer-goods/invoice and a real object in private `employee-documents`.
+  - `purchase_delete_draft_invoice_atomic`: refuses draft deletion when any goods-custody event exists.
+- `save-purchase-order` deployed v26 ACTIVE, `verify_jwt=true`, SHA-256 `fb31ac953213d6f30a9e545f1da3b9075ca28638b5032450618769d20f2cb5b4`; deployed source re-fetched and exactly matches approved ChangeSet `577442e1b8fd22be056374292438a7074b966ff1`. Never redeploy stale Git Edge source `supabase/functions/save-purchase-order/index.ts` over this live function.
+- Edge v26 differences: currency lookup is fail-closed (no EGP fallback) with deterministic `created_at,id`; generic `DELETE_DRAFT_INVOICE` accepts only PO/legacy source, verifies owner/owner-role, and checks goods-custody events before invoking the central delete RPC.
+
+## Applied operational source change
+
+- Repo `papamohammed77-glitch/erp-frontend`, file ONLY `companies/company-1/purchasing/buyer.html`.
+- Commit `240858a071736a416dcf302e8cfc28e453016c3f`; blob `ecce26b3cbc108b4950bf083898fabd7d0e4a7d0`.
+- Unknown handover outcome no longer deletes the evidence file when verification itself fails; only confirmed-not-committed can clean up, confirmed-committed preserves the evidence, and UNKNOWN warns the user not to retry before reconciliation.
+- Added `buyer_goods_custody_events` to Buyer Realtime subscription and invoice/vehicle tab refresh targets.
+- Confirmed table is already in `supabase_realtime` and RLS is enabled. Existing generic employee-document Storage helpers/policies map the current buyer-goods path by company/user; no new Storage policy or public access was added.
+
+## Post-change verification
+
+- SQL compile transaction rolled back successfully; migration then applied successfully.
+- Function signatures/ACL re-read and preserved; guards are present in live definitions.
+- Edge v26 ACTIVE and exact source matches approved draft.
+- Buyer main branch file re-fetched with expected new blob and both patch markers.
+- Production counts after change: currency EGP; `purchase_invoices=3`; `buyer_custodies=0`; `buyer_goods_custody_events=0`; `QUICK_MARKET` invoices=0. No test fixtures or business data created.
+- Realtime publication membership confirmed; RLS enabled.
+- GitHub Actions workflow runs and commit statuses returned empty.
+- Cloudflare Pages auto deployment is enabled, but the open dashboard snapshot still shows prior commit `3717c02`; deployment for `240858a` is UNVERIFIED.
+- Authenticated Buyer browser E2E NOT RUN; current open app tab is at login. No claim of E2E closure.
+
+## Remaining P1 / scope
+
+- Purchase invoice RLS is still broader than user-only `فواتيري`; consumer map across Parent/Finance/reports is incomplete.
+- `purchase_returns` / details retain broad direct DML; do not revoke before consumer mapping.
+- Quick Market UI still needs supplier invoice image and smart supplier search.
+- Buyer→Warehouse / Buyer→Supplier handover and partial acceptance remain incomplete; Receiver intentionally deferred.
+- Quick Market expense review/settlement integration, Cloudflare artifact parity, authenticated E2E, and legacy QA-SR / Posted invoice reconciliation remain open.
+- No changes to Parent `main.html`, `core.js`, Receiver, Vouchers, or historic posted data.
+
+**Status:** `DB HARDENING APPLIED / EDGE v26 ACTIVE / BUYER SOURCE COMMITTED / CLOUDFLARE UNVERIFIED / AUTHENTICATED E2E OPEN / BUYER NOT CLOSED / RECEIVER DEFERRED`.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-04-627 — Buyer Phase 1 Hardening Drafts / Edge v25 Recovery
 
 **LAST VERIFIED EVENT:** 2026-11-04 — Read current Report614_NEW_P.md, permanent charter and LVE626; independently fetched live Supabase Edge save-purchase-order v25 and exact SQL definitions for Buyer custody settlement, invoice deletion and handover. Archived v25 byte-for-byte in governance repo; prepared Edge/SQL/Buyer review drafts and Report627. No operational app source, Production schema/data/RPC/ACL/Storage, Edge deployment or Cloudflare deployment was changed.
