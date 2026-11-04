@@ -191,6 +191,7 @@ quickPurchase:async function(invoiceId){
                 var supplierId=RW_UI.byId('qmp-supplier').value,branchId=RW_UI.byId('qmp-branch').value,
                     settlement=RW_UI.byId('qmp-settlement').value,custodyId=settlement==='EMPLOYEE_CUSTODY'?RW_UI.byId('qmp-custody').value:null;
                 if(!supplierId||!branchId||!lines.length){Swal.showValidationMessage('اختر المورد والفرع وأضف بندًا واحدًا على الأقل');return false;}
+                if(!RW_UI.byId('qmp-no').value.trim()){Swal.showValidationMessage('رقم فاتورة المورد مطلوب لإثبات الاستلام وربط المستند');return false;}
                 if(settlement==='EMPLOYEE_CUSTODY'&&!custodyId){Swal.showValidationMessage('اختر عهدة نقدية مؤكدة الاستلام أو غيّر مصدر التسوية إلى ائتمان المورد');return false;}
                 for(var i=0;i<lines.length;i++){
                     if(!Number.isFinite(Number(lines[i].qty))||Number(lines[i].qty)<=0||
