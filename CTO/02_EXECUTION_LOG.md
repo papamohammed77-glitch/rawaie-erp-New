@@ -1,3 +1,39 @@
+## LVE-2026-11-04-631 — Buyer Invoice Evidence / Security / Performance
+
+**Report:** [Report631](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report631_BUYER_ATTACHMENT_SECURITY_PERFORMANCE_20261104.md) — commit `9f4c67dfe28d3dafad74d85b161ea732805438ee`.  
+**Operational HEAD:** `b47a56379018e1965e98bb25015d860ba0f70a9f`.  
+**Edge:** `save-purchase-order` v28 ACTIVE, verify_jwt true, SHA-256 `663b4bab72a4c81ec93b53d3f15a29902fa9984320f11a198209a46ac45646e2`; exact archive blob `7291a8ca704213a244d740ed7ce8f01920f5dac4`.
+
+### Buyer attachment
+- Added Quick Market supplier invoice image/PDF upload (JPEG/PNG/WEBP/PDF, max 10MB), linked to invoice via `purchase_attachments`.
+- Edge validates Quick Market Draft ownership, exact company/user/invoice path, object existence via Storage API info, MIME and size; unique storage path index provides idempotent registration.
+- Invoice details show attachment and generate a 5-minute signed URL.
+- GET_DATA scopes non-finance attachments to visible invoices. Direct table RLS scopes PurchaseInvoice attachments to purchaser/creator or Finance/Finance Manager/Owner.
+- Ambiguous result preserves the file and saved invoice; no destructive cleanup.
+- Bucket remains private. Finance Storage SELECT is limited to same-company buyer-goods paths tied to Quick Market invoice. Warehouse access deferred.
+
+### Returns / security / performance
+- Returns tables: anon no privileges, authenticated SELECT only, service_role DML; central atomic RPC writer retained.
+- 10 custody/return indexes plus 48 additional Buyer/Purchase FK indexes; Performance Advisor now shows zero unindexed FK findings in buyer_/purchase_ scope (244 remain elsewhere).
+- Optimized RLS helper evaluation with scalar SELECT wrappers.
+- Revoked EXECUTE from PUBLIC/anon/authenticated on 16 trigger-only SECURITY DEFINER functions; service_role/postgres retained; all triggers remain attached.
+- Pinned `sales_decision_default_policy()` search_path to pg_catalog.
+- Reviewed 20 authenticated Buyer/Purchase SECURITY DEFINER RPCs; retained due auth.uid/company/permission/ownership checks and Edge user-JWT usage.
+
+### Verification
+- Eight Production migrations versions 20261104213909 through 20261104220659 recorded in operational repo.
+- Buyer inline JS parse-only check PASS; Tailwind CSS generated commit `10e9a875053743dd9eeb593c973968086572cf14`.
+- Attachment RLS transaction test: buyer 0, finance 1, finance_manager 1, owner 1, warehouse 0; rolled back.
+- Unique path test: first insert 1, duplicate 0; rolled back.
+- Production counts: currency EGP, 3 historical invoices, 0 Quick Market invoices/custodies/goods events/returns/attachments. No test data remains.
+- Cloudflare deployment unverified; authenticated file upload/signed URL E2E not run.
+
+### Remaining
+- Buyer→Warehouse/partial acceptance waits for Receiver; Buyer→Supplier requires a distinct physical custody/return accounting design.
+- Purchase invoice direct RLS consumer map still open.
+- Parent SAR payload constants remain but Edge forces system EGP.
+- 244 global FK findings and 123 authenticated SECURITY DEFINER functions remain for staged systemwide audit; leaked-password protection setting warning remains.
+
 ## LVE-2026-11-04-630 — Purchase Returns Central Writer Enforced
 
 **Status:** RETURNS CENTRAL WRITER ENFORCED / PARENT SELECT PRESERVED / SERVICE ROLE RPC WRITERS VERIFIED.  
