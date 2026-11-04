@@ -1,3 +1,15 @@
+# LVE-2026-11-04-619 — Buyer Custody RPC / Single-Writer Posting Contract
+
+- Report619: [Buyer custody RPC and single-writer posting contract](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report619_BUYER_CUSTODY_RPC_SINGLE_WRITER_POSTING_CONTRACT_20261104.md), commit `e3c0fc755815cf5e49c972a1d67607c8cddc9823`.
+- Refined schema/security draft v2: [02_buyer_goods_custody_schema_security_DRAFT_v2.sql](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/ChangeSets/20261104/02_buyer_goods_custody_schema_security_DRAFT_v2.sql), latest commit `2961a45d34349033991b36ad8312a71933d45c61`. V2 removes duplicate return-to-warehouse quantity from stock voucher detail and aligns return/acceptance status constraints. Still NOT executable alone.
+- Report619 defines server contracts for: paged Buyer ledger read; Quick Market supplier-to-Buyer handover; Buyer-to-Warehouse Receiving; invoice-ID Quick Market Receiving; SupplierReturn case creation; dispatch; supplier acceptance batches; financial posting for accepted quantity only; currency validation; Quick Market cash-custody settlement.
+- Single-writer: Warehouse voucher owns physical stock-out; Buyer custody event ledger owns Buyer balance; supplier acceptance batch owns accepted AP/GL return posting; linked financial posting must not issue stock a second time.
+- Existing PO receipt, PO custody settlement, DirectSale/DirectReturn and Transfer must remain behaviorally unchanged. Existing Edge functions only; no new Edge.
+- Parent recipient column remains blocked under current `main.html` lock.
+- No production/source writes or test fixtures. Status OPEN / NOT IMPLEMENTED / NOT PRODUCTION READY.
+
+---
+
 # LVE-2026-11-04-619 — Schema Review + Receiver Patch Completion + Buyer UX Financial Reconciliation
 
 - Report619: [LVE616_SCHEMA_REVIEW_AND_RECEIVER_PATCH_COMPLETION_20261104.md](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report619_LVE616_SCHEMA_REVIEW_AND_RECEIVER_PATCH_COMPLETION_20261104.md), commit `9b1bd4d374d292f21c13a6da1d6716cbdaa115f5`, blob `f284d8e7e0023c333db0caf45967c65ff86303ce`.
