@@ -1,3 +1,21 @@
+## LVE-2026-11-05-632 — Buyer Cash Custody / Operational Expense Hardening
+
+**Report:** [Report632](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report632_BUYER_CASH_CUSTODY_OPERATIONAL_EXPENSES_QMP_HARDENING_20261105.md) — commit c52554ebd276369141c935f271009b74f71c3261.  
+**Status:** Operational expense submission enabled; finance approval waits for correct COA leaf accounts; Edge v29 active; Buyer commit and Tailwind success; Cloudflare/E2E open; supplier refund workflow open.
+
+- Applied Production migration buyer_custody_operational_expenses_20261105, version 20261104223538; operational migration file is supabase/migrations/20261104223538_buyer_custody_operational_expenses_20261105.sql.
+- Added expense_type/category/reference/account fields to buyer_custody_expenses, validation constraints, FK/indexes and new atomic submit/review RPCs.
+- Existing PO custody expense submission now accounts for QMP cash reservations. Operational expense submission checks acknowledged employee cash minus submitted/approved expenses minus open QMP reservation; verifies exact employee/custody Storage path, object, MIME, size, currency and operation idempotency; no GL/AP/stock/Treasury on submission.
+- Finance operational review is separate and posts a single DR expense leaf / CR custody 127 journal; no second treasury payment; self-review forbidden. Existing PO review rejects OPERATIONAL.
+- Custody settlement refuses QMP open invoices and now blocks employee-payable result without payment flow.
+- Deployed save-purchase-order v29 ACTIVE, verify_jwt true, SHA256 35caa4f2759ba608a7f3bf86640b4773280bc84447872267d6e4d53896743e04; added SUBMIT_OTHER_CUSTODY_EXPENSE, REVIEW_OTHER_CUSTODY_EXPENSE, VERIFY_CUSTODY_EXPENSE_OPERATION, GET_OTHER_CUSTODY_EXPENSE_ACCOUNTS. Live = Git = governance archive exact.
+- Buyer file commit 21c35a5d02d36c32ecb3304f5cecb6f157911741, blob 5ab9f4e268cbf266e6ff950fe41bf5c9a4c9390a; separate operational expense modal, QMP invoice reservation visibility, safe unknown-outcome behavior, settlement guards and Finance account selection.
+- Inline JS syntax parse PASS. Buyer Tailwind workflow 41927675334 success, CSS blob 271d669599ddc23a914ca4ddb2f0b803264468f4.
+- COA currently has only 5 expense parent, 51 COGS, 52 inventory variance; no valid leaf account for operational travel/fuel. Finance can review but cannot approve/post until proper leaf accounts exist. Do not use 51/52 or invent accounts.
+- Supplier return cash refund remains NOT implemented: current SupplierReturn trigger clears custodian_user_id, contract is direct Supplier endpoint, completion posts full return AP/GL; delegated Buyer custody/partial supplier acceptance/cash-vs-credit disposition must be built as an integrated single-writer workflow. No custody amount was increased.
+- Post-change snapshot unchanged: EGP, custodies/advances/expenses/goods events 0, purchase invoices 3, QMP invoices 0. No fixture or business journal/stock/Treasury/AP effect.
+- Cloudflare commit parity unverified; authenticated Buyer E2E not run. Receiver deferred; no Parent/Core/Receiver/Vouchers edits; no new Edge Function.
+
 ## LVE-2026-11-04-631 — Buyer Invoice Evidence / Security / Performance
 
 **Report:** [Report631](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report631_BUYER_ATTACHMENT_SECURITY_PERFORMANCE_20261104.md) — commit `9f4c67dfe28d3dafad74d85b161ea732805438ee`.  
