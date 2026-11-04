@@ -9,7 +9,7 @@
 
 | المكوّن | الحالة |
 |---|---|
-| Supabase SMART ERP schema/RPC/RLS/Realtime | <span>مطبق ومتحقق من الوجود والتواقيع والمنح</span> |
+| Supabase SMART ERP schema/RPC/RLS/Realtime | **مطبق ومتحقق من الوجود والتواقيع والمنح** |
 | Edge `save-purchase-order` | الإصدار 25 ACTIVE |
 | Buyer `companies/company-1/purchasing/buyer.html` | التعديل committed على main |
 | Buyer Cloudflare Pages production deployment | **منشور ومؤكد**؛ لوحة Cloudflare تعرض commit `3717c027` وPreview deployment `633d858b.rawaea-erp.pages.dev` |
