@@ -1,3 +1,31 @@
+## LVE-2026-11-04-628 — Buyer Phase 1 Hardening Applied / E2E Open
+
+**Status:** DB HARDENING APPLIED / EDGE v26 ACTIVE / BUYER SOURCE COMMITTED / CLOUDFLARE UNVERIFIED / AUTHENTICATED E2E OPEN.  
+**Report:** [Report628](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report628_BUYER_PHASE1_HARDENING_APPLIED_AND_VERIFICATION_20261104.md) — commit `13ade99f2279c76957ba93147f64089144018578`.
+
+### Applied
+- Production migration `buyer_phase1_hardening_20261104` version `20261104213909`; SQL compile-tested in `BEGIN/ROLLBACK` first.
+- Hardened `buyer_custody_settle_atomic` against open QMP employee-custody reservations.
+- Hardened `buyer_goods_custody_register_handover_atomic` to require a company/user/invoice-bound evidence path and actual private Storage object.
+- Hardened `purchase_delete_draft_invoice_atomic` against deletion after goods custody events. Function signatures and ACL preserved.
+- Deployed `save-purchase-order` v26 ACTIVE, verify_jwt true, SHA256 `fb31ac953213d6f30a9e545f1da3b9075ca28638b5032450618769d20f2cb5b4`; live source exactly equals approved draft, not stale operational Git function.
+- Buyer-only source commit `240858a071736a416dcf302e8cfc28e453016c3f`, blob `ecce26b3cbc108b4950bf083898fabd7d0e4a7d0`: unknown handover result preserves evidence; Realtime subscribes to goods-custody events and refreshes invoice/vehicle tabs.
+
+### Verification
+- SQL compile, migration application, live function signatures/ACL/guards, Edge v26 source equality, Buyer file markers and Realtime publication membership passed.
+- Storage generic employee-document policy helpers map first path segments to company/user; bucket remains private, no new policy.
+- No test fixtures or business writes. Production snapshot remains EGP, 3 purchase invoices, 0 cash custodies, 0 goods events, 0 Quick Market invoices.
+- GitHub Actions runs/statuses empty. Cloudflare automatic deployments enabled but open dashboard snapshot is stale at 3717c02; deployment of 240858a is UNVERIFIED.
+- No authenticated Buyer session available; E2E NOT RUN.
+
+### Still open
+- User-only invoice RLS and complete Parent/Finance consumer map.
+- Broad direct DML on purchase_returns/details pending consumer map.
+- Quick Market supplier invoice image and smart supplier search.
+- Buyer→Warehouse / Buyer→Supplier, partial acceptance and receiver integration (Receiver deferred).
+- Quick Market expenses and finance settlement E2E; Cloudflare artifact parity; authenticated E2E; legacy QA-SR/Posted invoice reconciliation.
+- No Parent/Core/Receiver/Vouchers edits.
+
 ## LVE-2026-11-04-626 — Buyer Live Forensic Revalidation
 
 **Status:** BUYER PHASE 1 PRESENT / END-TO-END NOT CLOSED / CHANGESET APPROVAL GATE OPEN / RECEIVER DEFERRED.  
