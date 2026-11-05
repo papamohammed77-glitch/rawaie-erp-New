@@ -73,6 +73,7 @@ Edge receive-purchase الحالية ACTIVE v13، SHA-256:
 - Trigger التاريخ يلتقط قيمة rawaea.purchase_actor من إعداد المعاملة؛ يجب ضبطها قبل UPDATE.
 - لا توجد RPC باسم purchase_approve_po_atomic.
 - لا يوجد Trigger حالي على receiving.
+- Trigger تاريخ PO موجود، لكن فحص PO الحالي أظهر عدم وجود صف تاريخ مرتبط به؛ أمر QA الحالي أُنشئ بتاريخ 2026-09-27، قبل إنشاء/تفعيل هذا المسار التاريخي أو قبل تسجيل انتقال حالته، لذلك لا نعدّ غياب السجل الحالي دليلًا على فشل trigger. سيُثبت اختبار الاعتماد أن انتقال Draft → Approved يكتب صف history فعليًا.
 - receive_purchase_atomic هو المسار المركزي الوحيد الذي ينشئ public.receiving؛ جسمه الحالي لا يرفض Draft حسب حالة PO.
 - receive_purchase_atomic يقوم بعد إنشاء Receiving بحركة PurchaseIn وتحديث qty_received وحالة PO وتسجيل ذمة المورد والقيود اللازمة؛ لذلك يجب تنفيذ حارس الحالة قبل INSERT في receiving حتى يفشل كامل الاستلام قبل أي أثر مخزني/محاسبي.
 
