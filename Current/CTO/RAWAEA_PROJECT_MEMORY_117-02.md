@@ -1425,3 +1425,13 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - Production snapshot: purchase_orders=1 (Draft), purchase_quotations=0, purchase_invoices=3 (one Draft), currency EGP. No data or business side effects created.
 - No operational source/DB/Edge/Cloudflare changes, no test transactions. Report614 §14 requires exact presented ChangeSet and explicit approval; Report633 is forensic/change design, not applied code.
 - Next: prepare/approve the exact current-Edge PO approval/dispatch change set and Buyer labels; keep Receiver correction as its own later patch. Cloudflare deployment and authenticated Buyer E2E remain UNKNOWN/UNVERIFIED.
+
+
+## LVE634 — PO Supervisor Approval + Warehouse Receiving Gate — 2026-11-05
+- Report634: doc/Draft/Reprots/Report634_PO_SUPERVISOR_APPROVAL_AND_RECEIVING_GATE_20261105.md (commit 95cc14f33cec24474ed748af8430386e712fe898).
+- The Parent main.html already has Cycle Purchasing → Orders and an existing PO details modal. Surgical UI changes are mapped: Arabic status label in the orders row, conditionally add the supervisor approval button in RW_Purchases.openPO, add a small RW_PurchaseGold.approvePO method routed through the existing api helper, and export that method.
+- Production confirmed: purchase_orders RLS grants SELECT but not UPDATE to authenticated; no direct browser UPDATE. save-purchase-order Edge v29 has no APPROVE_PO branch; no purchase_approve_po_atomic RPC exists.
+- Proposed backend contract: reuse save-purchase-order (no new Edge), require purchases_supervisor in Edge and again in the new SECURITY DEFINER RPC; validate auth.uid, active company user, actor email, Draft-only status, non-self-approval, lock PO FOR UPDATE. Updating status sets rawaea.purchase_actor; existing trg_purchase_orders_status_history records status transition and approver identity. Avoid duplicate manual history INSERT.
+- Current permission recheck: one active user has effective purchases_supervisor. Current Production PO count: one Draft; do not use this real PO as a test.
+- To make PO actually receivable, Receiver must include Approved in its status query, fix the existing wrong child lookup purchase_order_details.po_code → po_id = purchase_orders.id, include qty_received and remaining quantity, and preserve fractional quantities. A database-side BEFORE INSERT receiving guard is proposed because the current receive_purchase_atomic does not enforce an approved/eligible PO status itself.
+- No operational writes: no changes to main.html/receiver.html, no Edge deployment, no RPC/trigger/migration, no PO state change, no test data and no inventory/accounting/treasury effects. Owner ChangeSet approval gate remains open under Report614 §14.
