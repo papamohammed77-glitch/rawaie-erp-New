@@ -1411,3 +1411,17 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - No operational or Production write/deploy; no Receiver edit; no QA fixtures. Approval gate remains open under permanent charter §§6.2–6.3.
 
 - Consumer scan addendum: Buyer blob d9ffb108 uses only `DELETE_BUYER_DRAFT_INVOICE` / `DELETE_QUICK_MARKET_DRAFT`; no generic `DELETE_DRAFT_INVOICE` hit returned by GitHub code search. Main.html fetch returned empty content, so do not infer no parent consumer. Generic Edge route retained with proposed owner/source/goods-event checks. Report627 latest commit 3f3de2d2f2bd91e90abe778ad52a09eb9ebf540f.
+
+
+## LVE633 — PO / Supplier Invoice separation and dispatch gap — 2026-11-05
+
+- Report633: `doc/Draft/Reprots/Report633_BUYER_PO_SUPPLIER_INVOICE_SEPARATION_20261105.md` (commit `b98f737283f826cc6ec21b9e238ff0aebf726b1a`).
+- Latest verified operational HEAD at inspection: `7060bbbf6040bae5c4f02145d6c0a638b6131087`; Buyer blob `5ab9f4e268cbf266e6ff950fe41bf5c9a4c9390a`; latest Buyer-specific path commit `21c35a5d02d36c32ecb3304f5cecb6f157911741`.
+- Live `save-purchase-order` v29 SHA `35caa4f2759ba608a7f3bf86640b4773280bc84447872267d6e4d53896743e04`; `receive-purchase` v13 SHA `50ab45ae026a0bb4d1de7837c872c4cc42da47b6a603f340e48d023d839310cc`.
+- PO and supplier invoice are distinct live entities: `purchase_orders/purchase_order_details` vs `purchase_invoices/purchase_invoice_details`, with optional invoice.purchase_order_id FK. Buyer createPO/Create PO RPC and supplier invoice modal/Create PO Invoice RPC are independent. Rename misleading `+ فاتورة PO` to supplier-invoice wording; preserve all fields and modal capabilities.
+- The lifecycle gap is confirmed: PO creation and quotation conversion both produce Draft; no approval/send PO Edge operation or RPC exists; Receiver only displays Sent/Partially Received. Quotation acceptance is not restricted to `purchases_supervisor`; converter accepts Accepted or Submitted. Dedicated role exists, but no active user assignment was found and Buyer gate excludes the permission.
+- Receiver has a verified schema mismatch: reads `purchase_order_details.po_code`, but the live table has `po_id`, not po_code. Receiver intentionally not edited in this Buyer-first phase.
+- PO receipt currently posts stock and supplier AP/GL from accepted quantity. PO invoice posting after receipt verifies PO/receipt/quantity/price then marks invoice Posted without a second inventory/AP posting. PO invoice modal allows discount/tax but posting currently rejects nonzero values; retain as explicit contract mismatch until separately resolved.
+- Production snapshot: purchase_orders=1 (Draft), purchase_quotations=0, purchase_invoices=3 (one Draft), currency EGP. No data or business side effects created.
+- No operational source/DB/Edge/Cloudflare changes, no test transactions. Report614 §14 requires exact presented ChangeSet and explicit approval; Report633 is forensic/change design, not applied code.
+- Next: prepare/approve the exact current-Edge PO approval/dispatch change set and Buyer labels; keep Receiver correction as its own later patch. Cloudflare deployment and authenticated Buyer E2E remain UNKNOWN/UNVERIFIED.
