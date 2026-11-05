@@ -1,4 +1,28 @@
-# LATEST VERIFIED CHECKPOINT — LVE-2026-11-05-632 — Buyer Cash Custody / Operational Expense Hardening
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-05-637 — PO Approval Production Revalidation / Receiver Security
+
+**LAST VERIFIED EVENT:** 2026-11-05 22:29 Africa/Cairo (20:29 UTC) — read-only revalidation after LVE636.  
+**Report:** `doc/Draft/Reprots/Report637_DAILY_PO_APPROVAL_RECEIVER_SECURITY_REVALIDATION_20261105.md` — final report commit `d5e48f61b05d8fc999300a9b17e62e8ef4db6644`.  
+**Previous checkpoint:** LVE636 / Report636, commit `3ce25b9b368841b31be0106206cd243d28cc4685` (17:49:49 UTC).
+
+## Current State
+- Operational repo/branch: `papamohammed77-glitch/erp-frontend` / `main`; latest verified source commit `b728c09e1bb4c482effc48a492546b393ff02c1f`.
+- Parent `main.html` owner edit remains correct: Parent approval uses `purchases`; supervisor app uses `purchases_supervisor`. CTO did not modify main.html.
+- Supabase SMART ERP: `save-purchase-order` ACTIVE v30; `receive-purchase` ACTIVE v14; `purchase_approve_po_atomic(uuid)` and `trg_receiving_require_approved_po` remain present with the expected ACL/guards.
+- Production changed after LVE636: `QA-SR-PO-20260927` changed Draft→Approved at 17:52:32 UTC; `PO-20260928` was created Draft at 18:02:42 UTC and approved at 18:05:00 UTC. Current PO count 2, both Approved; Receiving and Receiving Details remain 0; PO status history 3.
+- No matching inventory_log, supplier_ledger or journal_entries records were found for these two PO codes. Approval did not create a stock or financial effect.
+- `QA-SR-PO-20260927` still has detail quantity 5/5 marked received without a Receiving document; do not mutate automatically.
+- P1 findings: Receiver inserts unescaped database values into innerHTML (Core safeHTML is only an innerHTML assignment); Receiver omits operation_id and Core RW_API adds no idempotency header, while Edge uses a deterministic fallback that can suppress a later independent receipt with the same payload; purchase_status_history permits authenticated same-company INSERT/UPDATE/DELETE through its ALL RLS policy and table grants.
+- P2 findings: Receiver list is company-scoped but not branch-scoped; no formal SEND_PO/ISSUE_PO operation; Supervisor dashboard uses UTC date boundaries and does not surface query errors.
+- Current COA still exposes only expense parent 5 and accounts 51/52 in the relevant branch; no clear operational expense leaf for transport/fuel.
+- Cloudflare Pages deployment of commits cf07/b728, deployed HTML/JS, authenticated Browser E2E and Staging remain UNVERIFIED. GitHub combined status for b728 returned no status checks.
+- No Production writes, DDL, Edge deploy, test data, or operational file edits were made in LVE637.
+
+## Readiness / Next Step
+**READY WITH LIMITATIONS.** Sources and Production contracts needed for the next PO/Receiver ChangeSet are understood. Do not execute new Production/RLS changes until the exact ChangeSet is presented and approved under the operating constitution. Owner applies operational HTML changes. Next priority: Receiver hardening (escaping + stable per-intent operation_id + branch visibility) and an approved append-only policy for purchase_status_history, followed by Cloudflare artifact verification and authenticated E2E.
+
+---
+
+# HISTORICAL CHECKPOINT — LVE-2026-11-05-632 — Buyer Cash Custody / Operational Expense Hardening
 
 **LAST VERIFIED EVENT:** 2026-11-05 — Continued from LVE631 under explicit owner approval. Applied Production migration 20261104223538 for operational Buyer custody expenses and Quick Market reservation-safe available-cash calculation; deployed save-purchase-order v29 ACTIVE; synchronized its source to operational Git and archived exact live source; updated Buyer custody dashboard/modal/review/settlement UX; built Buyer Tailwind CSS successfully. No business rows, stock, treasury, AP or GL were modified.
 
