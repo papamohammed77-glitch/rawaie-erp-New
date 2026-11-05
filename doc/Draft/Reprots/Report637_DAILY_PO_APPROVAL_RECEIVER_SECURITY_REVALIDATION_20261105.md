@@ -11,7 +11,7 @@
 
 ## 1. نقطة البداية — LAST VERIFIED EVENT / CHECKPOINT
 
-- بدأ الفحص من `CURRENT_STATE.md` كاملًا (Blob SHA وقت القراءة: `1801e2d9f8c... `)، ثم قُرئ `doc/Draft/Reprots/الدستور التشغيلي الدائم.md` كاملًا (Blob SHA: `d2...`)، قبل التقارير والكود وProduction.
+- بدأ الفحص من `CURRENT_STATE.md` كاملًا (Blob SHA وقت القراءة: `1801c1831381ef6c5421ce73ee4d02d2ebfc10fb`)، ثم قُرئ `doc/Draft/Reprots/الدستور التشغيلي الدائم.md` كاملًا (Blob SHA: `d2afa896514b1cb6abd247d2af7a862251ce0604`)، قبل التقارير والكود وProduction.
 - آخر نقطة مثبتة كانت **LVE636**، تقرير التنفيذ `Report636_PO_APPROVAL_PRODUCTION_EXECUTION_20261105.md`، Commit `3ce25b9b368841b31be0106206cd243d28cc4685` بتاريخ 2026-11-05 17:49:49 UTC.
 - LVE636 أثبت تنفيذ RPC الاعتماد وحارس الاستلام مباشرة في Production، ونشر Edge v30/v14، وتحديث `supervisor.html` و`receiver.html` على `main`، مع بقاء نشر Cloudflare غير مثبت.
 - ظهر خلل توثيقي: بداية `CURRENT_STATE.md` ما زالت تعرض LVE632 على أنه الأحدث، بينما LVE636 موجود في نهاية الملف. هذا لا يغيّر النظام، لكنه قد يضلل نقطة الاستئناف؛ سيُضاف LVE637 في مقدمة الحالة ويُعاد وسم LVE632 كتاريخي.
