@@ -23,7 +23,7 @@
 - قاعدة البيانات لا تحتوي RPC لاعتماد PO. الموجود purchase_create_po_atomic ينشئ Draft، وpurchase_approve_request_atomic يخص طلب الشراء PR وليس أمر الشراء PO.
 - جدول purchase_status_history موجود، والـtrigger trg_purchase_orders_status_history يسجل تغير حالة PO تلقائيًا. يلتقط trigger قيمة rawaea.purchase_actor كمنفذ؛ نضبطها قبل تحديث الحالة ولا نضيف سجلًا يدويًا ثانيًا.
 - يوجد حاليًا في Production أمر شراء واحد وحالته Draft. لا يجوز استخدام هذا المستند الحقيقي كتجربة اعتماد.
-- فحص صلاحيات المستخدمين الحالي أعاد وجود مستخدم نشط واحد يحمل purchases_supervisor عبر الصلاحيات المباشرة أو الدور. هذا تحديث عن لقطة Report633 السابقة.
+- فحص صلاحيات المستخدمين الحالي أعاد وجود مستخدم نشط واحد يحمل purchases_supervisor، ويحمل أيضًا purchases ونجمة الصلاحيات؛ لذلك يستطيع رؤية عنصر دورة المشتريات في قائمة النظام الأم. هذا تحديث عن لقطة Report633 السابقة.
 - Receiver يعرض حاليًا PO بحالتي Sent وPartially Received فقط، فلا يعرض Approved.
 - عيب Receiver إضافي مثبت: يستعلم عن purchase_order_details.po_code رغم أن العمود غير موجود؛ الربط الصحيح هو purchase_order_details.po_id = purchase_orders.id.
 - receive_purchase_atomic يتحقق من مستلم المخزن والفرع والكمية، ثم ينشئ Receiving ويثبت PurchaseIn ويحدث المخزون وذمة المورد. لكنه لا يفرض حاليًا حالة PO مؤهلة للاستلام؛ لذلك يلزم حارس خادمي قبل إنشاء Receiving.
@@ -331,6 +331,10 @@ BEGIN
     RETURN NEW;
   END IF;
 
+  IF NEW.company_id IS NULL THEN
+    RAISE EXCEPTION 'PURCHASE_RECEIVING_COMPANY_REQUIRED';
+  END IF;
+
   SELECT po.status
     INTO v_po_status
   FROM public.purchase_orders po
@@ -338,7 +342,11 @@ BEGIN
     AND po.po_code = NEW.po_number
   FOR UPDATE;
 
-  IF FOUND AND COALESCE(v_po_status, '') NOT IN ('Approved', 'Sent', 'Partially Received') THEN
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'PURCHASE_PO_NOT_FOUND_FOR_RECEIVING';
+  END IF;
+
+  IF COALESCE(v_po_status, '') NOT IN ('Approved', 'Sent', 'Partially Received') THEN
     RAISE EXCEPTION 'PURCHASE_PO_NOT_APPROVED_FOR_RECEIVING';
   END IF;
 
@@ -354,7 +362,7 @@ FOR EACH ROW
 EXECUTE FUNCTION app_private.guard_po_receiving_status();
 ~~~
 
-حالات الاستلام المسموح بها للتوافق: Approved وSent القديمة وPartially Received. Draft وReceived وCancelled لا تسمح بإنشاء سجل استلام جديد. إذا فشل الحارس تتراجع المعاملة كلها قبل حركة المخزون أو ذمة المورد.
+حالات الاستلام المسموح بها للتوافق: Approved وSent القديمة وPartially Received. Draft وReceived وCancelled لا تسمح بإنشاء سجل استلام جديد. وقد فُحصت دوال Production، وكان receive_purchase_atomic هو مسار INSERT الوحيد إلى public.receiving؛ لذلك يمكن أن يكون الحارس fail-closed عند وجود po_number: يرفض غياب company_id أو عدم العثور على PO بدل المرور الصامت. إذا فشل الحارس تتراجع المعاملة كلها قبل حركة المخزون أو ذمة المورد.
 
 ## 8. التعديل الجراحي المطلوب في Receiver
 
