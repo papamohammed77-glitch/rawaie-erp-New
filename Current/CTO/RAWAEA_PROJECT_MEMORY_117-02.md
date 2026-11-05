@@ -1,4 +1,20 @@
-# LVE-2026-11-05-632 — Buyer Cash Custody / Operational Expense Hardening
+# LVE-2026-11-05-637 — PO Approval Production Revalidation / Receiver Security
+
+- Report637: `doc/Draft/Reprots/Report637_DAILY_PO_APPROVAL_RECEIVER_SECURITY_REVALIDATION_20261105.md`; final report commit `d5e48f61b05d8fc999300a9b17e62e8ef4db6644`.
+- Read-only daily checkpoint at 2026-11-05 22:29 Cairo. Operational HEAD `b728c09e1bb4c482effc48a492546b393ff02c1f`; main owner change commit `684a55240a2f1145134b367204ef0da2c0b696e2`; supervisor `cf07aba424f5ca37cf75ac1804d756448841f4ea`; receiver `b728c09e1bb4c482effc48a492546b393ff02c1f`.
+- Production Edge v30/v14 active; approval RPC and receiving gate still present. No operational writes or tests were performed this run.
+- New Production events after LVE636: QA-SR-PO-20260927 Draft→Approved at 17:52:32 UTC by Owner; PO-20260928 created at 18:02:42 UTC and approved at 18:05:00 UTC by Purchasing Supervisor. Two POs are Approved; Receiving=0; Receiving Details=0; PO history=3. No matching stock/AP/GL references were found.
+- QA-SR-PO-20260927 still records 5/5 received in PO details without a Receiving document; do not clean or reverse automatically.
+- P1: Receiver stored DOM-XSS sink (RW_UI.safeHTML is innerHTML only; unescaped PO/supplier/item/profile values are interpolated); Receiver does not send operation_id, core RW_API adds no Idempotency-Key, Edge v14 uses deterministic fallback, and receive_purchase_atomic can return duplicate for a later independent receipt with the same payload; purchase_status_history has authenticated same-company DML through ALL policy + table grants, so audit history is mutable.
+- P2: Receiver lists company POs without branch filtering; no SEND_PO/ISSUE_PO; Supervisor dashboard UTC day boundary and silent query errors.
+- Owner clarification on 2026-11-05 16:59 UTC: Parent approval requires `purchases`; supervisor app requires `purchases_supervisor`. It does not explicitly settle whether PO creator self-approval is allowed; current RPC does not block it. Keep as unresolved decision, do not infer.
+- COA read confirms only expense parent 5, COGS 51, inventory variance 52 in relevant expense accounts; operational transport/fuel leaf remains missing.
+- Cloudflare deployment of cf07/b728, deployed artifact, authenticated Browser E2E and Staging remain UNVERIFIED. No commit status checks on b728.
+- Readiness: READY WITH LIMITATIONS. Next: exact owner-reviewed Receiver hardening and append-only purchase_status_history ChangeSet; no Production/RLS change without explicit approval. Owner applies operational HTML changes.
+
+---
+
+# HISTORICAL MEMORY BASE — LVE-2026-11-05-632 — Buyer Cash Custody / Operational Expense Hardening
 
 - Report632: [Buyer Cash Custody, Operational Expenses and Quick Market Reservation Hardening](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report632_BUYER_CASH_CUSTODY_OPERATIONAL_EXPENSES_QMP_HARDENING_20261105.md) — commit c52554ebd276369141c935f271009b74f71c3261.
 - Production migration buyer_custody_operational_expenses_20261105 version 20261104223538 is applied; operational migration file supabase/migrations/20261104223538_buyer_custody_operational_expenses_20261105.sql. New columns expense_type/category/reference/account_id with checks/FK/indexes; PO expense reviewer remains PO-only.
