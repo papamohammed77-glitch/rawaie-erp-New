@@ -6202,3 +6202,16 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - لم يتم تعديل Buyer أو CSS أو Receiver أو Mother/Core؛ ولم يتم إنشاء Migration/RPC/Trigger/Policy أو تعديل Edge أو نشر Cloudflare. لم تُنشأ بيانات اختبار أو PO أو Invoice؛ ولا أثر على المخزون أو المورد أو الأستاذ العام أو الخزينة. نشر Cloudflare وBuyer authenticated E2E ما زالا UNKNOWN/UNVERIFIED وفق آخر تقرير632.
 - سبب عدم تنفيذ التغيير التشغيلي: الباب 14 من Report614 يشترط عرض النصوص/SQL/Diff/الأثر/الاختبارات/التراجع كاملًا والحصول على موافقة صريحة على الحزمة الدقيقة قبل أي تغيير تشغيلي أو Production. Report633 وثق Change Scope والسبب الجذري ومتطلبات الحزمة، لكنه ليس ChangeSet برمجيًا معتمدًا.
 - الخطوة التالية الوحيدة: تجهيز حزمة اعتماد PO وإصدار PO داخل Edge القائمة v29 مع صلاحيات `purchases_supervisor` و`purchases`، وتصحيح تسميات Buyer مع الحفاظ على كل حقول المودالين، ثم تنفيذها بعد بوابة الموافقة. Receiver يبقى منفصلًا وتُدرج فيه لاحقًا معالجة `po_id` بدل `po_code`.
+
+
+## LVE634 — حزمة اعتماد PO وحارس إتاحة الاستلام — 2026-11-05
+
+- Report634: \`doc/Draft/Reprots/Report634_PO_SUPERVISOR_APPROVAL_AND_RECEIVING_GATE_20261105.md\`; commit \`95cc14f33cec24474ed748af8430386e712fe898\`; وثيقة عربية تتضمن مواضع ومقاطع الجراحة في main.html وEdge القائمة وSQL وReceiver واختبارات القبول والتراجع.
+- تأكد أن تبويب «أوامر الشراء» ومودال عرض PO موجودان بالفعل في main.html؛ لا يلزم إنشاء شاشة أو تبويب جديد. الزر المطلوب يضاف داخل مودال RW_Purchases.openPO، وتنفذه وظيفة صغيرة داخل RW_PurchaseGold عبر api('APPROVE_PO').
+- تأكد في Production أن purchase_orders RLS للقراءة فقط بالنسبة لـauthenticated؛ UPDATE المباشر من المتصفح غير ممكن. Edge save-purchase-order ACTIVE v29 لا تحتوي APPROVE_PO، ولا يوجد purchase_approve_po_atomic حاليًا.
+- آلية الاعتماد المقترحة: نفس Edge القائمة مع تحقق purchases_supervisor، وRPC جديدة تتحقق من auth.uid/company/المستخدم النشط والصلاحية، وتقفل PO، وتقبل Draft فقط، وتمنع منشئ الأمر من اعتماد أمره. status ينتقل Draft→Approved، وtrigger التاريخ الموجود يسجل actor ووقت الانتقال دون INSERT مكرر.
+- تم التحقق أن purchase_status_history وtrg_purchase_orders_status_history موجودان، وأن trigger يلتقط rawaea.purchase_actor.
+- تم التحقق في القراءة الحالية من وجود مستخدم نشط واحد يحمل purchases_supervisor؛ هذا يحدّث لقطة Report633 السابقة التي لم ترصد مستخدمًا معينًا بهذا الدور. يوجد حاليًا PO واحد في Production بحالة Draft؛ لم يتم اعتماده أو استخدامه للاختبار.
+- لكي يصبح Approved جاهزًا للاستلام فعليًا، يلزم تحديث Receiver ليعرض Approved، ويعالج تفاصيل PO عبر po_id لا po_code، ويحسب qty_received والمتبقي. كما يلزم حارس خادمي قبل INSERT في receiving؛ لأن receive_purchase_atomic الحالي لا يرفض Draft صراحة. المقاطع المعروضة في Report634 تحقق ذلك دون استبدال دالة الاستلام الطويلة.
+- لا تعديلات على main.html أو receiver.html أو Edge، ولا RPC/trigger/migration/deploy أو بيانات اختبار. لم تتغير المخزونات أو حسابات الموردين أو الخزينة. لم يتم لمس PO الحقيقي الحالي.
+- الحالة: ChangeSet جاهز للمالك، غير مطبق، والاعتماد المطلوب حسب Report614 §14 لم يصدر بعد. لا تعتبر ميزة اعتماد PO أو جاهزية الاستلام مفعلة حتى تطبيق جميع طبقات الحزمة واجتياز الاختبارات.
