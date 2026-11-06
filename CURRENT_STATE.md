@@ -1,3 +1,29 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-06-638 — PO / Receiver / Audit Integrity
+
+**LAST VERIFIED EVENT:** 2026-11-06 22:33 Africa/Cairo (20:33 UTC) — read-only daily revalidation of PO approval, Receiver, Production history and security contracts.  
+**Report:** `doc/Draft/Reprots/Report638_DAILY_PO_RECEIVER_AUDIT_HISTORY_REVALIDATION_20261106.md` — commit `0c22a78fb117a271ff4dcbb06552f9f16f006bc7`.  
+**Previous checkpoint:** LVE637 / Report637, commit `d5e48f61b05d8fc999300a9b17e62e8ef4db6644`.
+
+## Current State
+- Operational repo/branch: `papamohammed77-glitch/erp-frontend` / `main`; HEAD remains `b728c09e1bb4c482effc48a492546b393ff02c1f`; no later operational commit was observed.
+- Receiver blob `075ddf9e5801c25bd337d65bf883b4bf4b5736c3`; Core blob `f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1`; Purchasing Supervisor blob `8d46c3c6d6df487ebd880c29d438bcdd2bd789bf`; Buyer blob `5ab9f4e268cbf266e6ff950fe41bf5c9a4c9390a`.
+- Supabase SMART ERP remains `ACTIVE_HEALTHY`; PostgreSQL 17.6.1.121; 755 migrations, last recorded `20261104223538`; no Supabase branches are available for Staging.
+- Edge `save-purchase-order` ACTIVE v30 SHA `838f8c05d5e64f040dc4a346eae52816877d635bab41684d32d77eebeae304e6`; `receive-purchase` ACTIVE v14 SHA `05584598ded76f17ff6e29d4c6fb951d2f347ed7fdd3549ec457d929756a74fb`.
+- Current POs: QA-SR-PO-20260927 Approved with detail 5/5 but no Receiving document; PO-20260928 Approved with 15 ordered / 0 received. No matching Receiving, inventory_log, supplier_ledger or journal_entries rows exist for either PO.
+- purchase_status_history has 9 rows total: 5 purchase_invoices, 3 purchase_orders and 1 PurchaseOrder alias. The PO creation RPC manually writes PurchaseOrder/Created while the purchase_orders INSERT trigger writes purchase_orders/INSERT for the same PO; duplicate creation history is confirmed.
+- purchase_status_history still permits authenticated same-company INSERT/UPDATE/DELETE through ALL RLS policy + grants. Audit history is not append-only.
+- P1 remain: Receiver stored DOM-XSS sink; no stable operation_id from Receiver and deterministic Edge fallback can suppress a later independent receipt with the same payload; mutable purchase_status_history.
+- P2 remain: Receiver reads company-wide POs without branch filter; duplicate PO creation history; no formal SEND_PO/ISSUE_PO; Supervisor dashboard UTC date boundary and silent query errors.
+- Creator self-approval policy remains unresolved. Production contains an Owner-created PO approved by the same Owner; the RPC does not prohibit it. Do not infer owner policy.
+- Runtime logs in the last 24 hours show 134 save-purchase-order HTTP 200 requests and no receive-purchase invocation. This does not establish successful business E2E.
+- Cloudflare artifact, authenticated Browser E2E and Staging remain UNVERIFIED. Browser context was unavailable; deployed Pages URLs could not be fetched.
+- No operational source, Production schema/data, Edge deployment, RLS, permissions or business records were changed in LVE638. Only this governance report and checkpoint are being recorded.
+
+## Readiness / Next Step
+**READY WITH LIMITATIONS.** Source and Production contracts needed to prepare the next Receiver/Audit ChangeSet are understood. Do not edit Receiver/Core/Edge or Production RLS/GRANTs until the exact ChangeSet is presented and explicitly approved under the operating constitution. Owner applies operational HTML changes. Next priority: prepare one surgical ChangeSet for safe DOM rendering, per-intent operation_id, branch-scoped Receiver visibility, append-only purchase_status_history and removal of duplicate PO creation history, with Staging-only acceptance tests and rollback. No new Edge Function.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-05-637 — PO Approval Production Revalidation / Receiver Security
 
 **LAST VERIFIED EVENT:** 2026-11-05 22:29 Africa/Cairo (20:29 UTC) — read-only revalidation after LVE636.  
