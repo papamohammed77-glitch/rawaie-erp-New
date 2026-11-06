@@ -1,3 +1,20 @@
+# LVE-2026-11-06-638 — PO / Receiver / Audit Integrity Revalidation
+
+- Report638: `doc/Draft/Reprots/Report638_DAILY_PO_RECEIVER_AUDIT_HISTORY_REVALIDATION_20261106.md`; report commit `0c22a78fb117a271ff4dcbb06552f9f16f006bc7`.
+- CURRENT_STATE advanced to LVE638 in commit `0de7c7a43896815388131f025646b8fa38c013c2`; previous LVE637 remains below as historical checkpoint.
+- Operational repo HEAD unchanged at `b728c09e1bb4c482effc48a492546b393ff02c1f`. Receiver blob `075ddf9e5801c25bd337d65bf883b4bf4b5736c3`; Core blob `f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1`; Supervisor blob `8d46c3c6d6df487ebd880c29d438bcdd2bd789bf`; Buyer blob `5ab9f4e268cbf266e6ff950fe41bf5c9a4c9390a`.
+- SMART ERP remains ACTIVE_HEALTHY; 755 migrations, latest `20261104223538`; no Supabase Staging branches. Edge save-purchase-order v30 and receive-purchase v14 remain ACTIVE with LVE637 SHAs.
+- Current POs remain QA-SR-PO-20260927 Approved (detail 5/5, no Receiving document) and PO-20260928 Approved (15 ordered, 0 received). No matching Receiving, inventory_log, supplier_ledger or journal_entries records were found for either.
+- Clarified purchase_status_history count: 9 total = 5 purchase_invoices + 3 purchase_orders + 1 PurchaseOrder alias. Root cause of duplicate PO creation history is confirmed: purchase_create_po_atomic manually inserts PurchaseOrder/Created while the purchase_orders INSERT trigger also inserts purchase_orders/INSERT for the same PO. Consumer impact is not yet known.
+- purchase_status_history remains mutable by authenticated same-company users through ALL RLS policy and INSERT/UPDATE/DELETE grants. Append-only audit contract is not implemented.
+- P1 remain: Receiver raw HTML interpolation / DOM-XSS sink; Receiver omits operation_id while receive-purchase v14 generates deterministic fallback; purchase_status_history is mutable. P2 remain: Receiver company-wide PO visibility without branch filter; duplicate creation history; missing formal SEND_PO/ISSUE_PO; Supervisor UTC day boundary and silent query errors.
+- Owner self-approval policy remains unresolved. The live PO data includes an Owner-created PO approved by the same Owner; current RPC does not block creator self-approval. Do not infer policy.
+- Last 24h logs: 134 save-purchase-order HTTP 200 requests; no receive-purchase invocation. No E2E evidence.
+- Cloudflare artifact, authenticated Browser E2E and Staging remain UNVERIFIED. Browser context unavailable. No operational/Production write, code change, deployment or QA data was performed in LVE638.
+- Readiness: READY WITH LIMITATIONS. Next: prepare exact approved Receiver/Audit ChangeSet (safe DOM rendering, per-intent operation_id, branch scope, append-only history, deduplicate PO creation history) with Staging-only tests and rollback. No new Edge Function.
+
+---
+
 # LVE-2026-11-05-637 — PO Approval Production Revalidation / Receiver Security
 
 - Report637: `doc/Draft/Reprots/Report637_DAILY_PO_APPROVAL_RECEIVER_SECURITY_REVALIDATION_20261105.md`; final report commit `d5e48f61b05d8fc999300a9b17e62e8ef4db6644`.
