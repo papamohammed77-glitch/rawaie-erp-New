@@ -1,3 +1,18 @@
+## LVE-2026-11-07-639 — Parent Finance / Enterprise Employee Custody Architecture
+
+- Report639: `doc/Draft/Reprots/Report639_EMPLOYEE_CUSTODY_ENTERPRISE_ARCHITECTURE_20261107.md` (commit `fd6d1d41b01399409f90dd49a33fdbb179e0ec5a`).
+- Current operational HEAD remains `b728c09e1bb4c482effc48a492546b393ff02c1f`; Parent `main.html` full blob `59241e741abcbc318fa68d3c10775e40e2688927`.
+- Parent has RW_Finance. Its generic payments UI calls `finance_save_expense` and must not be used unchanged for employee custody, because it posts expense debits and Treasury cash effects.
+- Production COA 127 "عهد الموظفين" exists as active asset/debit; COA 121 "النقدية" exists; COA 127 has no child GL accounts and no journal_lines.
+- Buyer custody tables exist with RLS and are currently empty. Their existing lifecycle: finance issues custody + Initial advance; recipient acknowledgement invokes central cash-payment posting Dr127/Cr121; approved operational expense Dr expense/Cr127; actual cash return Dr121/Cr127. These structures are Buyer-specific and not yet a generic service for all company employees.
+- Current Production has 31 active users and zero employee_profiles. employee_profiles.employee_id FK points to users.id. Existing custody uses users.id; authoritative employee mapping must be resolved before all-staff rollout.
+- Live buyer_custody_issue_atomic checks Treasury company/activity but not its branch_id against custody branch. Treasury master data includes central CASH-01 with null branch_id and branch cashiers/POS; branch matching and explicit centrally authorized exception are required.
+- Recommended design: single employee-custody subledger under GL control 127, grouped by employee/branch/mission/custody, shown under 127 in Parent Finance. Avoid one physical GL account per employee by default and do not create a parallel ledger. Keep business-purpose custody separate from salary advance, employee-paid reimbursement, direct expenses and inventory purchases. Use same central posting contract across employee apps, employee-only visibility, role segregation, immutable audit, idempotency and ageing/reconciliation.
+- Do not reuse finance_save_expense for custody advances. A draft/approval has no effect; actual acknowledged handover posts Dr127/Cr121; approved expense Dr expense/Cr127; actual returned cash Dr121/Cr127; employee overspend requires separate employee-payable liability/payment or explicit rejection.
+- No operating code or Production change occurred in this assessment. Deployment, Browser E2E and Staging remain UNVERIFIED. Next step is a full consumer map of buyer_custody RPC/table users and employee/branch identity contracts, then exact approved ChangeSet.
+ 
+---
+
 # LVE-2026-11-06-638 — PO / Receiver / Audit Integrity Revalidation
 
 - Report638: `doc/Draft/Reprots/Report638_DAILY_PO_RECEIVER_AUDIT_HISTORY_REVALIDATION_20261106.md`; report commit `0c22a78fb117a271ff4dcbb06552f9f16f006bc7`.
