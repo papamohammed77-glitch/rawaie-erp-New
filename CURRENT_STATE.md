@@ -1,3 +1,22 @@
+# LVE-2026-11-07-639 — Employee Cash Custody Enterprise Architecture Assessment
+
+- Report639: `doc/Draft/Reprots/Report639_EMPLOYEE_CUSTODY_ENTERPRISE_ARCHITECTURE_20261107.md`; report commit `fd6d1d41b01399409f90dd49a33fdbb179e0ec5a`.
+- This checkpoint records a read-only revalidation and architecture design only; it does not supersede LVE638's open PO/Receiver/Audit findings and does not assert any operational deployment or E2E result.
+- Operational repo remains `papamohammed77-glitch/erp-frontend`, branch `main`, HEAD `b728c09e1bb4c482effc48a492546b393ff02c1f`.
+- Parent `companies/company-1/main.html` was fetched as full Git blob `59241e741abcbc318fa68d3c10775e40e2688927` (1,807,487 chars / 33,475 lines). `RW_Finance` contains treasury, COA, journals, receipts, payments, expenses, transfers and other finance tabs. Generic `_savePayment` calls `finance_save_expense`, which posts expense debits and cash/Treasury effects; do not reuse it unchanged for employee-custody advances.
+- Read-only Production snapshot: COA 127 "عهد الموظفين" is active asset/debit and COA 121 "النقدية (الخزينة الرئيسية)" is active asset/debit. COA 127 has zero child GL accounts and zero journal_lines currently posted to it.
+- Existing Buyer custody structures (all RLS enabled): `buyer_custodies`, `buyer_custody_advances`, `buyer_custody_expenses`, `buyer_custody_settlements`, `buyer_custody_payments`, `buyer_goods_custody_events`. Current rows are zero in the custody tables. Current cash_box summary: 3 Payment entries (POS_RETURN_REFUND) and 5 Receipt entries (POS).
+- `buyer_custody_issue_atomic` validates active company user, finance/finance_manager, active company Treasury and company Branch, but does not verify Treasury.branch_id matches custody branch. Existing Buyer issue creates Initial advance pending employee acknowledgement; `buyer_custody_acknowledge_atomic` then uses central `post_cash_payment_atomic` to post Dr127/Cr121 and link cash_box/journal. Approved operational expense posts Dr expense/Cr127; physical cash return posts Dr121/Cr127.
+- Identity gap: 31 active users but `employee_profiles` currently has zero records; employee_profiles.employee_id references users.id. Existing custody uses users.id. Define authoritative staff mapping before extending to all employees.
+- Treasury master data includes central `CASH-01` with branch_id NULL plus branch-scoped cashiers/POS. Define explicit branch-Treasury relationship and privileged central-Treasury exception.
+- Recommended target: one enterprise-wide Employee Custody subledger under control account 127, with employee/branch/mission/custody dimensions rendered as employee child rows beneath 127. Do not create one physical GL account per employee by default and do not create a parallel custody ledger. Reuse/refactor Buyer custody structures only after mapping every current Buyer consumer.
+- Separate custody from salary/personal loans, direct expense payments, employee-paid reimbursements and merchandise purchases. Draft/approval alone have no cash or GL effect; actual handover acknowledgement posts Dr127/Cr121; approved expense posts Dr expense/Cr127; actual cash return posts Dr121/Cr127. Employee overspend requires a separate employee-payable liability/payment route or an explicit pre-posting block; do not leave a credit balance in asset 127 or auto-deduct payroll.
+- Current Parent Finance generic payment route is not suitable for custody because it calls `finance_save_expense`. Future ChangeSet must add a distinct "وجهة الصرف: عهدة موظف" route to the existing custody contract; no new Edge Function is recommended.
+- No operating HTML, database schema, RLS, grants, RPC, Edge, treasury, journal, business data, deployment or QA data was changed in LVE639. Cloudflare artifact, Browser Runtime/E2E and Staging remain UNVERIFIED.
+- Next: map all `buyer_custody_*` consumers and user/employee/branch contracts; then prepare an exact Parent Finance + shared employee-custody ChangeSet for owner review and explicit approval.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-06-638 — PO / Receiver / Audit Integrity
 
 **LAST VERIFIED EVENT:** 2026-11-06 22:33 Africa/Cairo (20:33 UTC) — read-only daily revalidation of PO approval, Receiver, Production history and security contracts.  
