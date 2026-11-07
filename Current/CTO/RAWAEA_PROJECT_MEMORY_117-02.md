@@ -1,3 +1,20 @@
+## LVE-2026-11-07-640 — Employee Custody / Parent Finance / Cross-App Revalidation
+
+- Report640: `doc/Draft/Reprots/Report640_EMPLOYEE_CUSTODY_PARENT_FINANCE_CONSUMER_REVALIDATION_20261107.md`, commit `806d40acdb92f2260dd022a20cd26dbd16949d20`.
+- Current operational HEAD remains `b728c09e1bb4c482effc48a492546b393ff02c1f`; Parent blob `59241e741abcbc318fa68d3c10775e40e2688927`; Core `f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1`; Buyer `5ab9f4e268cbf266e6ff950fe41bf5c9a4c9390a`.
+- Parent Finance has no Employee Custody tab. Its generic payment modal loads all active COA accounts and calls `finance_save_expense`; the RPC does not enforce Expense account_type, so asset 127 can be posted through a generic finance_expenses document without employee/custody linkage. Never use this as a custody workaround.
+- Buyer is the only one of 30 company-1 HTML files found using cash-custody APIs. Van-sales "عهدتي الآن" is vehicle inventory, not cash. Buyer Realtime subscribes to custody tables with a 15-second reconciliation setting; Runtime delivery remains unverified.
+- Live `save-purchase-order` v30 is the only current custody API route found in the reviewed app/Edge consumers. Its GET/ACK/Submit gate requires purchases/finance/finance_manager, excluding ordinary sales/delivery employees. Finance issue/review/settlement remains finance/finance_manager-only.
+- Production SMART ERP ACTIVE_HEALTHY; 755 migrations, latest `20261104223538`; no Staging branches. COA 127 and 121 active Asset/Debit; no child GL under 127 and no journal lines on 127. Buyer cash/goods custody tables all zero; cash_box has 3 Payment and 5 Receipt rows. Active Expense accounts remain 5/51/52 only; no transport/fuel/tolls Expense leaf.
+- Current HR screen and `save-employee` v10 use `users`, not `employee_profiles`. employee_profiles=0 is not itself a blocker. Production users: 31 Active; employee_id empty 31/31; default_branch_id present 3/31; allowed_branch_ids present 9/31. Technical custody identity is users.id, but employee eligibility and branch mapping need explicit rules. employee_profiles contains sensitive HR fields; do not expose it to Finance.
+- Custody RLS grants authenticated SELECT only; service_role DML; no anon privileges. Custody RPCs are SECURITY DEFINER, authenticated/service_role EXECUTE, no anon EXECUTE.
+- Current issue/add/settle RPCs do not enforce Treasury branch match; Issue allows branch_id NULL. issue_atomic writes received_at before acknowledgement. Issue/Add Advance idempotency returns existing rows without comparing payload. No separate cashier/handover actor, due date, cost center or mission id. Settlement safely blocks employee overspend because Employee Payable is not configured.
+- Recommended target: one GL control account 127 plus employee/mission virtual subledger; add Employee Custody destination in Parent payment flow and a dedicated Finance tab; expose "عهدتي النقدية" through a shared authenticated employee component across relevant apps, keeping cash separate from vehicle/inventory custody. Reuse current ledger/RPCs with backward compatibility; no parallel tables or new Edge Function.
+- No operational code, Production schema/data, Edge deployment, permissions or business records were changed; no QA data created. Cloudflare, Browser E2E, Runtime Realtime and Staging remain UNVERIFIED.
+- Readiness: READY WITH LIMITATIONS. Next: exact owner-reviewed ChangeSet for employee/branch identity, Treasury matching, finance_save_expense account-type guard and Parent Finance custody route; no operational/Production write before explicit approval.
+
+---
+
 ## LVE-2026-11-07-639 — Parent Finance / Enterprise Employee Custody Architecture
 
 - Report639: `doc/Draft/Reprots/Report639_EMPLOYEE_CUSTODY_ENTERPRISE_ARCHITECTURE_20261107.md` (commit `fd6d1d41b01399409f90dd49a33fdbb179e0ec5a`).
