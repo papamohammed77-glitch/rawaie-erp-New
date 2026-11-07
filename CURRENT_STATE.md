@@ -1,3 +1,51 @@
+# LVE-2026-11-07-640 — Employee Custody / Parent Finance / Cross-App Revalidation
+
+**LAST VERIFIED EVENT:** 2026-11-07 — Read-only revalidation after LVE639.  
+**Report640:** `doc/Draft/Reprots/Report640_EMPLOYEE_CUSTODY_PARENT_FINANCE_CONSUMER_REVALIDATION_20261107.md` — commit `806d40acdb92f2260dd022a20cd26dbd16949d20`.  
+**Previous checkpoint:** LVE639 / Report639 — employee cash-custody enterprise architecture assessment.
+
+## Current verified source and contracts
+
+- Operational repo/branch: `papamohammed77-glitch/erp-frontend` / `main`; HEAD remains `b728c09e1bb4c482effc48a492546b393ff02c1f`.
+- Parent `companies/company-1/main.html` blob `59241e741abcbc318fa68d3c10775e40e2688927`; 33,475 lines. Finance tabs at 18558–18611 contain no Employee Custody tab. Generic payment form at 20794–20960 calls `finance_save_expense`; account dropdown loads all active COA accounts.
+- Core `companies/company-1/core.js` blob `f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1`; modules remain RW_Auth/RW_DB/RW_API/RW_UI/RW_ImageCache/RW_SW/RW_Realtime. No shared employee-custody module.
+- Buyer blob `5ab9f4e268cbf266e6ff950fe41bf5c9a4c9390a`; it is the only company-1 HTML app found using cash-custody APIs. Other 29 app HTML files were scanned. Van-sales "عهدتي الآن" is vehicle stock custody, not cash custody.
+- `save-purchase-order` ACTIVE v30, verify_jwt=true, SHA `838f8c05d5e64f040dc4a346eae52816877d635bab41684d32d77eebeae304e6`; its custody operations are still gated to purchases/finance/finance_manager. General employees outside these permissions cannot use GET_CUSTODY/ACK/SUBMIT through this Edge route.
+- Relevant finance/employee Edge functions inspected: save-payment-voucher v7, save-receipt-voucher v8, save-journal-entry v8, save-employee v10, delete-employee v4, receive-purchase v14, get-cash-flow v1 and sales-payment-allocation v2. No alternate employee-custody writer found.
+
+## Production revalidation
+
+- SMART ERP `fiilmooggumokxanwiyx`: ACTIVE_HEALTHY, PostgreSQL 17.6.1.121; 755 migrations, latest `20261104223538`; no Staging branches.
+- COA 127 "عهد الموظفين" and 121 "النقدية" are active Asset/Debit accounts. COA 127 has zero child GL accounts and zero journal lines.
+- Active Expense accounts remain only 5/51/52; no active Expense leaf for transport/fuel/tolls. Do not use 51/52 or guess a code.
+- Current Buyer custody data tables and goods custody events are all zero. cash_box contains 3 Payment and 5 Receipt rows.
+- Custody tables: authenticated SELECT only; service_role DML; no anon table privileges. Custody SECURITY DEFINER RPCs are executable by authenticated/service_role, not anon.
+- Treasury master has one central CASH-01 with branch_id NULL and three branch-scoped treasuries. Current custody issue/add/settlement RPCs do not enforce Treasury branch = custody branch; Issue UI/RPC permits branch NULL.
+- Current HR UI `office/hr.html` uses `users`, and `save-employee` v10 writes `users`; employee_profiles is empty but is not the HR screen's active employee source. Current users: 31/31 Active, employee_id empty 31/31, default_branch_id present 3/31, allowed_branch_ids present 9/31. Technical custody identity remains users.id; eligibility and branch assignment need explicit rules before all-staff rollout. employee_profiles contains sensitive HR fields and must not be exposed to Finance.
+- `buyer_custody_issue_atomic` sets received_at at issue time before employee acknowledgement; issue/add advance idempotency returns an existing row without comparing the full payload; custody records do not include a separate cashier/handover actor or due_date/cost_center/mission_id.
+- `buyer_custody_settle_atomic` correctly blocks overspend when Employee Payable is not configured.
+- Parent generic `finance_save_expense` accepts any active COA account without enforcing account_type=expense. Because Parent's payment form offers all active accounts, COA 127 can be selected as a generic expense line and posted as finance_expenses without employee/custody linkage. Do not use this route for employee custody. Its branch-aware overload also does not validate Treasury branch against selected branch.
+
+## Decision refinement from LVE639
+
+The earlier note that empty employee_profiles left the employee source unresolved is refined: HR currently operates on users and custody RPCs already key to users.id. employee_profiles being empty is not by itself a blocker. The remaining real gaps are employee eligibility, missing employee codes, incomplete branch assignment, and branch/Treasury enforcement.
+
+## Priority findings
+
+- P1: Parent has no employee-custody destination/tab; generic payment route can misclassify account 127 as expense; branch/Treasury mismatch is not rejected; current Edge self-service gate excludes non-purchasing employees; user/branch master data is incomplete for safe branch-scoped rollout.
+- P2: received_at timing semantics; no separate cashier actor; issue/add idempotency payload mismatch; no due-date/cost-center/mission dimensions; no Employee Payable reimbursement path; missing operational Expense leaf accounts.
+- Reuse existing buyer_custody_* ledger and central RPCs with backward compatibility. Keep GL 127 as one control account and render employee/mission virtual subledger rows beneath it; do not create a physical GL account per employee by default or a parallel table set/Edge Function.
+- No source, Production database, Edge deployment, permissions, or business data was changed. No QA data was created.
+
+## Deployment and readiness
+
+Cloudflare artifact, authenticated Browser E2E, Runtime event delivery/latency and Staging remain UNVERIFIED/unavailable. Buyer source configures Realtime plus 15-second reconciliation, but Runtime delivery is not proven.
+
+**Readiness: READY WITH LIMITATIONS.**  
+**Next priority:** prepare the exact owner-reviewed ChangeSet for employee identity/branch/Treasury enforcement, protection of `finance_save_expense`, and Parent Finance's Employee Custody route. No operational or Production write before the exact patch, dependencies, acceptance tests, rollback and explicit owner approval.
+
+---
+
 # LVE-2026-11-07-639 — Employee Cash Custody Enterprise Architecture Assessment
 
 - Report639: `doc/Draft/Reprots/Report639_EMPLOYEE_CUSTODY_ENTERPRISE_ARCHITECTURE_20261107.md`; report commit `fd6d1d41b01399409f90dd49a33fdbb179e0ec5a`.
