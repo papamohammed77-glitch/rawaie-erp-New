@@ -878,3 +878,9 @@ COMMIT;
 6. لا يوجد حساب Expense مناسب مثبت للوقود/الانتقالات/الرسوم؛ لا تعتمد 51 أو52 بدلًا منهما. يلزم إعداد حسابات مصروف تشغيلية معتمدة من الإدارة المالية قبل قبول هذه الفئات.
 
 **الحكم المحدث:** DATABASE CHANGESET APPLIED AND VERIFIED / SQL-RPC rollback QA previously passed / UI + authenticated browser E2E + Cloudflare verification OPEN. لا تُعتبر دورة العهد مكتملة أو جاهزة للتشغيل الميداني قبل إغلاق النقاط الست أعلاه.
+
+
+## 19. Cloudflare Production deployment recheck — 2026-11-08
+
+تمت قراءة تبويب Cloudflare Dashboard المفتوح للمشروع `rawaea-erp` بعد تحديث LVE642. صف Production الحالي في لوحة المشروع يعرض المصدر `main` والـcommit `b728c09e1bb4c482effc48a492546b393ff02c1f` بعنوان `Harden approved PO receiving list and quantity validation`، مع deployment URL `https://c2f858c3.rawaea-erp.pages.dev/`. هذا يطابق HEAD الحالي لمستودع `erp-frontend/main`، وبالتالي لم يعد هناك تعارض مصدر معروف بين HEAD ولوحة Cloudflare. مع ذلك، استخراج صفحة Dashboard لم يُظهر نص حالة Success صراحة، ولم تُجرَ إعادة تحميل/تفاعل Browser E2E على التطبيق؛ لذلك تبقى سلامة التشغيل التفاعلي بعد النشر UNVERIFIED، ولا تُعلن E2E مكتملة.
+
