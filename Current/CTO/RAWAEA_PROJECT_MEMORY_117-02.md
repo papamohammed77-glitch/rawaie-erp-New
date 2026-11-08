@@ -7,7 +7,7 @@ The owner clarified the one and only execution model: deploy/apply directly to S
 Evidence basis: Report631 §10 documents SQL migration tests in BEGIN/ROLLBACK and RLS tests rolled back; Report632 §10 calls for E2E with removable QA data. Report640's Staging-only recommendation was an assistant-added constraint, not the owner's target operating model.
 
 
-- Report641: doc/Draft/Reprots/Report641_EMPLOYEE_CUSTODY_SURGICAL_CHANGESET_20261108.md. Read-only forensic revalidation after LVE640; no code/Production writes.
+- Report641: doc/Draft/Reprots/Report641_EMPLOYEE_CUSTODY_SURGICAL_CHANGESET_20261108.md. Live forensic revalidation plus successful SQL/RPC QA inside one SMART ERP Production transaction ending in ROLLBACK; no permanent Production or operational-code write.
 - Operational HEAD unchanged: b728c09e1bb4c482effc48a492546b393ff02c1f. Parent main.html blob 59241e741abcbc318fa68d3c10775e40e2688927; Core f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1; Buyer 5ab9f4e268cbf266e6ff950fe41bf5c9a4c9390a.
 - Live SMART ERP remains ACTIVE_HEALTHY; no Staging branch is to be created under the owner's direct-Production model. Account 127/121 active Asset/Debit, no child GL or posted 127 lines; custody tables empty.
 - Confirmed critical defect: finance_save_expense does not require account_type='expense'; asset 127 can enter generic finance_expenses. ChangeSet proposes only a type guard in the existing function, not a new writer.
@@ -15,9 +15,9 @@ Evidence basis: Report631 §10 documents SQL migration tests in BEGIN/ROLLBACK a
 - Current Treasury snapshot: central CASH-01=10,685 EGP (branch_id NULL), BR-01 cashiers=0 EGP each, POS=190 EGP (must not fund employee custody), BR-2 Alexandria has no active Treasury. Phase 1 must only use same-branch Cash Treasury; central exception requires separate policy/permission; branch treasury must be provisioned and funded by real transfer.
 - users is current employee identity source; employee_profiles empty. allowed_branch_ids is mixed scalar/array JSONB and current membership counts conflict with Report640; normalize before rollout. Do not expose employee_profiles sensitive HR fields to Finance.
 - Employee self-service should use RLS-scoped reads and existing ownership-checking RPCs directly; do not use save-purchase-order GET_CUSTODY for ordinary employees because its current Edge gate is restricted to purchases/finance/finance_manager.
-- Report641 documents Parent Finance tab and Buyer UI surgical owner patches. No operational HTML/Core changes have been applied. Full proposed CREATE OR REPLACE bodies for six existing functions are included in Report641 Appendix A; they are unexecuted/untested and require the specific change-review gate, then validate directly on SMART ERP Production using rollback transactions or tagged disposable QA fixtures with complete cleanup.
-- No Production DDL/RPC/RLS/ACL/Edge deployment, treasury/journal/cash_box movement, QA rows, or test records were created in LVE641. No Staging project/branch is to be created; owner policy authorizes disposable Production QA with verified cleanup.
-- Readiness: CHANGESET PREPARED — DIRECT PRODUCTION QA / SPECIFIC CHANGE APPROVAL GATE OPEN.
+- Report641 documents Parent Finance tab and Buyer UI surgical owner patches. No operational HTML/Core changes have been applied. Six proposed function bodies plus received_at nullability DDL in Appendix A compiled and their SQL/RPC flows passed inside a Production rollback transaction. Tested: Expense-127 rejection, no effect before ACK, Treasury/branch/POS/central guards, Issue/Add idempotency and conflict rejection, employee ACK payments, additional advance, full settlement/return, and Treasury baseline restoration. Browser JWT E2E, PostgREST RLS, UI integration and Cloudflare parity remain unverified.
+- No permanent Production DDL/RPC/RLS/ACL/Edge deployment, operational UI/Core change, treasury/journal/cash_box movement, QA row or test record remains from LVE641. The only Production writes were inside a QA transaction and fully rolled back; post-rollback counts are zero and Treasury balances are back at 10,685/0 EGP. No Staging project/branch is to be created.
+- Readiness: SQL/RPC QA PASS — FULL ROLLBACK VERIFIED / PERMANENT CHANGE AND OWNER UI WORK OPEN.
 
 ---
 
