@@ -1,3 +1,25 @@
+# LVE-2026-11-09-662 — Buyer Invoice Item Catalog Search Fixed in Source
+
+**LAST VERIFIED EVENT:** 2026-11-09 (Africa/Cairo) — investigated Buyer → «فواتيري» invoice item lookup against the current source, Parent purchasing consumers, SMART ERP Production schema/RLS, and the existing invoice RPC path. Root cause confirmed: the invoice editor filtered a locally cached \`this.data('items')\` snapshot and did not query \`public.items\` as the user typed. The editor and barcode list depended on the generic cache/GET_DATA snapshot.
+
+**SOURCE CHANGE:** Operational repo \`papamohammed77-glitch/erp-frontend\`, branch \`main\`. Only \`companies/company-1/purchasing/buyer.html\` changed. Final commit \`00f38aeb7bb7fbbac947b5084838074dbea361b0\`; final blob \`2b8be5fb683b185ee3dbd6d44c296484ce26c18b\`. Added paginated authenticated \`loadInvoiceItems()\` scoped to the current company and active items; added Parent-aligned tokenization/wildcard escaping; replaced local-only invoice search with direct authenticated \`public.items\` queries over item code/name/barcode/search_label; added debounce, stale-response protection, loading/no-result/error states, and exact/prefix ranking. The barcode scanner in this invoice modal now uses the same direct catalog read. Existing price rules, operation IDs, invoice payload, and central write flow were preserved. The two intermediate commits \`0ecab68a4f044c93764a03b02f4f16b28af1b90b\` and \`8763561117e27eec59d457f926139c173bc1b7ee\` are superseded by the final commit.
+
+**PARENT / CENTRAL CONTRACT:** Parent \`main.html\` was not changed; current Parent \`RW_PurchaseGold\` uses the same \`items\` table and existing \`purchaseItemSearch()\` token/escape/ranking pattern. Parent invoice list/dashboard read \`purchase_invoices\`, invoice details read \`purchase_invoice_details\`, and the Parent Realtime consumer subscribes to \`purchase_invoices\`. Buyer \`CREATE_PO_INVOICE\` still routes through existing \`save-purchase-order\` v37 to \`purchase_create_po_invoice_atomic\`, which validates company/user/permission/active item/PO/supplier/currency/idempotency and delegates to the existing central atomic invoice writer. No schema, RLS, grants, RPC, Edge Function, Core, Parent, inventory, accounting or treasury change was made.
+
+**READ-ONLY VALIDATION:** final Buyer inline JavaScript compiled successfully. A simulated authenticated Buyer SQL context with effective \`purchases\` permission could read 35 active items for the company; SQL-equivalent multi-token search \`بسكوت 1011\` returned one match and barcode \`1224\` returned one match. All database checks were read-only/rolled back. No QA invoice or other business record was created or modified.
+
+**DEPLOYMENT / E2E:** Cloudflare Pages dashboard created a Production deployment entry for final commit \`00f38ae\`, preview URL \`https://d0cdfbaa.rawaea-erp.pages.dev\`. Final deployment badge/status and served Buyer blob parity were not independently verified. Connected browser access was read-only and did not provide an authenticated Buyer session, so authenticated Browser E2E remains UNVERIFIED. Do not claim full E2E or final served-artifact parity.
+
+**REPORT:** \`doc/Draft/Reprots/Report662_BUYER_INVOICE_ITEM_CATALOG_SEARCH_FIX_20261109.md\`; report commit \`9535b4c48182a4cd7d64a82cf3dcf7abb38cbd5c\`.
+
+**OPEN GATES:** (1) confirm Cloudflare final deployment status and served blob parity; (2) authenticated Buyer browser tests for Arabic/partial/multi-token/code/barcode/no-result/rapid typing/selection/line-add/reopen; (3) draft invoice create/update and Parent visibility in approved isolated or rollback QA only, with proof of no stock/treasury/cash-box/journal/supplier-ledger effect before actual receiving/payment. Overall Buyer program remains OPEN; market-purchase receiving, vehicle goods custody, supplier-return acceptance and full E2E are not closed.
+
+**ROLLBACK:** revert only \`00f38aeb7bb7fbbac947b5084838074dbea361b0\` to restore the prior Buyer invoice catalog/search path. No database cleanup is required.
+
+**STATUS:** BUYER SOURCE FIX COMMITTED · JS PARSE PASS · READ-ONLY RLS/SEARCH CHECKS PASS · PARENT CONTRACT VERIFIED · CLOUDFLARE DEPLOYMENT ENTRY PRESENT · AUTHENTICATED BROWSER E2E / SERVED-ARTIFACT PARITY UNVERIFIED.
+
+---
+
 # LVE-2026-11-09-661 — HR Employee Financial Debt Visibility Executed
 
 **LAST VERIFIED EVENT:** 2026-11-09 (Africa/Cairo) — resumed from LVE660 and executed the previously prepared repair. SMART ERP Production `public.hr_query(text,jsonb)` now preserves HR's existing `rows` contract and returns the existing Employee Financial Subledger as `financial_balances` plus employee-specific `financial_ledger` (max 200). The Parent HR Advances view now shows posted employee receivables and payables separately from HR advance/loan request documents; Employee 360 shows per-account balances and latest posted ledger movements; filtered Realtime refreshes are subscribed to Employee journal/cash sources and posted journal-entry updates. No new table/view/GL/Edge Function, RLS policy, grant, cash movement, journal, custody, stock or permanent QA data was created.
