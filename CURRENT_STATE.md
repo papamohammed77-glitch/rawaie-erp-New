@@ -1,3 +1,25 @@
+# LVE-2026-11-08-652 — Parent Finance Custody Event Binding Fix Committed
+
+**LAST VERIFIED EVENT:** 2026-11-08 (Africa/Cairo) — resumed from LVE651; independently re-fetched the operational Parent source from the current GitHub tree, applied the one-identifier fix to the later legacy `bind(root)` declaration, created commit `d514060d88c8156f982b6d586715c7af7d7f4c6a`, and then verified that the latest observed `main` HEAD `c8d40b32150d2cb0e7e5830bac4a9e3d0a846655` retains corrected `main.html` blob `879383859d0ec20927cc718e63a7af49fa18980c`. The only descendant after the fix changes `_forensic_current_main_extract.md`, not Parent source.
+
+**Report652:** `doc/Draft/Reprots/Report652_PARENT_FINANCE_CUSTODY_EVENT_BINDING_FIX_20261108.md`.
+
+**Operational patch:** `papamohammed77-glitch/erp-frontend`, branch `main`; fix commit `d514060d88c8156f982b6d586715c7af7d7f4c6a`; file `companies/company-1/main.html`; old blob `6b4d555d0da9efd3fb821aef4a9a2e832bb064e1`; new/current blob `879383859d0ec20927cc718e63a7af49fa18980c`. Exact change: later legacy `function bind(root)` → `function bindLegacy(root)`. One declaration named `bind` remains; the active render still calls `bind(target)`.
+
+**SOURCE CHECKS:** PASS — two original same-scope declarations confirmed; first comprehensive binder retains search/reset/pagination/detail/page-size and existing finance-action handlers; later legacy binder renamed; fetched current blob byte-for-byte equals the expected one-token replacement; Git diff is one line added/one line removed. Descendant commit `c8d40b3` only updates the forensic extract.
+
+**PARENT SNAPSHOT:** the available page text shows the Employee Custody register, filter controls, pagination and detail content. This is not proof of clicks or authenticated E2E; console/network evidence is unavailable in the read-only Browser session.
+
+**DEPLOYMENT:** UNVERIFIED. Cloudflare dashboard snapshot shows automatic deployments enabled but the visible Production source is still `8558108...`; the snapshot has not confirmed a deployment of `d514060...` or a descendant carrying the corrected blob. GitHub combined commit status contains no status-check entries.
+
+**DATA SAFETY:** no Supabase or business-data mutation was performed during this patch; no DDL/DML, RPC, RLS/ACL, Edge deployment, fixture, custody movement, financial/treasury posting or inventory movement.
+
+**NEXT ACTION:** verify Cloudflare Production source includes the corrected blob; then run authenticated Finance UI acceptance tests for all filters, paging, page-size and detail navigation, plus non-posting reachability checks for existing finance actions. Keep deployment and E2E unverified until evidenced.
+
+**STATUS:** `PATCH COMMITTED — SOURCE REVERIFIED — DEPLOYMENT / AUTHENTICATED E2E UNVERIFIED`.
+
+---
+
 # LVE-2026-11-08-651 — Parent Finance Custody Event Binding Collision Diagnosed
 
 **LAST VERIFIED EVENT:** 2026-11-08 (Africa/Cairo) — fully read the current execution prompt and permanent constitution; revalidated LVE650 and Reports545, 644–650; independently fetched current Parent source/HEAD lineage, current Supabase Edge v33 and custody contracts, read-only custody counts, and available Parent/Cloudflare browser snapshots. Confirmed two same-scope `bind(root)` declarations in `RW_Finance_Custody`; the later legacy declaration shadows the new register binder and omits search/reset/pagination/detail/page-size events.
