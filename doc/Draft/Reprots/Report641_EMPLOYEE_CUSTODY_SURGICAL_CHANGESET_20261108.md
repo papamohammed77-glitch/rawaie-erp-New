@@ -4,8 +4,8 @@
 
 **التاريخ:** 8 نوفمبر 2026 — Africa/Cairo  
 **نقطة البداية:** LVE-2026-11-07-640 / Report640  
-**نوع العمل:** مراجعة حية، تحليل جذري، تجهيز ChangeSet جراحي، دون كتابة على Production أو المصدر التشغيلي  
-**الحالة:** CHANGESET PREPARED — SPECIFIC OWNER APPROVAL REQUIRED
+**نوع العمل:** مراجعة حية، ChangeSet جراحي، واختبار SQL/RPC مؤقت على Production داخل معاملة انتهت بـROLLBACK؛ لا تغييرات دائمة على Production أو المصدر التشغيلي  
+**الحالة:** SQL/RPC QA PASS — TRANSACTION ROLLED BACK / PERMANENT CHANGE NOT APPLIED
 
 ---
 
@@ -24,7 +24,7 @@
 7. واجهة الموظف العامة غير مكتملة: جداول العهد تسمح بقراءة الموظف لسجلاته، لكن Edge GET_CUSTODY الحالي يقيد غير الماليين بصلاحيات المشتريات/المالية. لذلك لا نستخدم هذا المسار لتطبيقات الموظفين العامة؛ القراءة الذاتية تتم عبر RLS، والإقرار/المطالبة عبر RPCs القائمة التي تتحقق من auth.uid() وملكية السجل.
 8. لا توجد Supabase Staging branch، وهذا متوافق مع نموذج العمل المعتمد وليس عائقًا. اختبارات هذه الدورة تتم على Production ببيانات QA اصطناعية مؤقتة وموسومة وقابلة للإزالة، أو داخل BEGIN/ROLLBACK، مع إثبات استعادة baseline قبل الإغلاق.
 
-**لم يتم تنفيذ أي DDL أو RPC أو تعديل Edge أو HTML أو حركة نقدية/محاسبية أو بيانات اختبار في هذا التشغيل.** تم تنفيذ القراءة والتحقق فقط، وتوثيق ChangeSet وحالة الاستئناف.
+**لم يُترك أي DDL أو RPC أو تعديل Edge أو HTML أو حركة نقدية/محاسبية أو بيانات اختبار دائمة.** تم تنفيذ DDL مؤقت وتعريفات الدوال الست داخل معاملة Production واحدة، واختبار دورة العهدة، ثم ROLLBACK كامل والتحقق من عودة البيانات والأرصدة والبصمات إلى baseline. تفاصيل الإثبات في القسم 17.
 
 ## 2. الأدلة الحالية ونقطة الاستئناف
 
@@ -302,10 +302,10 @@ Buyer الحالي هو المستهلك النقدي الوحيد لدفتر bu
 
 **UNKNOWN:** سياسة استثناء الخزينة المركزية، من هو أمين الصندوق الفعلي إذا اختلف عن منشئ العهدة، سياسة الأهلية الوظيفية للعهدة، due_date/cost center/mission mapping، Employee Payable، نشر Cloudflare، Browser E2E وRealtime Runtime.
 
-**UNVERIFIED:** لم يطبق أي إصلاح دائم بعد. تم تنفيذ اختبار صياغة مؤقت داخل معاملة Production تنتهي بـROLLBACK بنجاح؛ لم ينفذ بعد اختبار runtime للمسارات أو Browser E2E أو نشر الواجهة.
+**UNVERIFIED:** لم يطبق أي إصلاح دائم بعد. SQL/RPC flow test داخل Production transaction نجح وتم التراجع عنه بالكامل. Browser E2E/PostgREST RLS، UI integration، Cloudflare deployment، expense approval leaf، وRealtime Runtime ما زالت غير مثبتة.
 
-**الإغلاق:** ROOT CAUSE CONFIRMED — CHANGESET PREPARED / OWNER FILE CHANGE AND SPECIFIC PRODUCTION APPROVAL REQUIRED.  
-لا تعلن الميزة مكتملة أو مفعلة حتى تطبيق جميع طبقاتها واجتياز E2E على Production ببيانات QA موسومة وقابلة للإزالة وفق §6.4.
+**الإغلاق:** ROOT CAUSE CONFIRMED — SQL/RPC QA PASS (ROLLBACK VERIFIED) / PERMANENT CHANGE AND OWNER UI CHANGE STILL OPEN.  
+لا تعلن الميزة مكتملة أو مفعلة حتى تطبيق التغييرات الدائمة المعتمدة، ومالك النظام يطبق تعديلات UI، ثم اجتياز Browser E2E على Production ببيانات QA موسومة وقابلة للإزالة وفق §6.4.
 
 
 ---
