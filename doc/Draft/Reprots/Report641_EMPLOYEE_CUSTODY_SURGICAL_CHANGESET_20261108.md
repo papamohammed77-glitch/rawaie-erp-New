@@ -410,7 +410,7 @@ BEGIN
   END IF;
 
   RETURN jsonb_build_object('success',true,'duplicate',false,'id',v_id,'expense_code',p_expense_code,'journal_entry_id',v_je->>'entry_id','cash_box_id',v_cash_box_id,'total',v_total+v_tax);
-END; $function$;;
+END; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.buyer_custody_issue_atomic(p_company_id uuid, p_employee_id uuid, p_branch_id uuid, p_treasury_id uuid, p_purpose text, p_currency text, p_amount numeric, p_issued_date date, p_received_reference text, p_notes text, p_operation_id text)
