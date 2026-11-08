@@ -1,3 +1,21 @@
+# LVE-2026-11-09-666 — Buyer Quick-Market Item Selection Race Fixed
+
+**LAST VERIFIED EVENT:** 2026-11-09 (Africa/Cairo) — investigated why a visible product search result in Buyer → فواتيري → شراء سوق سريع could fail to enter the cart and prevent the draft invoice from continuing.
+
+**CONFIRMED ROOT CAUSE:** `renderQuickSearch(items, query)` and the camera callback had a modal-local catalogue array, but called `quickAddItem(index)`, which looked up the row in shared `this.cache.items`. The Realtime event handler clears the shared cache via `invalidate()` even while a modal remains open. A Realtime event could therefore leave visible results backed by the local array while clearing the shared cache; the subsequent click used an empty/misaligned cache index and returned without adding a cart line. This interleaving was reproduced in a controlled harness after rendering the result and clearing the shared cache.
+
+**SOURCE FIX:** Operational repo `papamohammed77-glitch/erp-frontend`, branch `main`. Only `companies/company-1/purchasing/buyer.html` changed. Previous Buyer commit `c058125ee66e60ff627be6e49d90a7335ca69383`; fix commit `0c5f1ed53e4d96d6cb5db52f938aa21298274cb0`; final Buyer blob `56b3ef8fed56f4ac788b4535c371aae16a8f901e`. Both search-result and camera callbacks now pass the exact modal catalogue to `quickAddItem(index,catalog)`. The method uses that catalogue when supplied, validates the index and item code, then retains existing duplicate detection, cart line structure, quantity default and blank manual price. It no longer depends on a cache that Realtime can invalidate.
+
+**VERIFICATION:** Final inline JavaScript syntax PASS. Controlled harness reproduced the failure with the shared cache emptied after result rendering; after the patch, the same result click added the correct item `1011` / `بسكوت ویفر 5ج` to the cart while shared cache remained empty, and manual price remained blank. Search and barcode callback pass-through verified. Diff against prior quick-market commit changes only `buyer.html` (9 additions / 4 deletions). No invoice create/update, stock, supplier, accounting, cash, custody or treasury mutation was performed.
+
+**REPORT:** `doc/Draft/Reprots/Report666_BUYER_QUICK_MARKET_ITEM_SELECTION_REALTIME_RACE_FIX_20261109.md`; report commit `18211225e365a93f21c8b41a598d2fcb3a9113cf`.
+
+**DEPLOYMENT / ACCEPTANCE:** GitHub source committed. Cloudflare terminal Production Success, served-file byte parity, authenticated browser E2E and physical barcode-camera run remain unverified. Post-deployment acceptance: open quick-market modal, trigger/receive a Realtime event while it remains open, select a visible search result or scan a barcode, enter quantity and actual price, attach supplier invoice image/PDF, then save a draft under existing supplier/branch/invoice-number/custody/settlement validations. Confirm no premature stock or financial posting.
+
+**ROLLBACK:** revert Buyer source commit `0c5f1ed53e4d96d6cb5db52f938aa21298274cb0` only. No database cleanup, RLS, Edge Function or schema rollback required.
+
+---
+
 # LVE-2026-11-09-665 — Buyer Quick-Market Invoice Item Picker Restored
 
 **LAST VERIFIED EVENT:** 2026-11-09 (Africa/Cairo) — user clarified that the missing item picker features were in the direct market-purchase invoice, not the PO supplier-invoice editor. Re-read the current full Buyer source and Core `RW_UI.safeHTML` implementation; separated the three independent flows: `createPO()`, `createPurchaseInvoice()`, and `quickPurchase()`.
