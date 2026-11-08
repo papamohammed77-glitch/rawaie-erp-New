@@ -34,7 +34,7 @@ The users table contains these columns. Its authenticated self-read policy permi
 
 ## 3. Surgical source correction
 
-Only `companies/company-1/main.html` changed; commit statistics are 14 additions / 3 deletions. No other operational app or source file was edited.
+Only `companies/company-1/main.html` changed across the two sequential commits; the combined surgical diff is 16 additions / 3 deletions. No other operational app or source file was edited.
 
 1. Added a custody-module-local `_showToast(m,t)` helper which delegates to the Parent's existing `showToast` and safely falls back to `alert`. Existing custody call sites remain unchanged.
 2. Added the missing `RW_Auth.getUser()` method returning the canonical `RW_STATE.app.currentUser` object. This also makes the already-existing consumer at the customer-assignment action resolve the same canonical user API.
