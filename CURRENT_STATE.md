@@ -1,3 +1,35 @@
+# LVE-2026-11-08-646 — Parent Employee Custody Ledger UI Completion
+
+**LAST VERIFIED EVENT:** 2026-11-08 — continued from LVE645; read the full writing-block-8-10 prompt, current state, permanent constitution and relevant Reports641/644/645; revalidated Parent Finance source and SMART ERP Production; completed the existing Employee Custody ledger renderer; committed the surgical Parent-only change; recompiled all six inline scripts; recorded Report646.
+
+**Report646:** doc/Draft/Reprots/Report646_PARENT_EMPLOYEE_CUSTODY_LEDGER_COMPLETION_20261108.md — governance commit 31ecf9505889b4bbd0b05d3fdb447b017cca7d42.
+
+**Operational commit:** f6ca94aec800af3fe39717150018a49a0f8d662f.  
+**Operational file:** companies/company-1/main.html only.  
+**Parent blob:** 24594bc497505c7380fcfa3a2add2b0880c9b3ce.  
+**Previous operational HEAD:** 87d6d01beee30988119b6daabd229f56b4bced7f. Compare confirms one commit ahead, one changed file only (+41/-11 lines).
+
+## Current verified state — LVE646
+
+- The Employee Custody tab was already integrated. Its underlying incomplete behavior was that Parent Finance discarded `payments` and `settlements` already returned by GET_CUSTODY, and the renderer omitted the settlement/payment audit trail and review rejection reason.
+- Updated the existing `RW_Finance_Custody` module only: full GET_CUSTODY payload retained; ledger displays advance acknowledgement, submitted/approved/rejected expenses, purchase supplier invoice and receiving references, supplier payment evidence, receipt documents, settlement cash-return/treasury/reference history, age and currency-aware summary cards. Supplier payment is explicitly displayed as part of the linked invoice and not deducted twice.
+- Cash under custody is displayed from confirmed advances less approved expenses and recorded cash returns. Unacknowledged advances and pending/rejected expenses do not count as received cash or posted expense.
+- Review modal now has an explicit decision selector and requires a rejection reason; operational approval still requires an existing eligible Expense account. Existing RPCs remain the only writers.
+- Existing LVE645 stop()/render serial/handler-ownership lifecycle protection remains in the same module.
+- Static validation: all six inline scripts compile successfully from the committed blob. This is source validation, not authenticated browser E2E.
+- SMART ERP Production custody tables all remain empty: buyer_custodies, buyer_custody_advances, buyer_custody_expenses, buyer_custody_payments, buyer_custody_settlements each 0 rows. No QA fixture, cash, treasury, cash_box, journal, stock, supplier/AP or inventory effect was created.
+- The six Report641 SQL function definitions were already identical to the live functions before this session's additional apply. This session re-applied those same bodies with Supabase migration name employee_custody_hardening_20261108; no function logic/ACL/owner/search_path change resulted, and one migration-history entry was registered. The received_at column was already nullable with no default. This is disclosed in Report646; no table DDL or data DML was performed in this re-application.
+- Supabase Advisor returned broad project-level findings (including 24 INFO RLS-enabled/no-policy findings); no unrelated bulk remediation was performed.
+- Cloudflare dashboard still showed Production commit 87d6d01, predating f6ca94a. Deployment parity for the new ledger UI is UNVERIFIED.
+- Connected Parent browser tab is at login/shell. Browser integration in this session can read tabs but cannot navigate/click; authenticated Finance E2E, approval/rejection interaction, Realtime runtime and posting/settlement E2E are UNVERIFIED.
+- Branch Treasury funding and eligible Expense leaf prerequisites from LVE644 remain. No central/POS workaround; no overspend/employee-payable assumption or payroll deduction.
+
+**Readiness:** SOURCE CHANGE APPLIED — READY WITH LIMITATIONS. Do not claim field-ready or fully deployed until Cloudflare shows successful f6ca94a (or later descendant) and authenticated Finance E2E plus tagged removable QA/cleanup reconciliation pass.
+
+**Next exact action:** verify successful Cloudflare Production deployment of f6ca94a, then run authenticated Finance custody E2E with disposable tagged QA data and prove full cleanup/baseline reconciliation.
+
+---
+
 # LVE-2026-11-08-645 — Parent Finance Custody Stop Lifecycle Hotfix
 
 **LAST VERIFIED EVENT:** 2026-11-08 — read the current execution prompt and governing references; independently reconciled Report644 against operational main.html and the 68de9b diff; confirmed the missing Finance custody stop contract; applied a surgical main.html correction; passed six inline-script compilation checks and a controlled stale-render lifecycle simulation; re-read the resulting operational blob and confirmed the later forensic-only commit preserved it. SMART ERP was checked read-only; no DB or business-data mutation was made.
