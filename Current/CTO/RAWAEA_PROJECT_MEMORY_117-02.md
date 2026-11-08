@@ -1,4 +1,16 @@
-## LVE-2026-11-08-643 — Daily CTO / Employee Custody Continuity Revalidation
+## LVE-2026-11-08-644 — Employee Cash Custody UI Integration & Runtime Correction
+- Report644: doc/Draft/Reprots/Report644_EMPLOYEE_CUSTODY_UI_INTEGRATION_AND_RUNTIME_GAP_REVIEW_20261108.md.
+- Revalidated integration commit 180d318d3be8d095daab557207d037aa87147267 across main.html, core.js, buyer.html and driver.html. Added surgical race correction commit 68de9bfb6213d6ac7f975bff0aea76e14a1f874d to Parent Finance and Driver only.
+- The correction serializes Finance sub-tab rendering, invalidates stale custody fetch callbacks, and stops the Driver custody service when leaving the cash-custody tab. Inline JS syntax compilation passed for updated Parent and Driver files.
+- Latest observed operational HEAD 121c856508122e5b1f1008453526a2aece47f83a; its only change after 68de9b is _forensic_current_main_extract.md. Current source blobs: Parent 5a4aacf5af8100db6e3c434c49fea57784857594; Core 2d11b852862c523fc89e6a8b9c510462bb65cc4e; Buyer 2fd152a29b01dc355ffd7c5917efbf9a804f3d3f; Driver 2a617e881ce61171f0aed01e8539e848e13e14e6.
+- Production custody RPC signatures and RLS predicates were rechecked. The employee service uses effective profile identity, direct self-scoped RLS reads, ownership-checked ACK/submit RPCs and private employee-documents storage. No SQL, grants, RLS, Edge, treasury, accounting, stock, QA or attachment writes were made.
+- All five custody tables remain empty. Treasury constraints remain unchanged: BR-01 cash tills zero, POS excluded, central CASH-01 excluded, BR-2 no active Cash Treasury; no eligible Expense leaf for fuel/transport/tolls.
+- Cloudflare dashboard snapshot still showed 038a7bd, so deployment parity for 68de9b is not confirmed. Authenticated employee/Finance E2E, RLS self-vs-other and Realtime runtime remain UNVERIFIED. Readiness READY WITH LIMITATIONS.
+- Supabase Advisors show broad project-wide findings; custody SECURITY DEFINER functions are authenticated-executable by design with internal authorization checks, anon execution remains denied. No unrelated Advisor remediation was attempted.
+
+---
+
+### Historical snapshot — LVE643 (superseded by LVE644)
 - Report643: doc/Draft/Reprots/Report643_DAILY_EMPLOYEE_CUSTODY_CONTINUITY_REVALIDATION_20261108.md; commit abaa280bbd010bc0b30452088aefc7503f2b0333.
 - Re-read CURRENT_STATE and the complete permanent constitution (SHA 3a6b1e220af8509e314e94df76563bbc6f84910d); Report640 and Report641 were reviewed. LVE642 is the current prior checkpoint; the opening LVE641 snapshot was historical and has now been explicitly superseded in CURRENT_STATE.
 - Permanent Production ChangeSet is verified live: current function fingerprints match Report641 §18 exactly; buyer_custodies.received_at is nullable/no-default; function owners/search_path/SECURITY DEFINER/ACL preserved; anon execute denied. No new tables, Edge Functions, RLS/ACL changes or direct DML grants.

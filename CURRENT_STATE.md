@@ -1,4 +1,26 @@
-# LVE-2026-11-08-643 — Daily CTO / Employee Custody Continuity Revalidation
+# LVE-2026-11-08-644 — Employee Cash Custody UI Integration & Runtime Correction
+
+**LAST VERIFIED EVENT:** 2026-11-08 — verified LVE643 and current Production custody contracts; revalidated the four-file employee-custody integration; applied the surgical Finance/Driver stale-render correction; compiled updated inline JavaScript; rechecked current source history, RLS/RPC contracts, custody table counts and Treasury readiness.
+**Report644:** doc/Draft/Reprots/Report644_EMPLOYEE_CUSTODY_UI_INTEGRATION_AND_RUNTIME_GAP_REVIEW_20261108.md
+**Operational correction:** 68de9bfb6213d6ac7f975bff0aea76e14a1f874d; latest observed operational HEAD 121c856508122e5b1f1008453526a2aece47f83a (forensic-extract-only commit after the correction).
+**Current source blobs:** Parent main.html 5a4aacf5af8100db6e3c434c49fea57784857594; Core core.js 2d11b852862c523fc89e6a8b9c510462bb65cc4e; Buyer buyer.html 2fd152a29b01dc355ffd7c5917efbf9a804f3d3f; Driver driver.html 2a617e881ce61171f0aed01e8539e848e13e14e6.
+
+## Current verified state — LVE644
+- Employee-custody UI integration is present in Parent Finance, Buyer, shared Core and Delivery Driver via commit 180d318d3be8d095daab557207d037aa87147267.
+- A follow-up surgical correction in 68de9b prevents stale asynchronous Finance/Driver custody renders from overwriting another selected tab. Updated inline JavaScript in Parent and Driver compiled successfully.
+- Parent payment account selection is restricted to active Expense accounts; the existing server-side Expense guard remains unchanged.
+- Buyer issue requires branch and filters to active same-branch Cash non-POS Treasury; advance and settlement use the same filter. Server RPC guards remain authoritative.
+- Driver cash custody is a distinct tab and calls the opt-in Core service; vehicle stock and the existing driver balance tab remain separate. The service uses get_my_effective_profile, self-scoped RLS reads and existing ownership-checked RPCs; no user row is auto-created and no Edge permission gate was widened.
+- Current SMART ERP custody RPC signatures match the integrated direct calls. Custody SECURITY DEFINER functions retain postgres ownership, existing search_path, anon EXECUTE=false and authenticated EXECUTE=true. Existing RLS policies scope employee reads to the Auth-linked users.id and Finance roles; no policy or grant was changed.
+- All five custody tables remain empty. No QA fixture, attachment, cash_box movement, journal entry, treasury movement, stock movement or supplier/AP effect was created by this cycle.
+- Treasury readiness remains blocked: BR-01 Cash tills active but zero balance; POS 190 EGP excluded; central CASH-01 10,685 EGP is not a branch custody source; BR-2 has no active Cash Treasury. No eligible operating Expense leaf for transport/fuel/tolls was identified.
+- Cloudflare dashboard snapshot read during this cycle still showed Production at 038a7bd; deployment parity for 68de9b is not confirmed. Authenticated employee/Finance E2E, RLS self-vs-other, Realtime runtime and field completion remain UNVERIFIED.
+- Supabase Advisors show broad pre-existing project-wide findings. Custody SECURITY DEFINER functions appear in the authenticated warning set but anon execution is denied and their internal authorization checks remain intact. No broad remediation was performed.
+- Readiness: READY WITH LIMITATIONS. Next priority is verify successful Cloudflare deployment, then authenticated removable-QA E2E, branch Treasury funding and correct Expense leaf setup. Do not claim field-ready completion yet.
+
+---
+
+## HISTORICAL SNAPSHOT — LVE-2026-11-08-643 (SUPERSEDED BY LVE644)
 
 **LAST VERIFIED EVENT:** 2026-11-08 — re-read the permanent constitution and Reports640/641; independently verified current GitHub source, SMART ERP Production function fingerprints/column/RLS/business-data counts, Employee/HR distinction, Parent/Buyer/Core contracts, and Cloudflare Production source parity.
 **Report643:** doc/Draft/Reprots/Report643_DAILY_EMPLOYEE_CUSTODY_CONTINUITY_REVALIDATION_20261108.md — commit abaa280bbd010bc0b30452088aefc7503f2b0333.
