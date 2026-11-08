@@ -149,7 +149,7 @@ https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Repr
 
 **ملف Core المعروف:**
 
-`core.js`
+`[core.js](https://github.com/papamohammed77-glitch/erp-frontend/blob/main/companies/company-1/core.js)`
 
 يجب اكتشاف مكانه الحقيقي من المستودع، ولا تفترض مساره.
 
