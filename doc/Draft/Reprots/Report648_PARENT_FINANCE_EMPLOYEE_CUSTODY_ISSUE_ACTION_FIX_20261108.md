@@ -27,7 +27,7 @@ The first guard in `issue()` calls `_showToast(...)` when the permitted employee
 A second, directly related defect would have left the action unusable after merely adding a toast helper:
 
 - `RW_Finance_Custody.actor()` asks for `RW_Auth.getUser()`, but the current `RW_Auth` object had no `getUser` method. Its fallback reads `RW_STATE.user`, while the Parent's canonical signed-in object is `RW_STATE.app.currentUser`.
-- Both the password-login path and the existing-session restore path omitted the database user ID and branch scope from that canonical object. The login query selected only `company_id,status,permissions,name`; the restore query selected only `company_id,status`.
+- Both the password-login path and the existing-session restore path omitted the database user ID and branch scope from the canonical object. They selected `company_id` for the Parent's company context, but neither propagated that value into `RW_STATE.app.currentUser`; neither query selected `id`, `default_branch_id`, or `allowed_branch_ids`.
 - The custody renderer therefore lacked authoritative `id`, `default_branch_id`, and `allowed_branch_ids` for self-exclusion and filtering branches to the user's own scope. The current console column (109) pointed to the first guard, consistent with the missing toast being the visible exception rather than proof that employee/branch data was unavailable.
 
 The users table contains these columns. Its authenticated self-read policy permits a user to read their own row via `auth_id = auth.uid()`. The fix therefore reuses the existing Parent Supabase client and existing self-profile read; it does not weaken RLS or add an elevated data path.
