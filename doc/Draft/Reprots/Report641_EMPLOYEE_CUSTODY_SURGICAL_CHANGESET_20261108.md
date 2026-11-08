@@ -330,13 +330,13 @@ Buyer الحالي هو المستهلك النقدي الوحيد لدفتر bu
 
 -- Capture the existing function owner, ACL, volatility, and search_path before deployment.
 
-ALTER TABLE public.buyer_custodies
-  ALTER COLUMN received_at DROP DEFAULT,
-  ALTER COLUMN received_at DROP NOT NULL;
-
 -- Proposed QA validation on SMART ERP Production only: BEGIN/ROLLBACK when possible; otherwise use uniquely tagged disposable QA fixtures and prove complete cleanup. Do not touch real business records. This is a proposed patch and has NOT been executed.
 
 BEGIN;
+
+ALTER TABLE public.buyer_custodies
+  ALTER COLUMN received_at DROP DEFAULT,
+  ALTER COLUMN received_at DROP NOT NULL;
 
 CREATE OR REPLACE FUNCTION public.finance_save_expense(p_company_id uuid, p_expense_id uuid, p_expense_code text, p_expense_date date, p_beneficiary_name text, p_category_id uuid, p_treasury_id uuid, p_description text, p_attachment_url text, p_reference text, p_created_by text, p_operation_id uuid, p_lines jsonb)
  RETURNS jsonb
