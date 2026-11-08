@@ -1558,3 +1558,6 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - Live verification confirms all five cash custody tables remain empty; no cash/GL/stock/QA data created. Treasury balances unchanged (central 10,685 EGP; branch Cash 0 EGP; POS 190 EGP). Report641 §18 records exact function MD5s and advisor results.
 - Still open: Parent Finance UI, Buyer mandatory branch and same-branch non-POS treasury filters, employee self-service integration in Core/apps, authenticated Browser/PostgREST RLS and Realtime E2E, Cloudflare artifact parity. BR-2 has no active Cash treasury; BR-01 cash treasuries are unfunded; no central treasury exception. No valid expense leaf for transport/fuel/tolls.
 - Operational source remains at HEAD `b728c09e1bb4c482effc48a492546b393ff02c1f`; do not claim HTML/Cloudflare work complete. Continue from LVE642, not from LVE641's former unexecuted state.
+
+
+- LVE642 Cloudflare recheck: dashboard Production row now shows `erp-frontend/main` commit `b728c09e1bb4c482effc48a492546b393ff02c1f` and deployment URL `https://c2f858c3.rawaea-erp.pages.dev/`, matching current GitHub HEAD. Explicit Success label and authenticated runtime E2E remain unverified.
