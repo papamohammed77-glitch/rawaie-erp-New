@@ -6417,3 +6417,7 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - Operational repo HEAD remains `b728c09e1bb4c482effc48a492546b393ff02c1f`; Parent/Core/Buyer blobs unchanged. Latest governance docs commits immediately before this update included `9271bf0`, `ac61cd6`, `26a5967` documenting owner Production-only policy and passing rollback QA.
 - Open work: Parent Finance UI; Buyer branch/treasury-filter UI; employee self-service integration in Core/apps; authenticated Browser JWT/PostgREST RLS tests; Realtime delivery and Cloudflare artifact parity. BR-2 has no active Cash treasury; BR-01 Cash treasuries have zero balance; POS excluded; no central treasury exception. No expense leaf account yet for fuel/transport/tolls.
 - Report641 section 18 records full execution evidence, hashes and remaining gates. Do not claim employee-custody feature complete until UI + browser E2E + deployment parity and branch/cost-center prerequisites are closed.
+
+
+## LVE642 Addendum — Cloudflare source parity recheck
+- Cloudflare Dashboard project `rawaea-erp` currently shows Production source `main` at commit `b728c09e1bb4c482effc48a492546b393ff02c1f`, deployment URL `https://c2f858c3.rawaea-erp.pages.dev/`, matching operational repo HEAD. The extracted dashboard text did not expose an explicit Success status, and no browser interaction/E2E was run. Source parity is now CONFIRMED; live runtime E2E remains UNVERIFIED.
