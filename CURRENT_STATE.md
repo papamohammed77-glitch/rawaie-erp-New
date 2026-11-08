@@ -1,3 +1,21 @@
+# LVE-2026-11-09-665 — Buyer Quick-Market Invoice Item Picker Restored
+
+**LAST VERIFIED EVENT:** 2026-11-09 (Africa/Cairo) — user clarified that the missing item picker features were in the direct market-purchase invoice, not the PO supplier-invoice editor. Re-read the current full Buyer source and Core `RW_UI.safeHTML` implementation; separated the three independent flows: `createPO()`, `createPurchaseInvoice()`, and `quickPurchase()`.
+
+**CONFIRMED WORKFLOW-SCOPE MISS:** LVE-662/663/664 repaired the PO invoice editor's catalog read/search methods, not the separate `quickPurchase()` market-invoice picker. The latter still used a cached `this.data('items')` catalogue and a simpler lowercase-only substring matcher, had no camera scan control, and did not share the Arabic normalization/token search contract. Core `safeHTML` was checked: it assigns `innerHTML` directly and does not strip inline handlers, so that was not claimed as a proven cause. The final patch changes selection to explicit event listeners for consistency and robustness.
+
+**SOURCE FIX:** Operational repo `papamohammed77-glitch/erp-frontend`, branch `main`. Final source commit `c058125ee66e60ff627be6e49d90a7335ca69383`; Buyer blob `7a4ae8472c21292895cf72e1ae637e04047a7dbf`. Quick-market now calls `loadInvoiceItems()` (forced fresh central permission-aware GET_DATA path), uses the shared Arabic/Persian normalization and token matching across name/code/barcode/search_label, displays code/barcode/unit, binds explicit result-selection listeners, and adds camera scan through the same `buyerScanBarcode()` helper as PO. The cart continues to require manual actual purchase price entry; no last-cost substitution. Final net diff preserves `createPO()` unchanged. Related generated Tailwind CSS commit `ff8982e5b47bb1afd3648b1f93486192c7dcb949` adds the scan button's border utility.
+
+**VERIFICATION:** Final inline JavaScript compilation PASS. Controlled method harness PASS for Arabic/Persian Yeh partial match (`ويفر` against `ویفر`), result code/barcode/unit display, explicit click binding, correct item addition, and blank manual-price state. Source wiring confirms the camera callback routes the scanned unique match into quick cart. No CREATE/UPDATE operation was called by the harness; no business rows or stock/accounting/supplier/cash/custody/treasury side effects were created. Physical camera scan and authenticated live browser E2E remain UNVERIFIED.
+
+**REPORT:** `doc/Draft/Reprots/Report665_BUYER_QUICK_MARKET_ITEM_PICKER_PARITY_FIX_20261109.md`; report commit `c4abf191ce741f52c26edb3477f1ffe86b751e5c`.
+
+**DEPLOYMENT GATE:** GitHub main source is updated, but Cloudflare terminal Production Success and served HTML/CSS byte parity have not yet been proven. Authenticate and test Buyer → فواتيري → شراء سوق سريع for partial/full Arabic, code, barcode, selection, camera permission/scan, quantity, actual price, draft save/attachment, receiver visibility and no premature stock/accounting posting.
+
+**ROLLBACK:** revert final Buyer source commit `c058125ee66e60ff627be6e49d90a7335ca69383` and the related generated CSS commit only if removing the camera-button style is also intended. No DB cleanup, schema, RLS or Edge Function rollback is required.
+
+---
+
 # LVE-2026-11-09-664 — Buyer Invoice Catalog Read Path Aligned with RLS Permissions
 
 **LAST VERIFIED EVENT:** 2026-11-09 (Africa/Cairo) — investigated the third reported failure of Buyer → «فواتيري» item autocomplete. Rechecked current Buyer source, the live `items` RLS policies, current Production item catalogue, the Buyer UI role gate, and the existing `save-purchase-order` GET_DATA contract.
