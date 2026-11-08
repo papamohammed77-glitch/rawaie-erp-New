@@ -1,3 +1,25 @@
+# LVE-2026-11-09-663 — Buyer Invoice Item Search Runtime Binding Fixed
+
+**LAST VERIFIED EVENT:** 2026-11-09 (Africa/Cairo) — investigated why Buyer → «فواتيري» item lookup still failed after LVE-662. Current GitHub source and Cloudflare Pages deployment listing were checked again. The prior item-search source commit `00f38aeb7bb7fbbac947b5084838074dbea361b0` was present in Production, so deployment omission alone did not explain the issue.
+
+**CONFIRMED ROOT CAUSE:** `App.createPurchaseInvoice()` called `self.searchInvoiceItems(q)` and `self.api(operation,payload)` but never declared `var self=this`. In the browser, global `self` resolves to `Window`, not `App`; the item-input timer therefore attempted to call an undefined `Window.searchInvoiceItems`, throwing synchronously before the chained Promise `.catch()` could display the failure. This explains why the direct Supabase query path added in LVE-662 never ran from the actual item input.
+
+**SOURCE FIX:** Operational repo `papamohammed77-glitch/erp-frontend`, branch `main`. Only `companies/company-1/purchasing/buyer.html` changed. Commit `2c09b84f785aad06b51c8ec73cbe48d574de0ca5`; final blob `24d357d8f01c344a6f6958eb03250276b8883474`. Added the missing local `var self=this` in `createPurchaseInvoice()`, and corrected the `search_label` ILIKE pattern to substring matching. Existing multi-token AND semantics were checked against current Supabase JS documentation. Parent, Core, DB schema/RLS/grants, RPCs, Edge Functions, invoice payload, stock, accounting, supplier balances and treasury were not changed.
+
+**VERIFICATION:** All executable inline Buyer JavaScript compiled. A controlled event-path harness executed the extracted production `searchInvoiceItems()` and `createPurchaseInvoice()` methods: Arabic multi-token `بسكوت 1011` returned a result; the item was rendered, selected and added to the invoice line table. The harness called only `GET_SETTINGS`; it did not invoke invoice create/update and used in-memory Supabase/DOM stubs only. No production business record or financial/stock effect was created. The sampled 24-hour PostgREST logs had no `/items` entries, consistent with the UI failing before the query call; this is not evidence about all user attempts.
+
+**CLOUDFLARE:** Dashboard now lists a new Production/main deployment entry for commit `2c09b84`, automatic deployments enabled, preview URL `https://fb83494f.rawaea-erp.pages.dev`. The available dashboard extract did not expose a terminal success state, and the served Buyer HTML bytes could not be independently fetched/compared. Authenticated Buyer browser E2E and served-artifact parity remain UNVERIFIED. Do not mark live acceptance complete.
+
+**REPORT:** `doc/Draft/Reprots/Report663_BUYER_INVOICE_SEARCH_RUNTIME_SCOPE_FIX_20261109.md`; report commit `90b23d1f30c63520642d5b2dc599c8eae8a071e2`.
+
+**ROLLBACK:** revert only source commit `2c09b84f785aad06b51c8ec73cbe48d574de0ca5`; no database cleanup is required.
+
+**OPEN GATES:** (1) verify Cloudflare deployment reaches terminal Success and compare served Buyer bytes with blob `24d357d8f01c344a6f6958eb03250276b8883474`; (2) authenticated Buyer live UI tests for Arabic/partial/multi-token/code/barcode/no-results/rapid typing/selection/line add/modal reopen; (3) approved rollback/isolated draft invoice create-update and Parent visibility with proof of no premature stock, cash, journal or supplier-ledger effects. Wider Buyer workflows (receiving, vehicle goods custody, supplier returns and full E2E) remain OPEN.
+
+**STATUS:** BUYER SEARCH RUNTIME ROOT CAUSE FIXED IN SOURCE · COMMIT VERIFIED · JS + CONTROLLED EVENT-PATH HARNESS PASS · NO BUSINESS SIDE EFFECTS · CLOUDFLARE PRODUCTION DEPLOYMENT ENTRY PRESENT · AUTHENTICATED E2E / SERVED-ARTIFACT PARITY UNVERIFIED.
+
+---
+
 # LVE-2026-11-09-662 — Buyer Invoice Item Catalog Search Fixed in Source
 
 **LAST VERIFIED EVENT:** 2026-11-09 (Africa/Cairo) — investigated Buyer → «فواتيري» invoice item lookup against the current source, Parent purchasing consumers, SMART ERP Production schema/RLS, and the existing invoice RPC path. Root cause confirmed: the invoice editor filtered a locally cached `this.data('items')` snapshot and did not query `public.items` as the user typed. The editor and barcode list depended on the generic cache/GET_DATA snapshot.
