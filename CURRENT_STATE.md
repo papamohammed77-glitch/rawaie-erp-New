@@ -1,3 +1,28 @@
+# LVE-2026-11-08-650 — Employee Custody Server-Paginated Register Implemented
+
+**LAST VERIFIED EVENT:** 2026-11-08 — resumed from LVE649 and re-read the current execution prompt, permanent constitution and Report649; compared the Finance journal-list table/search convention with the old custody card-only renderer; committed the server-paginated Employee Custody register to Parent; deployed the existing Supabase `save-purchase-order` Edge Function to v33; re-fetched the source and function; validated complete pagination and filter behavior through static checks and a 2,753-row deterministic simulation; confirmed Production table counts unchanged.
+
+**Report650:** `doc/Draft/Reprots/Report650_PARENT_FINANCE_CUSTODY_SERVER_PAGINATED_REGISTER_20261108.md` — exact implementation, backend contract, source hashes, tests, CI results and remaining deployment/E2E verification.
+
+## Current verified state — LVE650
+
+- **Parent change committed:** `erp-frontend` commit `0389995ac3f4440113f5c83b41821366eba3fbeb`; file `companies/company-1/main.html`; Parent blob `6b4d555d0da9efd3fb821aef4a9a2e832bb064e1`.
+- **Branch HEAD at last verification:** `855810884e9184122c5f149b6d052479a840cc6f`, a later forensic extraction commit whose parent is the custody commit. The Parent blob remains the committed custody version.
+- **Finance UI:** actual HTML table in `RW_Finance_Custody`, matching the Finance journal-list table pattern: date from/to, employee, free text, exact matching result count, previous/next, 25/50/100/200 page-size control, row-to-existing-detail navigation. Original advances, settlements, review and document actions are retained. Detail summaries below the table are limited to the current page and explicitly labelled as such.
+- **Backend:** existing `save-purchase-order` function deployed as version `33`, state `ACTIVE`, JWT verification enabled. GET_CUSTODY has Finance-only register mode, company scoping, date/employee/text server filtering, exact total count and stable range pagination. The old 200-custody cap and fixed child-row limits were removed; related child rows and employee lists use repeated range reads until complete. A page size is not an archive limit.
+- **Regex correction:** re-fetched source revealed a double-escaped date/Unicode regex in the first Edge release. Fixed in v32; added a guard against silently incomplete page reads in v33. The deployed v33 source now has correct regex literals.
+- **Schema verification:** read-only information_schema query confirmed `company_id` and `custody_id` columns on the child tables, the relevant date columns, and employee name/email/employee-number fields.
+- **Tests:** complete Parent inline script compiled; static invariants passed; deterministic 2,753-row simulation passed with an artificially smaller 137-row service response cap; all 2,753 rows retrieved exactly once; combined date + employee + text search returned the expected 17 rows exactly once.
+- **Production data:** read-only counts remain buyer_custodies 1, advances 1, expenses 0, payments 0, settlements 0. No fixture, write, schema, RLS/ACL, financial, treasury, cash-box or inventory change.
+- **CI:** forensic-main-html, inventory-forensic, canonical-source, helper-forensic and extraction checks passed. browser-e2e stopped before Playwright at a pre-existing/mismatched Payroll snippet assertion; old and new Parent blobs both lacked the exact expected substring and the non-custody source region was unchanged. No browser E2E was run.
+- **Cloudflare:** target Pages project `rawaea-erp` was still `in_progress` at last poll. Separate Pages projects `erp-frontend` and `rawaea-store` reported build failures; they are not the target Parent deployment. Do not claim production Pages deployment is complete.
+- **Runtime:** available browser tab was stale/unauthenticated and browser tools were read-only in this session. Authenticated Finance UI E2E and actual button clicks remain **UNVERIFIED**.
+- **Report649 is superseded** as an implementation plan: it proposed client-side filtering of the first 200 loaded custodies. Report650 records the actual backend-paginated implementation and corrected limits.
+
+**Next exact actions:** poll Cloudflare Pages check `rawaea-erp` for commit `0389995ac3f4440113f5c83b41821366eba3fbeb`; after successful deployment, refresh the authenticated Parent Finance tab and verify filters, page 2, details, and preserved custody actions. Then close the mismatched Payroll static assertion as a separate CI maintenance issue. Do not insert Production QA rows merely to test pagination.
+
+---
+
 # LVE-2026-11-08-649 — Parent Finance Employee Custody Searchable Register ChangeSet
 
 **LAST VERIFIED EVENT:** 2026-11-08 — resumed from LVE648; re-read the current execution prompt, permanent constitution and custody-ledger history; re-fetched operational Parent blob `4405f87169c62baf770b6b675c1582cc484772ba`; confirmed the Employee Custody tab currently renders detailed cards without a searchable register; verified that GET_CUSTODY already supplies the custody and employee data required; inspected the live v30 Edge Function contract and current custody table counts; prepared a Parent-only surgical ChangeSet for a date/employee/text-filtered table with linked existing details; compiled the proposed full inline script and passed six filter-helper simulations. No operational source, database, Edge Function or business data was changed.
