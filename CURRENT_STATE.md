@@ -1,3 +1,35 @@
+# LVE-2026-11-08-648 — Parent Finance Employee Custody Issue Action Fix
+
+**LAST VERIFIED EVENT:** 2026-11-08 — read the execution prompt and governing constitution; inspected current Parent source and both authentication bootstrap paths; independently traced the Finance custody button, actor/branch-scope logic, the active purchasing Edge Function and Production RPC; added a custody-local toast helper, restored the canonical Parent user API and identity/branch-scope fields for login and session restore; committed the one-file surgical fix; re-fetched the committed blob; compiled the embedded executable script and passed controlled employee/branch-scope simulation. No database or business data changes.
+
+**Report648:** `doc/Draft/Reprots/Report648_PARENT_FINANCE_EMPLOYEE_CUSTODY_ISSUE_ACTION_FIX_20261108.md` — records root cause, source diff, backend/custody contract, tests and deployment limitations.
+
+**Operational repository:** `papamohammed77-glitch/erp-frontend`  
+**Operational file:** `companies/company-1/main.html` only.  
+**Base blob:** `4d25abf0d01b65acf48d7a76634293b8ea3e06ee`.  
+**Fix commit:** `0c2327a8bba6303b81d874aad843cd3243dab9ef`.  
+**Fixed Parent blob:** `49a5726ac969fe5a88dcf77c652472ac5c179508`.  
+**Latest observed operational HEAD:** `aabce7f4ce00429be42b526fae9f4b4fc3135bb9` (a later forensic-extraction-only descendant; it preserves the LVE648 code change).
+
+## Current verified state — LVE648
+
+- **Root cause confirmed:** `RW_Finance_Custody.issue()` called `_showToast` from a sibling IIFE where it was not defined. The error occurred in the first employee/branch availability guard before the issue form opened.
+- **Related actor defect confirmed:** the custody module asked for `RW_Auth.getUser()`, which did not exist, and fell back to `RW_STATE.user`; Parent's canonical identity lives at `RW_STATE.app.currentUser`. Login and restored-session profile queries had omitted user `id`, `default_branch_id`, and `allowed_branch_ids`.
+- **Surgical correction committed:** local custody toast helper; canonical `RW_Auth.getUser()`; enriched self-profile reads and current-user state in both password-login and session-restoration paths. Existing issue() UI, permissions, branch restrictions, endpoint, RPC contract and financial acknowledgement gate were not rewritten.
+- **Impact:** the custody module can now resolve the same authenticated Parent user consistently, exclude the issuing employee from recipient choices, filter active branches to the employee's default/allowed scope, and display warnings/errors rather than throwing a missing-identifier exception.
+- **Production custody RPC independently inspected:** actor/employee active status, Finance permission, branch scopes, same-branch active non-POS Cash treasury, system currency, positive amount and idempotency are checked server-side. Initial issue remains pending employee acknowledgement; no cash-box/journal posting occurs merely from issuing the record.
+- **Static validation:** final blob re-fetched; one embedded executable script compiled with zero syntax errors; exact commit patch is limited to `main.html` (+14/-3); controlled simulation confirmed self-exclusion and branch filtering.
+- **SMART ERP Production read-only baseline/post-check:** project ACTIVE_HEALTHY; 31 active users, 4 active branches, 3 active non-POS Cash treasuries. Each of `buyer_custodies`, `buyer_custody_advances`, `buyer_custody_expenses`, `buyer_custody_payments`, `buyer_custody_settlements` remains at 0 rows. No DDL/DML, migration, RPC/RLS/ACL, Edge Function or QA fixture changes.
+- **Deployment:** the available Cloudflare dashboard snapshot still displayed Production source `be4647d`, older than LVE647/LVE648, and automatic deployments enabled. That tab snapshot was not refreshed after the commit; deployment parity is **UNVERIFIED**.
+- **Browser E2E:** the open Parent tab was a pre-fix/stale view and still showed the earlier `RW_API is not defined` message. Browser access in this session was read-only; no reload, authenticated Finance click or issue/acknowledgement E2E was performed. Post-deployment runtime and UI behavior remain **UNVERIFIED**.
+- The Tailwind CDN warning remains a separate production hygiene item. The old `RW_API` issue is a separate LVE647 deployment-parity concern, not the LVE648 `_showToast` root cause.
+
+**Readiness:** `FIX COMMITTED — STATICALLY VALIDATED — DEPLOYMENT / AUTHENTICATED E2E UNVERIFIED`.
+
+**Next exact action:** verify Cloudflare Production deploys `0c2327a8bba6303b81d874aad843cd3243dab9ef` or a later descendant; then reload/authenticate Parent Finance → Employee Custody and perform the no-business-write UI acceptance steps in Report648. Do not create a real custody merely to test that the button opens.
+
+---
+
 # LVE-2026-11-08-647 — Parent Finance Custody API Runtime Fix
 
 **LAST VERIFIED EVENT:** 2026-11-08 — resumed from LVE646; inspected the actual open Parent Finance page and current operational GitHub source; identified the invalid dependency on shared-core `RW_API` from a Parent page that does not load `core.js`; replaced the one local custody API helper with an authenticated request through Parent's existing Supabase client; added fail-closed handling for malformed responses; validated the final source and isolated request contract; committed Report647. No database or business data changes.
