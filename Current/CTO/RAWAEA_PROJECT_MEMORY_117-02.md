@@ -8,7 +8,7 @@
 - Current Treasury snapshot: central CASH-01=10,685 EGP (branch_id NULL), BR-01 cashiers=0 EGP each, POS=190 EGP (must not fund employee custody), BR-2 Alexandria has no active Treasury. Phase 1 must only use same-branch Cash Treasury; central exception requires separate policy/permission; branch treasury must be provisioned and funded by real transfer.
 - users is current employee identity source; employee_profiles empty. allowed_branch_ids is mixed scalar/array JSONB and current membership counts conflict with Report640; normalize before rollout. Do not expose employee_profiles sensitive HR fields to Finance.
 - Employee self-service should use RLS-scoped reads and existing ownership-checking RPCs directly; do not use save-purchase-order GET_CUSTODY for ordinary employees because its current Edge gate is restricted to purchases/finance/finance_manager.
-- Report641 documents Parent Finance tab and Buyer UI surgical owner patches. No operational HTML/Core changes have been applied. Full SQL replacement bodies and specific owner approval are still required before Production.
+- Report641 documents Parent Finance tab and Buyer UI surgical owner patches. No operational HTML/Core changes have been applied. Full proposed CREATE OR REPLACE bodies for six existing functions are included in Report641 Appendix A; they are unexecuted/untested and require specific approval plus isolated Staging before Production.
 - No Production DDL/RPC/RLS/ACL/Edge deployment, treasury/journal/cash_box movement, QA rows, or test records created. Staging unavailable.
 - Readiness: CHANGESET PREPARED — SPECIFIC PRODUCTION APPROVAL AND STAGING GATE OPEN.
 
