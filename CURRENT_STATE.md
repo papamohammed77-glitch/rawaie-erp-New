@@ -1,3 +1,33 @@
+# LVE-2026-11-08-649 — Parent Finance Employee Custody Searchable Register ChangeSet
+
+**LAST VERIFIED EVENT:** 2026-11-08 — resumed from LVE648; re-read the current execution prompt, permanent constitution and custody-ledger history; re-fetched operational Parent blob `4405f87169c62baf770b6b675c1582cc484772ba`; confirmed the Employee Custody tab currently renders detailed cards without a searchable register; verified that GET_CUSTODY already supplies the custody and employee data required; inspected the live v30 Edge Function contract and current custody table counts; prepared a Parent-only surgical ChangeSet for a date/employee/text-filtered table with linked existing details; compiled the proposed full inline script and passed six filter-helper simulations. No operational source, database, Edge Function or business data was changed.
+
+**Report649:** `doc/Draft/Reprots/Report649_PARENT_FINANCE_CUSTODY_SEARCHABLE_REGISTER_20261108.md` — full original anchors, replacement blocks, scope, dependencies, limitations and tests.
+
+**Operational source examined:** `papamohammed77-glitch/erp-frontend`, `main`.  
+**Latest observed operational HEAD:** `9e12088352907404b53bde4cf4a0f2fe7483c9c0` (forensic-extraction-only descendant).  
+**Parent blob used:** `4405f87169c62baf770b6b675c1582cc484772ba`.  
+**Target:** `companies/company-1/main.html`, module `RW_Finance_Custody`.
+
+## Current verified state — LVE649
+
+- **UI gap confirmed:** the Finance Employee Custody tab renders an individual detail card per custody and has no table-level search/date/employee filters.
+- **Existing data contract is sufficient for the UI:** the module already loads `custodies`, finance-view `employees`, advances, expenses, supplier payments and settlements through GET_CUSTODY. The proposed change does not add a query or duplicate service.
+- **Proposed register:** date-from/date-to (inclusive), employee selector, case-insensitive free-text search over custody number/employee/branch/purpose/date, filter count and clear action. Each row links to the existing detailed custody card. The old card content and business actions are retained in a collapsible details drawer.
+- **Lifecycle:** delegated input/change listeners are stored on the custody module and removed by its existing stop() method. The existing render-serial guard, issue, advance, settlement, review and document handlers are preserved.
+- **Filter unit simulations:** 6/6 passed (all records, employee, date interval, combined filter, case-insensitive search, reversed date interval).
+- **Static source validation:** the complete proposed inline script compiled with zero syntax errors; static invariants confirmed the filters, row metadata, details target, preserved finance actions and listener cleanup.
+- **SMART ERP read-only baseline:** `buyer_custodies` 1, `buyer_custody_advances` 1, `buyer_custody_expenses` 0, `buyer_custody_payments` 0, `buyer_custody_settlements` 0. No records or balances were changed.
+- **Bounded search:** existing `save-purchase-order` GET_CUSTODY v30 uses newest-first ordering and `.limit(200)`. The proposed table filters only this loaded set. Complete historical search beyond 200 requires a separate reviewed pagination/server-side filter change; it is not silently implied by this client-side ChangeSet.
+- **Governance:** constitution §7.1 reserves direct Parent/app source application to the owner. Accordingly, this assistant prepared Report649 but did not change or commit `companies/company-1/main.html`, did not alter Supabase, and did not deploy.
+- **Deployment/browser:** no new deployment or live-browser E2E was performed; deployed state and actual click interactions remain **UNVERIFIED**.
+
+**Readiness:** `CHANGESET PREPARED — STATICALLY VERIFIED — OWNER APPLICATION / DEPLOYMENT / E2E PENDING`.
+
+**Next exact action:** apply the Report649 ChangeSet to the owner's current Parent `main.html` after verifying its anchors still match blob `4405f87169c62baf770b6b675c1582cc484772ba`; then compile and run the acceptance matrix in Report649, deploy through the owner's normal process, and verify the live Finance tab and its details/actions.
+
+---
+
 # LVE-2026-11-08-648 — Parent Finance Employee Custody Issue Action Fix
 
 **LAST VERIFIED EVENT:** 2026-11-08 — read the execution prompt and governing constitution; inspected current Parent source and both authentication bootstrap paths; independently traced the Finance custody button, actor/branch-scope logic, the active purchasing Edge Function and Production RPC; added a custody-local toast helper, restored the canonical Parent user API and identity/branch-scope fields for login and session restore; committed the one-file surgical fix; re-fetched the committed blob; compiled the embedded executable script and passed controlled employee/branch-scope simulation. No database or business data changes.
