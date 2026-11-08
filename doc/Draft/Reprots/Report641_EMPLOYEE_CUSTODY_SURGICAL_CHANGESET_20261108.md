@@ -405,7 +405,7 @@ BEGIN
   END IF;
 
   RETURN jsonb_build_object('success',true,'duplicate',false,'id',v_id,'expense_code',p_expense_code,'journal_entry_id',v_je->>'entry_id','cash_box_id',v_cash_box_id,'total',v_total+v_tax);
-END; $function$
+END; $function$;;
 
 
 CREATE OR REPLACE FUNCTION public.buyer_custody_issue_atomic(p_company_id uuid, p_employee_id uuid, p_branch_id uuid, p_treasury_id uuid, p_purpose text, p_currency text, p_amount numeric, p_issued_date date, p_received_reference text, p_notes text, p_operation_id text)
@@ -465,7 +465,7 @@ begin
  returning id into v_advance_id;
  return to_jsonb(v_row)||jsonb_build_object('cash_disbursement_status','PendingEmployeeAcknowledgement','advance_id',v_advance_id);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.buyer_custody_acknowledge_atomic(p_company_id uuid, p_custody_id uuid)
@@ -523,7 +523,7 @@ BEGIN
    WHERE id=p_custody_id AND company_id=p_company_id RETURNING * INTO v_custody;
   RETURN to_jsonb(v_custody)||jsonb_build_object('cash_disbursement_status','PostedAfterAcknowledgement');
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.buyer_custody_add_advance_atomic(p_company_id uuid, p_custody_id uuid, p_treasury_id uuid, p_amount numeric, p_advance_date date, p_reference text, p_notes text, p_operation_id text)
@@ -567,7 +567,7 @@ begin
  update public.buyer_custodies set issued_amount=issued_amount+p_amount,updated_at=now() where id=p_custody_id and company_id=p_company_id;
  return to_jsonb(v_advance)||jsonb_build_object('cash_disbursement_status','PendingEmployeeAcknowledgement');
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.buyer_custody_acknowledge_advance_atomic(p_company_id uuid, p_advance_id uuid)
@@ -620,7 +620,7 @@ BEGIN
   END IF;
   RETURN to_jsonb(v_advance)||jsonb_build_object('cash_disbursement_status','PostedAfterAcknowledgement');
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.buyer_custody_settle_atomic(p_company_id uuid, p_custody_id uuid, p_treasury_id uuid, p_cash_returned numeric, p_finance_reference text, p_notes text)
@@ -728,7 +728,7 @@ BEGIN
 
   RETURN to_jsonb(v_settlement);
 END;
-$function$
+$function$;
 
 
 COMMIT;
