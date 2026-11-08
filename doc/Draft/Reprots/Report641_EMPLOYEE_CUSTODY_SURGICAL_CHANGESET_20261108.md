@@ -688,10 +688,12 @@ BEGIN
   v_expected_return:=greatest(v_custody.issued_amount-v_approved,0);
   IF COALESCE(p_cash_returned,0)<>v_expected_return THEN RAISE EXCEPTION 'CUSTODY_CASH_RETURN_MUST_RECONCILE'; END IF;
 
-  IF v_expected_return>0 THEN
-    IF p_treasury_id IS NULL THEN RAISE EXCEPTION 'CUSTODY_RETURN_TREASURY_REQUIRED'; END IF;
+  IF p_treasury_id IS NOT NULL THEN
     SELECT * INTO v_treasury FROM public.treasury t WHERE t.id=p_treasury_id AND t.company_id=p_company_id AND coalesce(t.is_active,true) AND t.branch_id=v_custody.branch_id AND t.type='Cash' AND t.account_code NOT LIKE 'POS-%' FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'CUSTODY_TREASURY_BRANCH_MISMATCH'; END IF;
+  END IF;
+  IF v_expected_return>0 THEN
+    IF p_treasury_id IS NULL THEN RAISE EXCEPTION 'CUSTODY_RETURN_TREASURY_REQUIRED'; END IF;
     SELECT id INTO v_cash_account FROM public.chart_of_accounts
     WHERE company_id=p_company_id AND account_code='121' AND is_active;
     SELECT id INTO v_custody_account FROM public.chart_of_accounts
