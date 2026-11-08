@@ -63,6 +63,7 @@ The later legacy declaration only contained advance, settle, review and document
 6. Reconstructed the expected patched source from the pre-change blob and verified byte-for-byte equality with the newly fetched current blob; no other source changes are present.
 7. GitHub compare for the fix commit reports only `companies/company-1/main.html`, with one insertion and one deletion.
 8. The branch update used an expected-HEAD lease against `8558108...`; no force update or branch creation was used.
+9. Parsed the actual outer Parent inline JavaScript block (1,821,036 characters) with zero syntax errors. This was a syntax-only compile; application code was not executed.
 
 **Current Parent page snapshot — PARTIAL**
 

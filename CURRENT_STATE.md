@@ -6,7 +6,7 @@
 
 **Operational patch:** `papamohammed77-glitch/erp-frontend`, branch `main`; fix commit `d514060d88c8156f982b6d586715c7af7d7f4c6a`; file `companies/company-1/main.html`; old blob `6b4d555d0da9efd3fb821aef4a9a2e832bb064e1`; new/current blob `879383859d0ec20927cc718e63a7af49fa18980c`. Exact change: later legacy `function bind(root)` → `function bindLegacy(root)`. One declaration named `bind` remains; the active render still calls `bind(target)`.
 
-**SOURCE CHECKS:** PASS — two original same-scope declarations confirmed; first comprehensive binder retains search/reset/pagination/detail/page-size and existing finance-action handlers; later legacy binder renamed; fetched current blob byte-for-byte equals the expected one-token replacement; Git diff is one line added/one line removed. Descendant commit `c8d40b3` only updates the forensic extract.
+**SOURCE CHECKS:** PASS — two original same-scope declarations confirmed; first comprehensive binder retains search/reset/pagination/detail/page-size and existing finance-action handlers; later legacy binder renamed; fetched current blob byte-for-byte equals the expected one-token replacement; Git diff is one line added/one line removed; the actual outer Parent inline JavaScript block (1,821,036 characters) parsed with zero syntax errors (compile-only; application code was not executed). Descendant commit `c8d40b3` only updates the forensic extract.
 
 **PARENT SNAPSHOT:** the available page text shows the Employee Custody register, filter controls, pagination and detail content. This is not proof of clicks or authenticated E2E; console/network evidence is unavailable in the read-only Browser session.
 
