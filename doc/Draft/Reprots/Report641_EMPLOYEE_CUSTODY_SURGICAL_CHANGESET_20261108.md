@@ -747,3 +747,81 @@ COMMIT;
 4. يلزم تفعيل خزينة Cash فعلية لفرع الإسكندرية BR-2 وتمويل خزائن الفروع من خلال تحويلات حقيقية موثقة قبل إطلاق الصرف.
 5. لا تُفعّل أي صلاحية مركزية للخزينة CASH-01 ضمن هذه الحزمة.
 
+
+
+---
+
+## 17. Production QA Transaction — PASS / FULL ROLLBACK — 8 نوفمبر 2026
+
+**البيئة:** SMART ERP Production fiilmooggumokxanwiyx مباشرة. لم يُنشأ branch أو project أو نسخة بديلة.
+
+### طريقة التنفيذ
+
+- حُفظت بصمات الدوال الست ومالكها وACL وsearch_path قبل الاختبار.
+- استُخدمت نسخة ChangeSet نفسها داخل معاملة واحدة: BEGIN → DDL المؤقت للعمود received_at + CREATE OR REPLACE للدوال الست → اختبارات SQL/RPC داخل DO block → ROLLBACK.
+- استُخدم سياق auth.uid() المحلي للمستخدم المالي ثم الموظف، مع التحقق من الصلاحيات والملكية التي تعتمد عليها RPCs. هذا اختبار لعقود SQL/RPC وسياق الهوية المحاكى داخل قاعدة البيانات، وليس Browser JWT E2E أو RLS/PostgREST full-session test.
+- لتمكين اختبار الصرف من خزينة الفرع التي كان رصيدها صفرًا، نُفّذ تحويل مؤقت 5 EGP من CASH-01 إلى خزينة BR-01 عبر post_treasury_transfer_atomic الموجود، ثم عُكس التحويل كاملًا إلى CASH-01 قبل ROLLBACK. لا تعديل مباشر في treasury أو cash_box.
+- جميع identifiers وreferences حملت QA-EMP-CUSTODY-641-RUN-20261108؛ لا سجل اختبار committed خارج المعاملة.
+
+### حالات الاختبار التي نجحت داخل المعاملة
+
+| الاختبار | النتيجة |
+|---|---|
+| finance_save_expense يرفض حساب 127 من نوع Asset | PASS — EXPENSE_ACCOUNT_INVALID |
+| تحويل تمويل مؤقت عبر writer الموجود | PASS |
+| إصدار عهدة بفرع وخزينة نقدية مطابقين | PASS |
+| received_at يظل NULL قبل ACK بعد إسقاط DEFAULT/NOT NULL داخل المعاملة | PASS |
+| لا cash_box/Journal/Treasury أثر عند Issue قبل ACK | PASS |
+| إعادة Issue بنفس operation_id/payload | PASS — duplicate |
+| Issue بنفس operation_id مع مبلغ مختلف | PASS — CUSTODY_OPERATION_ID_CONFLICT |
+| رفض CASH-01 المركزي لعهدة فرع | PASS — CUSTODY_TREASURY_BRANCH_MISMATCH |
+| رفض خزينة POS | PASS — CUSTODY_TREASURY_BRANCH_MISMATCH |
+| رفض branch_id فارغ | PASS — CUSTODY_INVALID_ISSUE |
+| رفض زيادة عهدة من خزينة مركزية | PASS |
+| إضافة Advance من خزينة الفرع | PASS |
+| إعادة Advance بنفس المفتاح والبيانات | PASS — duplicate |
+| إعادة Advance بنفس المفتاح مع مبلغ مختلف | PASS — CUSTODY_OPERATION_ID_CONFLICT |
+| إقرار الموظف بالعهدة الأصلية ثم تسجيل Payment واحد | PASS |
+| إقرار الموظف بالزيادة ثم تسجيل Payment ثانٍ | PASS |
+| received_at وacknowledged_at لا يسجلان قبل ACK ويسجلان بعده | PASS |
+| تسوية العهدة ورد 1.50 EGP إلى نفس الخزينة | PASS |
+| تسجيل سند Receipt وقيود التسوية المرتبطة | PASS |
+| إعادة تمويل الفرع إلى CASH-01 واستعادة baseline قبل rollback | PASS |
+| ROLLBACK للـDDL والدوال والسجلات والقيود والحركات | PASS |
+
+### تحقق ما بعد ROLLBACK — أدلة مباشرة
+
+| عنصر Production بعد rollback | القيمة المتحققة |
+|---|---:|
+| buyer_custodies | 0 |
+| buyer_custody_advances | 0 |
+| buyer_custody_expenses | 0 |
+| buyer_custody_settlements | 0 |
+| cash_box rows ذات QA reference | 0 |
+| erp_operation_registry rows الخاصة بتحويلي QA | 0 |
+| CASH-01 | 10,685.00 EGP |
+| BR-01 cashier1 | 0.00 EGP |
+| buyer_custodies.received_at | عاد NOT NULL DEFAULT now() — التغيير البنيوي المؤقت تم التراجع عنه |
+
+بصمات الدوال الست بعد rollback تطابق baseline قبل الاختبار حرفيًا، مع الحفاظ على owner=postgres وACL وsearch_path:
+
+| Function | MD5 بعد rollback |
+|---|---|
+| buyer_custody_acknowledge_advance_atomic | 490abe1aa658e2822b6d59f340ff4ba0 |
+| buyer_custody_acknowledge_atomic | fa9ac6caa7dbe6095a12cb97405519c0 |
+| buyer_custody_add_advance_atomic | 2db48aa75bcb28772644891631c1334b |
+| buyer_custody_issue_atomic | d303ed824891d0dcba3755bb0a332812 |
+| buyer_custody_settle_atomic | 25a0bc138a41f43f42c90c02eae6b6a5 |
+| finance_save_expense (13-arg overload) | 076e98520d7cf681c25f544ff75cfcb4 |
+
+**الحكم:** Production SQL/RPC contract validation passed in a fully rolled-back transaction. No permanent Production DDL/function change and no test data or financial/stock effect remains.
+
+### ما لم يثبت بعد
+
+- Browser E2E بجلستي موظف ومالية حقيقيتين عبر PostgREST/Edge/واجهة.
+- Parent Finance UI، Buyer UI، Core shared UI، deployed Cloudflare artifact.
+- Operational expense review/posting؛ لا يوجد Expense leaf مناسب للوقود/الانتقالات حتى الآن، ولذلك لا يمكن اختبار هذا المسار دون اعتماد حساب مصروف صحيح.
+- Employee self-only RLS من خلال PostgREST role فعلي، وRealtime delivery/latency.
+- branch BR-2 لا يملك Treasury نشطة؛ لا يمكن إثبات الصرف له قبل إنشاء خزينة فعلية وتمويلها بمستند تحويل صحيح.
+
+**الحالة بعد هذا الاختبار:** SQL/RPC QA PASS — TRANSACTION ROLLED BACK / PERMANENT CHANGE NOT APPLIED / UI & BROWSER E2E OPEN.
