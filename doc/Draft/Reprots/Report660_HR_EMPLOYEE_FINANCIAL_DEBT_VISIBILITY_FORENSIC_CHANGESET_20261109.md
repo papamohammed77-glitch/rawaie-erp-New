@@ -291,7 +291,7 @@ RETURN jsonb_build_object(
 
 ## 9. الاختبارات التي نُفذت فعلًا
 
-<badge>CONFIRMED</badge>
+**CONFIRMED**
 
 1. قراءة كاملة لتعريف `hr_query` واستخراج فرع `advances` الحالي.
 2. قراءة تعريف `v_employee_financial_ledger` و`v_employee_financial_balances` و`v_finance_employee_directory`.
