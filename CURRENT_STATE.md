@@ -7,8 +7,8 @@ The owner clarified the one and only execution model: deploy/apply directly to S
 Evidence basis: Report631 §10 documents SQL migration tests in BEGIN/ROLLBACK and RLS tests rolled back; Report632 §10 calls for E2E with removable QA data. Report640's Staging-only recommendation was an assistant-added constraint, not the owner's target operating model.
 
 
-**LAST VERIFIED EVENT:** 2026-11-08 — Read-only GitHub, Supabase Production schema/data/function and security-advisor revalidation after LVE640.  
-**Report641:** doc/Draft/Reprots/Report641_EMPLOYEE_CUSTODY_SURGICAL_CHANGESET_20261108.md — ChangeSet prepared; no operational or Production write.  
+**LAST VERIFIED EVENT:** 2026-11-08 — GitHub/Supabase Production source/schema review followed by successful SQL/RPC QA inside a single Production transaction ending in ROLLBACK.  
+**Report641:** doc/Draft/Reprots/Report641_EMPLOYEE_CUSTODY_SURGICAL_CHANGESET_20261108.md — QA PASS; no permanent Production or operational source change.  
 **Previous checkpoint:** LVE-2026-11-07-640 / Report640.
 
 ## Current verified state
@@ -25,13 +25,14 @@ Evidence basis: Report631 §10 documents SQL migration tests in BEGIN/ROLLBACK a
 
 ## ChangeSet status
 - Prepared in Report641: finance_save_expense account-type guard; Treasury/branch/employee-scope checks in existing custody RPCs; received_at timing correction; Issue/Add payload idempotency checks; Parent Finance custody tab and Buyer branch-filter UI patch; shared employee self-service via existing RLS/RPC contracts.
-- No Production DDL/RPC/ACL/RLS/Edge deployment, operational HTML/Core change, cash-box/treasury/journal movement or test record was created.
-- QA and E2E are performed directly on SMART ERP Production using tagged synthetic disposable fixtures or BEGIN/ROLLBACK; this run created no fixtures.
+- The six proposed functions and received_at nullability DDL were executed only inside one Production transaction for SQL/RPC QA, then fully ROLLED BACK. No permanent DDL/RPC/ACL/RLS/Edge deployment, operational HTML/Core change, cash-box/treasury/journal movement or QA/test record remains.
+- QA flow passed: Expense 127 rejection; custody issue/no effect pre-ACK; treasury branch/POS/central/null-branch guards; Issue/Add idempotency and conflict detection; employee acknowledgement and official cash posting; additional advance; full unused-cash settlement; Treasury funding reversal. Post-rollback custody/advance/expense/settlement and QA cash_box/operation_registry counts are zero; central/branch cash are back to 10,685/0 EGP; received_at schema and all six function hashes/owner/ACL/search_path match baseline.
+- This was SQL/RPC validation with simulated auth.uid() claims inside the database, not Browser JWT E2E or PostgREST role-level RLS validation.
 - Parent/Core/Buyer HTML changes remain owner-applied. The exact current source must be re-extracted before the owner applies the surgical snippets.
-- Full proposed CREATE OR REPLACE bodies for six existing functions are now included in Report641 Appendix A, preserving signatures and current search_path. They remain unexecuted and untested; general architectural approval is not approval to run them.
+- Full proposed CREATE OR REPLACE bodies for six existing functions and the received_at DDL are included in Report641 Appendix A. They compiled and their main issue/add/ack/settlement paths passed the rollback-only Production QA; all changes were rolled back and live hashes/ACL/search_path remain unchanged.
 
-**Readiness:** CHANGESET PREPARED — PRODUCTION QA / SPECIFIC CHANGE APPROVAL GATE OPEN.  
-**Next:** validate the proposed SQL on SMART ERP Production using a fully rolled-back transaction or uniquely tagged disposable QA fixtures, with before/after snapshots and verified cleanup. Apply lasting Production function changes only after the exact change review gate; owner applies Parent/Buyer/Core UI patches directly to the operational main files.
+**Readiness:** SQL/RPC QA PASS — FULL ROLLBACK VERIFIED / PERMANENT CHANGE AND OWNER UI WORK OPEN.  
+**Next:** secure the explicit approval required for the exact permanent SQL change under §6.2/§6.4; apply it directly to SMART ERP Production. Owner applies Parent/Buyer/Core UI patches directly to the operational main files. Then run authenticated Browser E2E/PostgREST role/RLS checks with tagged removable QA fixtures and verify Cloudflare artifact parity. Do not declare complete before UI/runtime proof.
 
 ---
 
