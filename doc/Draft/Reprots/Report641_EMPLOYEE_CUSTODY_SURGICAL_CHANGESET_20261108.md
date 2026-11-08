@@ -825,3 +825,56 @@ COMMIT;
 - branch BR-2 لا يملك Treasury نشطة؛ لا يمكن إثبات الصرف له قبل إنشاء خزينة فعلية وتمويلها بمستند تحويل صحيح.
 
 **الحالة بعد هذا الاختبار:** SQL/RPC QA PASS — TRANSACTION ROLLED BACK / PERMANENT CHANGE NOT APPLIED / UI & BROWSER E2E OPEN.
+
+
+---
+
+## 18. تنفيذ التغيير الدائم على SMART ERP Production — 2026-11-08
+
+**الحالة: APPLIED / POST-DEPLOYMENT VERIFIED.** هذا القسم هو التحديث اللاحق الذي ينسخ الحالة التاريخية في الأقسام 14–16 التي كانت تصف الحزمة بأنها مقترحة وغير منفذة. نُفذت الحزمة الآن مباشرة على SMART ERP Production `fiilmooggumokxanwiyx`، دون فرع أو مشروع بديل ودون إنشاء migration تشغيلية موازية.
+
+### ما نُفذ
+
+- تطبيق ALTER محدود على `public.buyer_custodies.received_at`: إزالة DEFAULT now() والسماح بـNULL حتى إقرار الموظف.
+- CREATE OR REPLACE للدوال الست الموجودة فقط، من نصوص الملحق A التي اجتازت QA rollback سابقًا:
+  1. `finance_save_expense(uuid,uuid,text,date,text,uuid,uuid,text,text,text,text,uuid,jsonb)` — فرض `account_type='expense'` على حسابات المصروف.
+  2. `buyer_custody_issue_atomic(...)` — فرع إلزامي، نطاق فرع المنفذ والموظف، خزينة Cash نشطة من نفس الفرع واستبعاد POS/الخزينة المركزية، مطابقة payload عند إعادة operation_id، وإنشاء العهدة مع received_at فارغ.
+  3. `buyer_custody_acknowledge_atomic(...)` — التحقق من فرع الخزينة قبل الصرف، وتسجيل received_at بعد نجاح الإقرار/الترحيل.
+  4. `buyer_custody_add_advance_atomic(...)` — تحقق نطاق الفرع والخزينة ومطابقة payload للزيادة.
+  5. `buyer_custody_acknowledge_advance_atomic(...)` — التحقق من الخزينة/الفرع قبل ترحيل الزيادة.
+  6. `buyer_custody_settle_atomic(...)` — التحقق من نطاق فرع منفذ التسوية وخزينة رد النقد المطابقة، بما في ذلك رفض خزينة غير مطابقة عند وجود treasury_id.
+- لم تُضف جداول أو أعمدة أخرى، ولم تُمنح صلاحيات DML مباشرة، ولم تتغير RLS أو GRANT/REVOKE أو Edge Functions.
+
+### تحقق ما بعد التطبيق
+
+- العمود `received_at`: `is_nullable=YES` و`column_default=NULL`.
+- جميع الدوال الست موجودة بالتواقيع الأصلية، ومالكها `postgres`، وخصائص SECURITY DEFINER وsearch_path محفوظة كما كانت.
+- جميع الدوال الست: `anon EXECUTE=false` و`authenticated EXECUTE=true` كما كان عقدها السابق؛ لم يتغير سطح ACL.
+- فحوص المصدر الحي بعد النشر: حارس Expense، حارس Treasury/Branch، تضارب idempotency في Issue/Add Advance، ومنطق received_at في ACK — كلها موجودة.
+- بصمات MD5 بعد التطبيق:
+  - `buyer_custody_acknowledge_advance_atomic`: `d4f498a50b5f122780a578e2d3f0b35a`
+  - `buyer_custody_acknowledge_atomic`: `c723a3c5f7557fe3d0d173667d2eebe7`
+  - `buyer_custody_add_advance_atomic`: `c1cfdd85679917a43dd35e22c76e03b3`
+  - `buyer_custody_issue_atomic`: `a5dc356cf8d8ed2fa15417394b216138`
+  - `buyer_custody_settle_atomic`: `fbcec6d79c6f46bf4c6bea0e5f0cd3c7`
+  - `finance_save_expense` 13-arg: `eafbdf9ba7d3b7b01a927816019555e1`
+  - `finance_save_expense` 14-arg branch overload: unchanged `af1a15d07b0523ec70d6dce7d03aefd6`.
+- جداول العهد الخمسة ما زالت جميعها صفر سجلات؛ لا تم إنشاء عهد أو مصروف أو تسوية أو دفعة اختبارية دائمة.
+- خزائن Production بقيت كما هي: CASH-01 المركزي 10,685 EGP، خزائن Cash للفرع BR-01 كل منها 0 EGP، وخزينة POS 190 EGP. لم تحدث حركة خزينة أو قيد مالي أو مخزني في هذا النشر الدائم.
+
+### Advisors بعد التطبيق
+
+- Health: لا findings.
+- Security: 24 INFO لجدول RLS بلا سياسات، و126 تحذيرًا عامًا عن SECURITY DEFINER قابل لـauthenticated (يشمل RPCs العهد المقصودة)، و2 تحذير anon لدوال public storefront غير مرتبطة بهذا التغيير. RPCs العهد نفسها لا تسمح لـanon، وتظل تحقق الهوية/الملكية داخل الدالة. لم تُجرَ معالجة جماعية أو revoke عشوائي.
+- Performance: تحذيرات عامة قائمة تشمل 18 مجموعة سياسات permissive و7 مجموعات duplicate indexes، ولا يثبت الفحص أنها نتجت عن هذا التغيير. لا تغييرات أداء/فهرسة ضمن هذه الحزمة.
+
+### ما لم يكتمل بعد — يمنع إعلان الميزة جاهزة
+
+1. تعديلات Parent Finance UI (تبويب عهد الموظفين، دفتر تحليلي تحت 127، وإظهار حسابات Expense فقط في شاشة المصروف العام) لم تُطبق بعد على `main.html`.
+2. Buyer UI: جعل الفرع إلزاميًا وتصفية خزائن Cash النشطة حسب الفرع واستبعاد POS/المركزي في الإصدار والزيادة ورد النقد — لم تُطبق بعد على `buyer.html`.
+3. وحدة «عهدتي النقدية» المشتركة في تطبيقات الموظفين وقراءة self-only عبر RLS والإقرار/الإرسال عبر RPCs القائمة لم تُدمج بعد في `core.js` أو التطبيقات؛ لا توسع الصلاحيات ولا تستخدم Edge GET_CUSTODY الحالي للموظفين العامين.
+4. Browser JWT E2E وPostgREST RLS self-vs-other، Realtime delivery/latency، وCloudflare artifact parity لم تُثبت بعد.
+5. BR-2 الإسكندرية لا تزال بلا خزينة Cash نشطة؛ لا تفعّل عهدة هذا الفرع قبل تهيئة خزينة فعلية وتمويلها بتحويل حقيقي موثق. لا تستخدم CASH-01 المركزي أو خزينة POS.
+6. لا يوجد حساب Expense مناسب مثبت للوقود/الانتقالات/الرسوم؛ لا تعتمد 51 أو52 بدلًا منهما. يلزم إعداد حسابات مصروف تشغيلية معتمدة من الإدارة المالية قبل قبول هذه الفئات.
+
+**الحكم المحدث:** DATABASE CHANGESET APPLIED AND VERIFIED / SQL-RPC rollback QA previously passed / UI + authenticated browser E2E + Cloudflare verification OPEN. لا تُعتبر دورة العهد مكتملة أو جاهزة للتشغيل الميداني قبل إغلاق النقاط الست أعلاه.
