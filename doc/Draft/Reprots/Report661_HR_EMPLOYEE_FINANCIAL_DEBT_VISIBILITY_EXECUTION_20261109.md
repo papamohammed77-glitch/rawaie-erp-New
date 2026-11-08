@@ -75,10 +75,10 @@ The cross-employee self-service request was rejected with `ADVANCE_SCOPE`. The v
 
 Only `companies/company-1/main.html` was changed.
 
-- Parent UI commit: `8cb7825f3dfc307db57fed239a2f36364252b71a`.
-- Commit message: `fix(hr): expose employee financial subledger in HR views`.
-- Parent blob after change: `be4e48f52ce7bbf12419e6a1b6560004402485ca`.
-- The current operational HEAD subsequently advanced to `035217d96e0aeed37f4dd57652fd509ac86d3774` through the automated forensic extract commit. That commit is a direct child of the UI commit. Its tree still resolves `companies/company-1/main.html` to the exact UI blob `be4e48f52ce7bbf12419e6a1b6560004402485ca`.
+- Initial Parent UI commit: `8cb7825f3dfc307db57fed239a2f36364252b71a` (`fix(hr): expose employee financial subledger in HR views`).
+- Accounting-summary precision follow-up: `d414ac1b8f3a51c0adf9bdb4116883d0928a44c2` (`fix(hr): summarize employee outstanding balances without netting`), parent `035217d96e0aeed37f4dd57652fd509ac86d3774`.
+- Final Parent blob after the follow-up: `e97211c25c2587d3fde2e9a906c7b13833a8e685`.
+- Current operational HEAD: `1ce34f86c8646266f781cbc8ae502b273b46dbed`, a forensic-extract child of the follow-up commit. Its tree resolves `companies/company-1/main.html` to the exact final blob `e97211c25c2587d3fde2e9a906c7b13833a8e685`.
 
 ### 4.1 HR Advances
 
@@ -93,8 +93,9 @@ The existing HR advance/loan document table, approval action and Payments action
 ### 4.2 Employee 360
 
 Added:
-- separate debit and credit totals (no netting);
-- balance rows by financial nature/account;
+- current outstanding employee receivables as the sum of positive `outstanding_balance` values;
+- employee payables as the sum of the absolute negative `outstanding_balance` values, in a separate total with no netting;
+- per-nature/account rows showing debit, credit, current balance and direction;
 - latest 30 posted employee ledger movements, including date, journal code/type, account, reference/description, debit and credit.
 
 The existing HR salary advance list, payroll, documents, leave, attendance and work-entry sections remain in place.
@@ -140,9 +141,10 @@ Function metadata after the call confirmed the owner, SECURITY DEFINER flag, sea
 
 The changed `advancesTab`, `open360` and `realtime` function bodies each passed isolated JavaScript compilation using `new Function`.
 
-A local function-level renderer smoke test with a representative 5,000 EGP account-127 balance confirmed:
+A local function-level renderer smoke test with mixed balances confirmed:
 - HR Advances generated the financial position card and retained its existing HR advance card;
-- Employee 360 generated the financial position card, latest-ledger card, 5,000 EGP balance and a representative journal reference;
+- Employee 360 with EGP 5,000 positive outstanding and EGP 100 negative outstanding displayed EGP 5,000 as receivable from the employee and EGP 100 as payable to the employee, independently;
+- Employee 360 also generated the latest-ledger card and a representative journal reference;
 - Realtime registered 27 channel listeners in total, including all three new constrained financial listeners, and **did not** register `buyer_custodies`.
 
 These are source/function-level tests with mocked helper functions, not a signed-in visual browser session.
@@ -159,10 +161,10 @@ The workflow steps show a generic Mother-shell/browser run and a canonical payro
 
 ## 6. Cloudflare deployment state — NOT YET VERIFIED
 
-At the last inspected GitHub check-run snapshot:
-- Cloudflare Pages project `rawaea-erp` was still `in_progress` for commit `8cb7825`; no Success result or deployed preview URL for this commit had yet been confirmed.
-- sibling projects `warehouse-supervisor`, `rawaea-store` and `erp-frontend` returned Build Failed for the same commit. Their cause was not diagnosed in this focused HR change and must not be attributed to the Parent HR patch without the individual deployment logs.
-- the Cloudflare dashboard browser tab still displayed the previous deployment at `940ae61` when last read; that is a stale dashboard snapshot, not proof of the new deployment.
+The final source correction is commit `d414ac1b8f3a51c0adf9bdb4116883d0928a44c2`; current operational HEAD subsequently advanced to `1ce34f86c8646266f781cbc8ae502b273b46dbed`, whose Parent blob matches the final source.
+- At the last check-run snapshot for `d414ac1`, the target Cloudflare Pages project `rawaea-erp` remained `in_progress`; no Success result or deployed preview URL for this final source had yet been confirmed.
+- Sibling Pages project `erp-frontend` returned Build Failed for `d414ac1`. Separate sibling projects `warehouse-supervisor` and `rawaea-store` had returned Build Failed for earlier commit `8cb7825`. Their causes were not diagnosed in this focused HR change and are not attributed to the HR Parent edit without individual deployment logs.
+- The existing Cloudflare dashboard browser tab still displayed the older deployment at `940ae61` when last read; that stale snapshot is not proof of deployment for the final source.
 
 Accordingly, source commit is **CONFIRMED**, but Pages publication is **PENDING**. Do not claim the updated HR interface is live until the `rawaea-erp` deployment reports Success and serves the new Main blob.
 
@@ -187,7 +189,7 @@ The existing `hr_query` SECURITY DEFINER warning is visible because authenticate
 
 ## 9. Outstanding acceptance gates
 
-1. Confirm Cloudflare Pages `rawaea-erp` deployment for commit `8cb7825` is SUCCESS and deployed Main blob matches `be4e48f52ce7bbf12419e6a1b6560004402485ca`.
+1. Confirm Cloudflare Pages `rawaea-erp` deployment for final source commit `d414ac1` (or its current-branch child) is SUCCESS and deployed Main blob matches `e97211c25c2587d3fde2e9a906c7b13833a8e685`.
 2. Sign in with an authorized HR account and visually test the HR Advances summary, employee row details, Employee 360 movements and live refresh after a test-only posted employee journal/cash event.
 3. Validate a self-service employee sees only their own financial details through the real authenticated API/browser session, not only through transaction-local SQL claim simulation.
 4. Inspect any sibling Pages failures separately before treating them as regressions.
@@ -195,7 +197,7 @@ The existing `hr_query` SECURITY DEFINER warning is visible because authenticate
 ## 10. Rollback and recovery
 
 - Database rollback: restore only the previous `advances` branch body from the pre-change `hr_query(text,jsonb)` definition captured immediately before deployment. Do not drop or recreate the function, because that could alter owner, ACLs or configuration. No data rollback is required.
-- Parent source rollback: revert commit `8cb7825f3dfc307db57fed239a2f36364252b71a` through a normal revert commit, preserving the later forensic-extract commit and all unrelated history.
+- Parent source rollback: revert the balance-summary follow-up `d414ac1b8f3a51c0adf9bdb4116883d0928a44c2` first, then revert the initial HR UI commit `8cb7825f3dfc307db57fed239a2f36364252b71a`, preserving all forensic-extract commits and unrelated history.
 - No Edge Function rollback or data cleanup is required.
 
 ## 11. Final classification
@@ -214,4 +216,10 @@ The existing `hr_query` SECURITY DEFINER warning is visible because authenticate
 | Cloudflare `rawaea-erp` deploy | PENDING |
 | Authenticated HR visual browser E2E | UNVERIFIED |
 
-**LAST VERIFIED EVENT — LVE-2026-11-09-661:** the HR employee financial subledger has been connected to the existing HR RPC and Parent HR views. Production returns the existing test EGP 5,000 account-127 employee custody balance to the HR response; the UI source is committed and function-level checks pass. Deployment/runtime acceptance remains open pending the target Cloudflare Pages result and a real authenticated HR session.
+**LAST VERIFIED EVENT — LVE-2026-11-09-661:** the HR employee financial subledger has been connected to the existing HR RPC and Parent HR views. Production returns the existing test EGP 5,000 account-127 employee custody balance to the HR response; the final UI source is committed, and Employee 360's signed outstanding receivable/payable totals were verified with a mixed +EGP 5,000 / -EGP 100 test. Deployment/runtime acceptance remains open pending the target Cloudflare Pages result and a real authenticated HR session.
+
+## Final source correction addendum
+
+Commit `d414ac1b8f3a51c0adf9bdb4116883d0928a44c2` replaced Employee 360's previous gross debit/credit headline sums with sums of current signed outstanding balances: positive balances are receivables from the employee, and the absolute values of negative balances are payable to the employee. Detailed debit/credit values remain visible at account level. The follow-up passed isolated syntax compilation and a mocked mixed-balance rendering test (EGP 5,000 receivable and EGP 100 payable displayed as separate totals).
+
+Final Parent blob: `e97211c25c2587d3fde2e9a906c7b13833a8e685`. Current operational HEAD `1ce34f86c8646266f781cbc8ae502b273b46dbed` retains that exact blob. At the latest status snapshot, Cloudflare `rawaea-erp` and generic `browser-e2e` for `d414ac1` were still running; no HR-specific authenticated Browser acceptance is claimed.
