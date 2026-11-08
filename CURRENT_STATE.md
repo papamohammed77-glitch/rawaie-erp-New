@@ -1,3 +1,27 @@
+# LVE-2026-11-09-664 — Buyer Invoice Catalog Read Path Aligned with RLS Permissions
+
+**LAST VERIFIED EVENT:** 2026-11-09 (Africa/Cairo) — investigated the third reported failure of Buyer → «فواتيري» item autocomplete. Rechecked current Buyer source, the live `items` RLS policies, current Production item catalogue, the Buyer UI role gate, and the existing `save-purchase-order` GET_DATA contract.
+
+**CONFIRMED ROOT CAUSE:** Buyer UI entry explicitly allows `purchases`, `finance`, `finance_manager`, or owner. However, direct authenticated `public.items` SELECT RLS allows effective `items`, `warehouse`, `data-entry`, or `purchases` only — not finance/finance_manager. Read-only simulated authenticated RLS checks against existing Production identities reproduced the mismatch: Buyer/purchases user saw 35 active rows; accountant/finance and finance-manager accounts each saw 0 rows despite being authorized by the Buyer UI gate. Production contains 35 active items; direct SQL confirmed 26 matches for Arabic letter `ب`, 2 for `بسكوت`, and a valid match each for item code `1011` and barcode `1224`. The missing results were therefore an authorization-path mismatch, not missing catalogue data.
+
+**SECURE EXISTING PATH VERIFIED:** Edge Function `save-purchase-order` already authorizes GET_DATA for `purchases`, `finance`, and `finance_manager`; `items` is on its explicit allowlist. It resolves the caller's effective profile from the JWT, then queries `items` through the existing server-side service-role client with explicit company scope and a maximum 500-row limit. No Edge Function or DB change is required.
+
+**SOURCE FIX:** Operational repo `papamohammed77-glitch/erp-frontend`, branch `main`. Only `companies/company-1/purchasing/buyer.html` changed. Commit `1262c4603cb84219549b877b79f40d2d409761ee`; final blob `aac61d7e3127a4061b0afe57cdc3b2bf6e3e4519`. `loadInvoiceItems()` now calls the forced central `this.data('items',true)` GET_DATA path and filters active items. Invoice search filters that returned catalogue rather than issuing a direct RLS-bound items query. Search now normalizes Unicode NFKC, Arabic diacritics/tatweel, Alef variants, Arabic/Persian Yeh and Kaf; partial and up-to-four-token AND matching works across item code, name, barcode and search_label. The modal passes its loaded catalogue into the helper. Existing debounce, stale-response guard, line selection/add, manual price entry and write payload are preserved.
+
+**VERIFICATION:** Buyer inline JavaScript compiled. Extracted production methods passed search cases for `ب`, `بس`, `بسكوت`, `ويفر` (matching stored `ویفر`), `1011`, `1224`, `بسكوت 1011`, and a no-match query. A controlled Finance-only modal event harness used the central GET_DATA catalogue path and verified result rendering, selection and invoice-line addition. It did not invoke CREATE/UPDATE invoice operations. No business record or stock, accounting, supplier, cash-box, custody or treasury effect was created. Production RLS simulation queries were read-only and rolled back.
+
+**CLOUDFLARE:** Dashboard lists a new Production/main deployment entry for commit `1262c46`, automatic deployments enabled, preview URL `https://deb7f6ab.rawaea-erp.pages.dev`. The available dashboard extract does not prove terminal build Success or served HTML byte parity. Authenticated Buyer live browser E2E remains UNVERIFIED.
+
+**REPORT:** `doc/Draft/Reprots/Report664_BUYER_INVOICE_CATALOG_RLS_PERMISSION_PATH_FIX_20261109.md`; report commit `260b5bed521550ff85557b6bc687170adabb832c`.
+
+**ROLLBACK:** revert only source commit `1262c4603cb84219549b877b79f40d2d409761ee`. No database cleanup or RLS restoration is needed because no database/security change occurred.
+
+**OPEN GATES:** (1) confirm Cloudflare terminal Success and served-source parity; (2) authenticated live UI tests for Buyer users with purchases, finance, finance_manager and owner access; (3) approved draft invoice create/update, Parent visibility and no premature stock/treasury/accounting effects. Broader Buyer receiving, vehicle goods custody, supplier return and E2E workflows remain OPEN.
+
+**STATUS:** RLS/PERMISSION ROOT CAUSE CONFIRMED · CENTRAL AUTHORIZED READ PATH FIXED IN SOURCE · JS + CONTROLLED FINANCE MODAL TEST PASS · NO BUSINESS SIDE EFFECTS · CLOUDFLARE PRODUCTION ENTRY PRESENT · AUTHENTICATED LIVE E2E / SERVED BYTE PARITY UNVERIFIED.
+
+---
+
 # LVE-2026-11-09-663 — Buyer Invoice Item Search Runtime Binding Fixed
 
 **LAST VERIFIED EVENT:** 2026-11-09 (Africa/Cairo) — investigated why Buyer → «فواتيري» item lookup still failed after LVE-662. Current GitHub source and Cloudflare Pages deployment listing were checked again. The prior item-search source commit `00f38aeb7bb7fbbac947b5084838074dbea361b0` was present in Production, so deployment omission alone did not explain the issue.
