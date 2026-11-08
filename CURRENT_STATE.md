@@ -1,3 +1,25 @@
+# LVE-2026-11-08-651 — Parent Finance Custody Event Binding Collision Diagnosed
+
+**LAST VERIFIED EVENT:** 2026-11-08 (Africa/Cairo) — fully read the current execution prompt and permanent constitution; revalidated LVE650 and Reports545, 644–650; independently fetched current Parent source/HEAD lineage, current Supabase Edge v33 and custody contracts, read-only custody counts, and available Parent/Cloudflare browser snapshots. Confirmed two same-scope `bind(root)` declarations in `RW_Finance_Custody`; the later legacy declaration shadows the new register binder and omits search/reset/pagination/detail/page-size events.
+
+**Report651:** `doc/Draft/Reprots/Report651_PARENT_FINANCE_CUSTODY_EVENT_BINDING_COLLISION_20261108.md` — report commit `64b1a3fbe6d78e43df9052d89ac8f95b84a1a4ba`.
+
+**Operational source (re-fetched):** `papamohammed77-glitch/erp-frontend`, branch `main`; HEAD `855810884e9184122c5f149b6d052479a840cc6f`; Parent `companies/company-1/main.html` blob `6b4d555d0da9efd3fb821aef4a9a2e832bb064e1`. Last functional Parent commit `0389995ac3f4440113f5c83b41821366eba3fbeb`; compare to HEAD shows only one forensic-extract commit after it, no Parent changes.
+
+**CONFIRMED ROOT CAUSE:** the comprehensive `bind(root)` handles `data-custody-apply/reset/page/open-detail` and `#custody-page-size` change. A later duplicate legacy `bind(root)` after `doc(path)` handles only advance/settle/review/doc. JavaScript function declaration precedence makes the later legacy declaration active. The active render calls `bind(target)`, so the new register actions are never wired.
+
+**OWNER-ONLY CHANGESET:** rename only the later legacy declaration from `function bind(root)` to `function bindLegacy(root)`. Do not modify the earlier comprehensive binder, active render, stop lifecycle, financial actions, API contracts, or any database object. Exact original and replacement line are in Report651 §5. The owner-only boundary remains binding under prompt §10.1 and constitution §§6.2/7.1; no Parent source edit or operational commit was made.
+
+**SMART ERP read-only:** project `fiilmooggumokxanwiyx` ACTIVE_HEALTHY; `save-purchase-order` v33 ACTIVE with JWT verification; custody counts = `buyer_custodies=1`, `advances=1`, `expenses=0`, `payments=0`, `settlements=0`. Existing GET_CUSTODY server-side filter/pagination contract present. No DB/data/RPC/RLS/ACL/Edge mutation, QA fixture or financial/inventory effect.
+
+**DEPLOYMENT / RUNTIME:** the readable Parent tab snapshot (17:58 local) still contains `RW_API is not defined`; the Cloudflare dashboard snapshot last opened 16:35 showed Production source `be4647ddc1caa3393229cfd73f80a31183457d27`, older than API-fix commits `4214cda` and `2a751e6`. Dashboard snapshot is stale; current deployment parity remains UNVERIFIED. Browser connector is read-only; no reload, login or click E2E performed.
+
+**CONFLICT:** Supabase account listing contains a project named `rawaea-staging` (`hfzznsiprnwkpayskzhu`), while governing owner instruction §6.4 prohibits using a staging/parallel project for this workstream. It was not used; SMART ERP remains the only execution target.
+
+**NEXT ACTION:** owner applies the one-identifier Parent patch after verifying the current blob/anchor, then normal deployment. Re-fetch source and verify Cloudflare artifact plus authenticated Finance filters/details/actions before closure. Status: `ROOT CAUSE CONFIRMED — OWNER CHANGESET PREPARED — DEPLOYMENT / AUTHENTICATED E2E UNVERIFIED`.
+
+---
+
 # LVE-2026-11-08-650 — Employee Custody Server-Paginated Register Implemented
 
 **LAST VERIFIED EVENT:** 2026-11-08 — resumed from LVE649 and re-read the current execution prompt, permanent constitution and Report649; compared the Finance journal-list table/search convention with the old custody card-only renderer; committed the server-paginated Employee Custody register to Parent; deployed the existing Supabase `save-purchase-order` Edge Function to v33; re-fetched the source and function; validated complete pagination and filter behavior through static checks and a 2,753-row deterministic simulation; confirmed Production table counts unchanged.
