@@ -458,7 +458,7 @@ begin
  if v_cash_account is null or v_custody_account is null then raise exception 'CUSTODY_ACCOUNT_MAPPING_MISSING'; end if;
  insert into public.buyer_custodies(company_id,custody_code,employee_id,branch_id,purpose,currency,issued_amount,issued_date,received_reference,received_at,issued_by,notes,operation_id)
  values(p_company_id,'BC-'||to_char(coalesce(p_issued_date,current_date),'YYYYMMDD')||'-'||upper(substr(replace(gen_random_uuid()::text,'-',''),1,8)),
- p_employee_id,p_branch_id,btrim(p_purpose),v_currency,p_amount,coalesce(p_issued_date,current_date),nullif(btrim(p_received_reference),''),NULL,v_actor.id,nullif(btrim(p_notes),''),p_operation_id
+ p_employee_id,p_branch_id,btrim(p_purpose),v_currency,p_amount,coalesce(p_issued_date,current_date),nullif(btrim(p_received_reference),''),NULL,v_actor.id,nullif(btrim(p_notes),''),p_operation_id)
  returning * into v_row;
  insert into public.buyer_custody_advances(company_id,custody_id,employee_id,advance_type,amount,currency,advance_date,reference,notes,issued_by,operation_id,treasury_id)
  values(p_company_id,v_row.id,p_employee_id,'Initial',p_amount,v_currency,coalesce(p_issued_date,current_date),nullif(btrim(p_received_reference),''),nullif(btrim(p_notes),''),v_actor.id,p_operation_id||':INITIAL',p_treasury_id)
