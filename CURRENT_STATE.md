@@ -1,3 +1,23 @@
+# LVE-2026-11-08-653 — Employee Custody Detail Modal Decision & ChangeSet Prepared
+
+**LAST VERIFIED EVENT:** 2026-11-08 (Africa/Cairo) — re-fetched current operational Parent HEAD `c8d40b32150d2cb0e7e5830bac4a9e3d0a846655` and current `main.html` blob `879383859d0ec20927cc718e63a7af49fa18980c`; verified that `data-custody-open-detail` currently opens the page-level `#custody-full-ledger` details element and scrolls to the matching card, rather than opening a modal or navigating to a new page. Compared the implementation to the Parent Purchase Request modal (`RW_PurchaseGold.createRequest`, SweetAlert2 width 980 with RTL hero/sections/didOpen) and PO detail modal (`RW_Purchases.openPO`, read-only SweetAlert2 width 820 with close button). Selected a responsive, wide dedicated detail modal as the correct interaction; a page would unnecessarily disrupt the paginated Finance register context.
+
+**Report653:** `doc/Draft/Reprots/Report653_PARENT_FINANCE_CUSTODY_DETAIL_MODAL_UX_CHANGESET_20261108.md`.
+
+**Proposed Parent ChangeSet:** add `openDetail(id,root)` immediately before the active `bind(root)`; replace the current expand/scroll click branch with `openDetail(...)`; mark the existing full-ledger details container `hidden` while retaining its rendered card markup as the single source for modal content; update the helper note below the table. The modal is planned at `min(1100px, 96vw)`, RTL, Finance-indigo hero, viewport-bounded scroll body, close-only read-only header, preserving the underlying search filters, page and page size. Existing advance/settle/review/document functions remain the only action handlers.
+
+**VALIDATION:** exact source anchors were each unique; in-memory patched Parent outer inline JavaScript parsed successfully; isolated behavior simulation confirms modal open is read-only, advance/settle/review route to existing handlers after closing the detail modal, document viewing leaves it open, and missing detail produces a warning rather than an empty modal. No business function or financial operation was invoked in the harness.
+
+**NOT APPLIED:** the constitution §7.1 and execution prompt §10.1 keep direct changes to Parent operational files owner-applied. No operational source commit or deployment was created for this modal ChangeSet. The previous event-binding fix remains committed and source-verified at blob `8793838...`.
+
+**DEPLOYMENT / RUNTIME:** Cloudflare and authenticated browser click-through are not verified. The available Browser integration is read-only in this session. Modal visual quality, keyboard dismissal, mobile layout, event routing in the actual DOM and live return-to-list behavior remain pending after owner application.
+
+**DATA SAFETY:** no Supabase, custody, finance, treasury, supplier, journal or inventory mutation; no QA fixture; no route, RPC, Edge Function, table or schema change.
+
+**STATUS:** `CURRENT INLINE DETAIL EXPANSION CONFIRMED — MODAL SELECTED AS BEST UX — MODAL CHANGESET STATICALLY VERIFIED — OWNER APPLICATION / DEPLOYMENT / AUTHENTICATED UI E2E PENDING`.
+
+---
+
 # LVE-2026-11-08-652 — Parent Finance Custody Event Binding Fix Committed
 
 **LAST VERIFIED EVENT:** 2026-11-08 (Africa/Cairo) — resumed from LVE651; independently re-fetched the operational Parent source from the current GitHub tree, applied the one-identifier fix to the later legacy `bind(root)` declaration, created commit `d514060d88c8156f982b6d586715c7af7d7f4c6a`, and then verified that the latest observed `main` HEAD `c8d40b32150d2cb0e7e5830bac4a9e3d0a846655` retains corrected `main.html` blob `879383859d0ec20927cc718e63a7af49fa18980c`. The only descendant after the fix changes `_forensic_current_main_extract.md`, not Parent source.
