@@ -143,6 +143,7 @@ END IF;
 ### 7.3 تصحيح توقيت الاستلام
 
 في INSERT buyer_custodies:
+- العمود الحي `received_at` حاليًا NOT NULL وله DEFAULT now(). يجب أولًا إسقاط الـDEFAULT وNOT NULL في نفس ChangeSet؛ count الحالي لسجلات العهدة = 0.
 - اجعل received_at NULL عند إنشاء طلب/سجل العهدة.
 - لا تكتب received_at قبل إقرار الموظف.
 في buyer_custody_acknowledge_atomic:
@@ -178,7 +179,7 @@ END IF;
 - لا إنشاء حساب GL لكل موظف.
 - لا تغيير في القيود المركزية Dr127/Cr121 عند الإقرار، Dr Expense/Cr127 عند اعتماد المصروف، Dr121/Cr127 عند رد النقد فعليًا.
 - لا تغيير في قواعد مشتريات البضاعة أو Receiving أو Supplier AP أو المخزون.
-- لا تغيير في جداول Buyer أو RLS أو ACL أو Storage.
+- لا إنشاء أو حذف جداول أو أعمدة. التغيير البنيوي الوحيد في Buyer هو جعل `buyer_custodies.received_at` يقبل NULL وإزالة DEFAULT now() الحالي؛ لا تغيير في بقية الأعمدة أو RLS أو ACL أو Storage.
 - لا Edge Function جديدة ولا تغيير في save-purchase-order v30 ضمن هذه الحزمة.
 - لا مسار Employee Payable أو خصم رواتب؛ المصروف الزائد يظل محجوبًا كما هو حتى إعداد حساب التزام ومسار سداد مستقل.
 - يجوز إنشاء بيانات QA اصطناعية مؤقتة على Production وفق §6.4 من الدستور؛ يجب أن تكون موسومة وفريدة وقابلة للإزالة، مع إثبات cleanup وعودة الحالة إلى baseline. لا تنشأ بيانات في هذا التنفيذ التوثيقي.
@@ -257,7 +258,7 @@ Buyer الحالي هو المستهلك النقدي الوحيد لدفتر bu
 3. اختبار رفض Treasury من فرع آخر.
 4. اختبار رفض CASH-01 المركزي وPOS في المسار الفرعي.
 5. اختبار رفض مستخدم غير مخول بنطاق الفرع.
-6. اختبار أن received_at يظل NULL قبل الإقرار، ثم يساوي وقت الإقرار بعد التسليم الفعلي.
+6. اختبار أن received_at يظل NULL بعد الإصدار، وألا يتغير عند فشل الصرف، ثم يساوي وقت الإقرار بعد نجاح الترحيل الفعلي.
 7. اختبار إعادة نفس operation_id بنفس payload: duplicate بلا حركة إضافية.
 8. اختبار إعادة operation_id بمبلغ/موظف/فرع/خزينة مختلفة: CUSTODY_OPERATION_ID_CONFLICT.
 9. اختبار الزيادة الإضافية وتأكيدها من الموظف.
@@ -276,7 +277,7 @@ Buyer الحالي هو المستهلك النقدي الوحيد لدفتر bu
 ## 13. خطة التراجع
 
 - لا يوجد backfill أو تغيير في أرصدة قائمة.
-- SQL rollback: استعادة نصوص الدوال الأصلية حرفيًا من pg_get_functiondef المحفوظ قبل التطبيق، مع إعادة التحقق من ACL/owner/search_path. لا DROP للجداول أو القيود.
+- SQL rollback: استعادة نصوص الدوال الأصلية حرفيًا من pg_get_functiondef المحفوظ قبل التطبيق، مع إعادة التحقق من ACL/owner/search_path. لا DROP للجداول أو القيود. لا تُعد `received_at` إلى NOT NULL إلا إذا ثبت عدم وجود أي صف unacknowledged/NULL؛ بعد بدء الاستخدام الحقيقي يبقى العمود nullable حتى لا تُختلق أوقات استلام بأثر رجعي.
 - UI rollback: حذف التبويب والـhandler الجديدين فقط وإرجاع مرشح الحسابات إلى النص السابق إذا لزم، مع الإبقاء على الحارس الخادمي بعد التأكد من عدم وجود استخدام صحيح لحساب غير Expense.
 - لا يتم عكس أي قيد مالي أو حركة خزينة تلقائيًا؛ أي حركة تم ترحيلها تتطلب مستند عكس مستقل وفق سياسة المحاسبة.
 - لا rollback لـBuyer/Core/main.html إلا عبر استرجاع commit/patch المحدد بعد فحص diff.
@@ -301,10 +302,10 @@ Buyer الحالي هو المستهلك النقدي الوحيد لدفتر bu
 
 **UNKNOWN:** سياسة استثناء الخزينة المركزية، من هو أمين الصندوق الفعلي إذا اختلف عن منشئ العهدة، سياسة الأهلية الوظيفية للعهدة، due_date/cost center/mission mapping، Employee Payable، نشر Cloudflare، Browser E2E وRealtime Runtime.
 
-**UNVERIFIED:** لم يطبق أي إصلاح بعد؛ لا توجد بيئة اختبار معزولة ولا E2E.
+**UNVERIFIED:** لم يطبق أي إصلاح دائم بعد. تم تنفيذ اختبار صياغة مؤقت داخل معاملة Production تنتهي بـROLLBACK بنجاح؛ لم ينفذ بعد اختبار runtime للمسارات أو Browser E2E أو نشر الواجهة.
 
 **الإغلاق:** ROOT CAUSE CONFIRMED — CHANGESET PREPARED / OWNER FILE CHANGE AND SPECIFIC PRODUCTION APPROVAL REQUIRED.  
-لا تعلن الميزة مكتملة أو مفعلة حتى تطبيق جميع طبقاتها واجتياز E2E في بيئة معزولة.
+لا تعلن الميزة مكتملة أو مفعلة حتى تطبيق جميع طبقاتها واجتياز E2E على Production ببيانات QA موسومة وقابلة للإزالة وفق §6.4.
 
 
 ---
@@ -320,7 +321,7 @@ Buyer الحالي هو المستهلك النقدي الوحيد لدفتر bu
 - buyer_custody_acknowledge_advance_atomic: فحص الخزينة والفرع قبل ترحيل الزيادة.
 - buyer_custody_settle_atomic: فحص نطاق منفذ التسوية وخزينة رد النقد من نفس الفرع.
 
-ملاحظة مهمة: CREATE OR REPLACE يحافظ على owner وACL القائمة في PostgreSQL، لكن يجب توثيقها قبل/بعد ومطابقتها بعد التنفيذ. لا يتضمن الملحق أي GRANT أو REVOKE أو DDL للجداول أو تغيير RLS.
+ملاحظة مهمة: CREATE OR REPLACE يحافظ على owner وACL القائمة في PostgreSQL، لكن يجب توثيقها قبل/بعد ومطابقتها بعد التنفيذ. لا يتضمن الملحق أي GRANT أو REVOKE أو تغيير RLS. يتضمن الملحق DDL محدودًا على العمود الموجود `buyer_custodies.received_at` فقط لإزالة DEFAULT now() والسماح بـNULL حتى إقرار الموظف.
 
 ### SQL المقترح
 
@@ -328,6 +329,10 @@ Buyer الحالي هو المستهلك النقدي الوحيد لدفتر bu
 -- PROPOSED CHANGESET CS-EMP-CUSTODY-641. NOT EXECUTED.
 
 -- Capture the existing function owner, ACL, volatility, and search_path before deployment.
+
+ALTER TABLE public.buyer_custodies
+  ALTER COLUMN received_at DROP DEFAULT,
+  ALTER COLUMN received_at DROP NOT NULL;
 
 -- Proposed QA validation on SMART ERP Production only: BEGIN/ROLLBACK when possible; otherwise use uniquely tagged disposable QA fixtures and prove complete cleanup. Do not touch real business records. This is a proposed patch and has NOT been executed.
 
