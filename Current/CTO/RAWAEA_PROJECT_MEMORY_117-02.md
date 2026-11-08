@@ -1,5 +1,12 @@
 ## LVE-2026-11-08-641 — Employee Custody Surgical ChangeSet / Live Revalidation
 
+## OWNER OPERATIONAL CORRECTION — 2026-11-08 (AUTHORITATIVE)
+
+The owner clarified the one and only execution model: deploy/apply directly to SMART ERP Production \`fiilmooggumokxanwiyx\` and operational GitHub \`erp-frontend/main/companies/company-1\`. Do not create Supabase Staging branches/projects, Git execution branches, duplicate app files, or parallel implementation copies. Synthetic QA fixtures may be created directly on Production when clearly tagged, reversible/disposable, and fully cleaned after proof; use BEGIN/ROLLBACK when possible, and for committed E2E fixtures record IDs, baseline snapshots, complete dependent-row/storage cleanup and post-cleanup balance/count reconciliation. Never mutate real business records or leave QA rows/effects behind. This directive supersedes report text that says "Staging only" or "never test Production"; §6.4 was added to the permanent operating constitution. It does not bypass the specific-change review and approval gate for lasting Production changes.
+
+Evidence basis: Report631 §10 documents SQL migration tests in BEGIN/ROLLBACK and RLS tests rolled back; Report632 §10 calls for E2E with removable QA data. Report640's Staging-only recommendation was an assistant-added constraint, not the owner's target operating model.
+
+
 - Report641: doc/Draft/Reprots/Report641_EMPLOYEE_CUSTODY_SURGICAL_CHANGESET_20261108.md. Read-only forensic revalidation after LVE640; no code/Production writes.
 - Operational HEAD unchanged: b728c09e1bb4c482effc48a492546b393ff02c1f. Parent main.html blob 59241e741abcbc318fa68d3c10775e40e2688927; Core f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1; Buyer 5ab9f4e268cbf266e6ff950fe41bf5c9a4c9390a.
 - Live SMART ERP remains ACTIVE_HEALTHY, no Staging branches. Account 127/121 active Asset/Debit, no child GL or posted 127 lines; custody tables empty.
@@ -8,8 +15,8 @@
 - Current Treasury snapshot: central CASH-01=10,685 EGP (branch_id NULL), BR-01 cashiers=0 EGP each, POS=190 EGP (must not fund employee custody), BR-2 Alexandria has no active Treasury. Phase 1 must only use same-branch Cash Treasury; central exception requires separate policy/permission; branch treasury must be provisioned and funded by real transfer.
 - users is current employee identity source; employee_profiles empty. allowed_branch_ids is mixed scalar/array JSONB and current membership counts conflict with Report640; normalize before rollout. Do not expose employee_profiles sensitive HR fields to Finance.
 - Employee self-service should use RLS-scoped reads and existing ownership-checking RPCs directly; do not use save-purchase-order GET_CUSTODY for ordinary employees because its current Edge gate is restricted to purchases/finance/finance_manager.
-- Report641 documents Parent Finance tab and Buyer UI surgical owner patches. No operational HTML/Core changes have been applied. Full proposed CREATE OR REPLACE bodies for six existing functions are included in Report641 Appendix A; they are unexecuted/untested and require specific approval plus isolated Staging before Production.
-- No Production DDL/RPC/RLS/ACL/Edge deployment, treasury/journal/cash_box movement, QA rows, or test records created. Staging unavailable.
+- Report641 documents Parent Finance tab and Buyer UI surgical owner patches. No operational HTML/Core changes have been applied. Full proposed CREATE OR REPLACE bodies for six existing functions are included in Report641 Appendix A; they are unexecuted/untested and require the specific change-review gate, then validate directly on SMART ERP Production using rollback transactions or tagged disposable QA fixtures with complete cleanup.
+- No Production DDL/RPC/RLS/ACL/Edge deployment, treasury/journal/cash_box movement, QA rows, or test records were created in LVE641. No Staging project/branch is to be created; owner policy authorizes disposable Production QA with verified cleanup.
 - Readiness: CHANGESET PREPARED — SPECIFIC PRODUCTION APPROVAL AND STAGING GATE OPEN.
 
 ---
