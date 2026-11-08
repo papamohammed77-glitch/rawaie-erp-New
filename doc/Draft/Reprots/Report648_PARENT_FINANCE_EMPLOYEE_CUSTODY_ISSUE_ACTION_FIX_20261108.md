@@ -10,9 +10,10 @@ Executed the owner's request against the current operational source, not histori
 - Operational repository: `papamohammed77-glitch/erp-frontend`, branch `main`.
 - Operational file changed: `companies/company-1/main.html` only.
 - Base Parent blob: `4d25abf0d01b65acf48d7a76634293b8ea3e06ee`.
-- Fix commit: `0c2327a8bba6303b81d874aad843cd3243dab9ef`.
-- Resulting Parent blob: `49a5726ac969fe5a88dcf77c652472ac5c179508`.
-- Later observed branch HEAD: `aabce7f4ce00429be42b526fae9f4b4fc3135bb9`, a child commit that changes only the forensic extraction file; it preserves the custody fix.
+- Primary fix commit: `0c2327a8bba6303b81d874aad843cd3243dab9ef`.
+- Follow-up integration commit: `d04e1dee9df5ac3ef940e8222b24a43400494d66` (adds the company scope required by Buyer/Core consumers).
+- Final Parent blob after both commits: `4405f87169c62baf770b6b675c1582cc484772ba`.
+- Latest observed branch HEAD: `9e12088352907404b53bde4cf4a0f2fe7483c9c0`, a later forensic-extraction-only descendant that preserves both custody commits.
 - Production project: Supabase SMART ERP, `fiilmooggumokxanwiyx`, `ACTIVE_HEALTHY`.
 
 ## 2. Root cause — independently confirmed
@@ -37,10 +38,10 @@ Only `companies/company-1/main.html` changed; commit statistics are 14 additions
 
 1. Added a custody-module-local `_showToast(m,t)` helper which delegates to the Parent's existing `showToast` and safely falls back to `alert`. Existing custody call sites remain unchanged.
 2. Added the missing `RW_Auth.getUser()` method returning the canonical `RW_STATE.app.currentUser` object. This also makes the already-existing consumer at the customer-assignment action resolve the same canonical user API.
-3. Extended the password-login self-profile select to include `id, default_branch_id, allowed_branch_ids`, and retained those fields in `RW_STATE.app.currentUser`.
-4. Extended the existing-session restore self-profile select with the same identity/scope fields and populates them after the active-user checks. This is essential because the observed Parent browser boot log said `Session restored`; fixing login alone would not repair that path.
+3. Extended the password-login self-profile select to include `id, company_id, default_branch_id, allowed_branch_ids`, and retained all four fields in `RW_STATE.app.currentUser`.
+4. Extended the existing-session restore self-profile select with `id, company_id, default_branch_id, allowed_branch_ids` and populates them after the active-user checks. This is essential because the observed Parent browser boot log said `Session restored`; fixing login alone would not repair that path.
 
-The existing `actor()` and branch filter now resolve through a real Parent API and have the fields they already expect. Employee self-exclusion and branch restrictions remain in place. Server-side authorization remains authoritative.
+The existing `actor()` and branch filter now resolve through a real Parent API and have the fields they already expect. Employee self-exclusion and branch restrictions remain in place. The Buyer app also relies on `RW_Auth.getUser()` for the employee `id` and `company_id`, while `RW_Realtime.start()` rejects subscriptions unless the verified user's `company_id` matches the app tenant; the added company field keeps these existing contracts intact. Driver's separate Supabase-session/JWT path was inspected and was not modified. Server-side authorization remains authoritative.
 
 ## 4. Custody business contract and system-wide impact
 
@@ -61,8 +62,8 @@ No financial, treasury, cash-box, journal, AP, inventory or stock behavior was a
 - Re-fetched the committed blob after saving and inspected the commit's actual patch.
 - The Parent inline executable script compiled successfully with `new Function`; zero syntax errors.
 - Static invariants confirm one custody-local toast helper and one `RW_Auth.getUser` definition.
-- A controlled identity/branch-scope simulation passed: the current employee was excluded from the assignable employee list; the default branch and explicitly allowed branch were retained; an unauthorized branch and an inactive branch were excluded.
-- No changes to the custody `issue()` business inputs, RPC argument contract, Edge Function endpoint, or acknowledgement gate.
+- A controlled identity/branch-scope simulation passed: the current employee was excluded from the assignable employee list; the default branch and explicitly allowed branch were retained; an unauthorized branch and an inactive branch were excluded. A separate integration check confirmed that the canonical Parent user now provides both `id` and `company_id`, satisfying Buyer employee-custody identity and the Core realtime tenant-equality guard.
+- The two owner-authored commits touch `companies/company-1/main.html` only; the combined surgical diff is 16 additions / 3 deletions. No changes to custody `issue()` business inputs, RPC argument contract, Edge Function endpoint, or acknowledgement gate.
 
 **SMART ERP Production — read-only verification**
 - Project status: `ACTIVE_HEALTHY`.
