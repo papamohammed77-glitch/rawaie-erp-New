@@ -1,3 +1,31 @@
+# LVE-2026-11-08-659 — Central Employee Payments/Receipts and Partial Custody Return Guards
+
+**LAST VERIFIED EVENT:** 2026-11-08 — continued from LVE-658 and completed the next integration slice without recreating existing finance modules. Parent `main.html` already contains central Payments/Receipts, Employee Custody, Employee Advances/Loans, Employee Reimbursements and Employee Financial 360; the active account mappings are 127 Operational Custody, 128 Temporary Advances, 129 Salary Advances, 130 Employee Loans, and 212 Employee Reimbursement Payable. Source-specific triggers already tag employee party/nature on cash_box and journal_lines, including the HR salary-advance repayment trigger. The finance-authenticated subledger view was verified to return one row and a 5,000 EGP custody balance.
+
+**EXECUTED FIXES:**
+1. Updated `buyer_custody_submit_expense_atomic` and `buyer_custody_submit_other_expense_atomic` to count only actually posted/acknowledged advances and subtract all prior `buyer_custody_returns` before accepting a new expense.
+2. Updated `purchase_create_quick_market_invoice_atomic` and `purchase_update_quick_market_invoice_atomic` to subtract prior returned cash from the amount available for quick-market invoice reservations.
+3. Guarded legacy `buyer_custody_settle_atomic` against use after any partial return, preventing double settlement through the old one-shot flow.
+4. Fixed `buyer_custody_return_cash_atomic` branch access to read the optional `all_branch_access` field safely through `to_jsonb(v_actor)`; the actual users table does not expose that field.
+5. Deployed existing Edge Function `save-purchase-order` as version 37 ACTIVE, verify_jwt=true, SHA-256 `e3768d7725ea2522baa47f6661f6ac2f49830b9f616dd99491a1e73d25689ddf`. Added `RETURN_CUSTODY_CASH` routing to `buyer_custody_return_cash_atomic`, UUID idempotency validation, and `buyer_custody_returns` in `GET_CUSTODY`.
+6. Updated `companies/company-1/purchasing/buyer.html` to support multiple partial Receipts, display prior return vouchers and actual paid/returned/remaining values, subtract returned cash from quick-market availability, and block settlement when paid-ledger totals disagree.
+
+**VERIFICATION:**
+- SQL rollback E2E called the real `buyer_custody_return_cash_atomic` as a finance-authorized actor for 1 EGP. It returned success/UnderReview, remaining 4,999 EGP, created a central Receipt, and tagged cash_box as Employee/OPERATIONAL_CUSTODY and the account-127 journal credit line with the same employee/nature. The test exception rolled back all effects.
+- Post-rollback: `buyer_custody_returns=0`, `EmployeeCustodyReturn` cash_box rows=0, QA journals=0, custody paid_amount=5,000.00, returned_amount=0.00, treasury balance=5,685.00. No persistent test transaction remains.
+- All buyer.html inline JavaScript scripts compiled successfully.
+- GitHub operational repo commit for buyer fix: `314fab568f4aa8be8caa7d49c03473add3f906e2`; subsequent Buyer Tailwind CSS build commit/head: `940ae61a00c9b6bb3d14544510328afdbadcd2bf`.
+- Workflows Buyer Tailwind Production CSS, Mother Inventory Forensic E2E, and Mother Forensic Assembly Guard succeeded. The earlier Mother System Browser E2E was on commit 3754901 and predates this buyer change; it is not claimed as buyer UI E2E.
+- Cloudflare Pages publication has not been independently verified from its dashboard/browser in this checkpoint.
+
+**SCOPE/SAFETY:** No new database tables, GL accounts, Edge Functions, duplicate payment engines, or permanent test rows were created. Parent `main.html` was left unchanged because the required central finance/subledger tabs were already present. Existing custody/advance data and balances were preserved.
+
+**REPORT:** `doc/Draft/Reprots/Report659_CENTRAL_EMPLOYEE_CUSTODY_PARTIAL_RECEIPTS_AND_CASH_GUARDS_20261108.md` (11,029 chars / 228 lines; commit `974558c9c1851223ff0786ad4f4770667969560e`).
+
+**NEXT:** Run a live Buyer PWA browser E2E with a finance session and a removable test return; verify the posted Receipt in central Receipts and Employee Financial 360; then verify Cloudflare Pages deployment. Continue preserving LVE-658 and LVE-657 below.
+
+---
+
 # LVE-2026-11-08-658 — Employee Subledgers and Central Payments/Receipts Architecture
 
 **LAST VERIFIED EVENT:** 2026-11-08 — extended Report657 with the user's refined architecture: central Payments and Receipts for every party and cash movement; employee selected as Party; separate employee subledgers/control accounts by financial nature; operational custody, temporary advance, salary advance, employee loan, and expense reimbursement remain distinct business types. Created Report658: doc/Draft/Reprots/Report658_EMPLOYEE_SUBLEDGER_PAYMENTS_RECEIPTS_ARCHITECTURE_20261108.md (16,594 characters / 276 lines; commit a6352e404af353054838638c71e2829a7ba0eacc).
