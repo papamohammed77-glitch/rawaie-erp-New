@@ -8,7 +8,7 @@
 **Operational file:** `companies/company-1/main.html` only.  
 **Base blob:** `4d25abf0d01b65acf48d7a76634293b8ea3e06ee`.  
 **Fix commit:** `0c2327a8bba6303b81d874aad843cd3243dab9ef`.  
-**Fixed Parent blob:** `49a5726ac969fe5a88dcf77c652472ac5c179508`.  
+**First-pass Parent blob after primary fix:** `49a5726ac969fe5a88dcf77c652472ac5c179508`.  
 **Primary fix commit:** `0c2327a8bba6303b81d874aad843cd3243dab9ef`.  
 **Follow-up Buyer/Core identity integration commit:** `d04e1dee9df5ac3ef940e8222b24a43400494d66`.  
 **Final Parent blob:** `4405f87169c62baf770b6b675c1582cc484772ba`.  
