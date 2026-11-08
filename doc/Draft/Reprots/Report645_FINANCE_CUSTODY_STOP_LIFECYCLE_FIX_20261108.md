@@ -67,18 +67,18 @@ The module contains earlier duplicate declarations of bind() and render(). The r
 **Repository:** papamohammed77-glitch/erp-frontend  
 **Branch:** main  
 **File:** companies/company-1/main.html  
-**Fix commit:** 9aef827a8f25d7f7f7ff6bb7ba2cfd389edc783b  
-**New file blob:** 84dd2ba145c9508d1ff334049be24e575f60d4ad
+**Fix commits:** 9aef827a8f25d7f7f7ff6bb7ba2cfd389edc783b, followed by handler-ownership hardening in 740d95049ef92ed9f271b450027bdcf4d60ac3a8.  
+**Final Parent blob:** f3957e73dcdc890cf163f094377597b359ee8f68
 
-Only this one operational file changed in the fix commit: +6 / -4 lines in GitHub's diff, with a net content-size delta of 484 characters.
+The two operational commits each changed only this same file: the first commit changed +6 / -4 lines; the follow-up changed +3 / -3 lines. No other operational file was changed by either commit.
 
 The following bounded changes were made:
 
 1. Added a Finance-custody render serial.
 2. Changed the existing asynchronous load to build a local snapshot and assign it to module state only when its request serial is still current. An obsolete request can no longer overwrite the current snapshot.
-3. Changed the effective bind() to accept the exact target element and safely return if that element no longer exists.
+3. Changed the effective bind() to accept the exact target element, guard a missing node, and retain the exact element/handler references owned by the custody module.
 4. Changed the effective render() to capture its target DOM element and request serial. Both success and error callbacks verify that the serial is still current and that the same target element remains active before updating the DOM.
-5. Added stop(), which increments the render serial to invalidate pending callbacks and detaches the Finance-content click handler.
+5. Added stop(), which increments the render serial to invalidate pending callbacks and clears the click handler only when the saved element still has the handler owned by this custody module. If another Finance tab has replaced that handler, stop() leaves the other tab's handler untouched.
 6. Exported stop() in the public module object so the existing renderSubTab() call is valid.
 
 The Finance dispatcher at line 18562 remains intact. No change was made to the custody RPC payloads, Finance permissions, generic expense voucher, journal logic, Treasury operations, or Buyer/Driver modules.
@@ -96,26 +96,28 @@ A controlled asynchronous test exercised the actual updated custody module:
 - Started a custody render with four pending data reads.
 - Called stop() before those reads completed.
 - Completed the old requests and verified the render returned false and did not replace the active content.
-- Started a fresh render and completed its reads.
-- Verified that the fresh render returned true, the custody panel was produced, and the click handler was bound.
+- Started a fresh render and completed its reads; verified that it returned true, produced the custody panel, and bound the custody click handler.
+- Verified that stop() preserves a pre-existing non-custody handler when the module does not own it.
+- Verified that stop() removes the custody handler when it is still the active handler.
+- Replaced the custody handler with a simulated handler from another tab and verified that stop() preserves the foreign handler.
 
-This specifically validates the stale-request lifecycle that the earlier report claimed to protect. It is a controlled module simulation, not a browser-based authenticated E2E test.
+This validates the stale-request lifecycle and handler ownership in a controlled module simulation, not in a browser-based authenticated E2E test.
 
 ### 5.3 Re-read after commit — PASS
 
-The new main.html blob was re-fetched from GitHub. It contains the stop export, serial-guarded load, target-identity checks and guarded effective renderer. The same six inline script blocks passed compilation again.
+The final main.html blob f3957e73dcdc890cf163f094377597b359ee8f68 was re-fetched from GitHub after both fixes. It contains the stop export, serial-guarded load, target-identity checks, and module-owned handler cleanup. All six inline script blocks passed compilation again.
 
 ## 6. Git history and latest-source reconciliation
 
-- Parent HEAD immediately before the fix: 121c856508122e5b1f1008453526a2aece47f83a.
+- Parent HEAD before the first fix: 121c856508122e5b1f1008453526a2aece47f83a.
 - Parent main.html blob before the fix: 5a4aacf5af8100db6e3c434c49fea57784857594.
-- Fix commit: 9aef827a8f25d7f7f7ff6bb7ba2cfd389edc783b.
-- Fix commit parent: 121c856508122e5b1f1008453526a2aece47f83a.
-- Fix commit changed files: companies/company-1/main.html only; 6 additions, 4 deletions.
-- The subsequent operational HEAD observed during verification is 0a08e944efc8c01e4ee87f0096ebf93fb736b7c6. It is a direct child of the fix commit and changes only _forensic_current_main_extract.md (+1838/-1838).
-- The current Parent main.html path was independently fetched after that later commit and still resolves to blob 84dd2ba145c9508d1ff334049be24e575f60d4ad.
+- First lifecycle fix commit: 9aef827a8f25d7f7f7ff6bb7ba2cfd389edc783b; parent 121c856; only companies/company-1/main.html changed (+6 / -4).
+- Handler-ownership follow-up: 740d95049ef92ed9f271b450027bdcf4d60ac3a8; parent 0a08e944; only companies/company-1/main.html changed (+3 / -3).
+- Final Parent main.html blob: f3957e73dcdc890cf163f094377597b359ee8f68.
+- Latest operational HEAD observed after the follow-up: 87d6d01beee30988119b6daabd229f56b4bced7f. It is a direct child of 740d950 and changes only _forensic_current_main_extract.md (+2 / -2).
+- The current Parent file was independently re-fetched at that later HEAD and still resolves to blob f3957e73dcdc890cf163f094377597b359ee8f68.
 
-Thus the fix remains present in the current operational main tree; the later forensic-extract commit did not overwrite it. The branch update used an expected-head check and a non-force ref update.
+Both source updates used expected-head checks and non-force ref updates. The later forensic-extract commit did not overwrite either lifecycle correction.
 
 ## 7. SMART ERP Production — read-only verification
 
@@ -139,7 +141,7 @@ No QA record, attachment, treasury movement, cash_box movement, journal entry, i
 
 The Cloudflare dashboard tab was readable and showed automatic deployments enabled. The latest deployment visible in that captured dashboard context still referenced operational commit 121c856508122e5b1f1008453526a2aece47f83a and URL https://97c7a4d0.rawaea-erp.pages.dev/. It did not show the later fix commit 9aef827 in the captured deployment list, nor expose a matching Success deployment for the fix.
 
-The Parent browser tab showed the application shell/login view and menu content, but the available read-only browser context did not permit navigating, clicking Finance tabs or executing an authenticated workflow. Therefore Cloudflare source/artifact parity and authenticated Finance runtime behavior remain UNVERIFIED.
+The Parent browser tab showed the application shell/login view and menu content, but the available read-only browser context did not permit navigating, clicking Finance tabs or executing an authenticated workflow. The last readable Cloudflare dashboard snapshot still showed 121c856 as its latest Production source and did not list either lifecycle fix commit. Therefore Cloudflare source/artifact parity and authenticated Finance runtime behavior remain UNVERIFIED.
 
 Required deployment/runtime acceptance:
 1. Confirm a successful Production Cloudflare deployment whose source commit is 9aef827 or a later descendant containing main.html blob 84dd2ba.

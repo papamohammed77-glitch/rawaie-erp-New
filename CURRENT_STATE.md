@@ -3,26 +3,26 @@
 **LAST VERIFIED EVENT:** 2026-11-08 — read the current execution prompt and governing references; independently reconciled Report644 against operational main.html and the 68de9b diff; confirmed the missing Finance custody stop contract; applied a surgical main.html correction; passed six inline-script compilation checks and a controlled stale-render lifecycle simulation; re-read the resulting operational blob and confirmed the later forensic-only commit preserved it. SMART ERP was checked read-only; no DB or business-data mutation was made.
 **Report645:** doc/Draft/Reprots/Report645_FINANCE_CUSTODY_STOP_LIFECYCLE_FIX_20261108.md
 **Previous checkpoint:** LVE-2026-11-08-644
-**Operational fix commit:** 9aef827a8f25d7f7f7ff6bb7ba2cfd389edc783b
-**Latest observed operational HEAD:** 0a08e944efc8c01e4ee87f0096ebf93fb736b7c6 (direct child of fix; forensic-extract file only)
-**Current Parent main.html blob:** 84dd2ba145c9508d1ff334049be24e575f60d4ad
+**Operational fix commits:** 9aef827a8f25d7f7f7ff6bb7ba2cfd389edc783b and 740d95049ef92ed9f271b450027bdcf4d60ac3a8.
+**Latest observed operational HEAD:** 87d6d01beee30988119b6daabd229f56b4bced7f (direct child of handler-ownership follow-up; forensic-extract file only)
+**Current Parent main.html blob:** f3957e73dcdc890cf163f094377597b359ee8f68
 **Cloudflare:** latest readable dashboard snapshot still showed deployment source 121c856508122e5b1f1008453526a2aece47f83a / 97c7a4d0.rawaea-erp.pages.dev; deployment parity for the fix is NOT CONFIRMED.
 
 ## Current verified state — LVE645
 
 - Parent Finance failure was caused by renderSubTab calling RW_Finance_Custody.stop() at line 18562 while the module exported only render/refresh/issue. Report644 §3.1 incorrectly stated that Finance stop/render-serial support had already been added; the actual 68de9b commit did not modify the Finance custody IIFE.
-- Surgical fix in main.html implements a render serial, prevents obsolete load requests from replacing module state, checks request serial and target DOM identity before rendering success/error, safely binds to the captured target, and exports stop() to invalidate pending work and detach the old handler.
-- Fix commit 9aef827 changes only companies/company-1/main.html (+6/-4 in GitHub's diff). Current branch HEAD later moved to 0a08e94; its sole change is _forensic_current_main_extract.md. Current main.html remains blob 84dd2ba.
-- Static validation: all six inline JavaScript blocks compiled successfully. Controlled module simulation passed: stop invalidated an outstanding render; stale completion did not overwrite the active content; a fresh render completed and bound its handler.
+- The first patch added request-generation protection and exported stop(); the follow-up tracks the custody module's own bound element/handler and clears it only if that exact handler is still installed, preserving handlers installed by other Finance tabs.
+- The lifecycle correction is a two-commit surgical sequence: 9aef827 adds the generation guard and stop export; 740d950 hardens cleanup to detach only the custody-owned click handler. Both commits changed only companies/company-1/main.html. Current branch HEAD 87d6d01 is a later forensic-extract-only commit; current main.html remains final blob f3957e7.
+- Static validation: all six inline JavaScript blocks compiled successfully. Controlled module simulation passed for stale-render invalidation and fresh render, and confirmed that stop preserves handlers owned by other Finance tabs while removing its own handler.
 - SMART ERP Production fiilmooggumokxanwiyx is ACTIVE_HEALTHY. Existing custody and finance_save_expense RPC signatures remain present. buyer_custodies, buyer_custody_advances, buyer_custody_expenses, buyer_custody_payments and buyer_custody_settlements each remain at zero rows.
 - No database DDL/DML, RPC, RLS/ACL, Edge Function, treasury, journal, cash_box, stock, supplier or QA-fixture changes were made.
 - Tailwind CDN production warning is separate and unrelated to the JavaScript TypeError; it remains open as a distinct build-hygiene issue.
-- Cloudflare automatic deployments are enabled, but the last readable dashboard snapshot did not show a deployment for 9aef827. Parent browser context was not used for authenticated Finance navigation. Cloudflare parity and deployed runtime E2E remain UNVERIFIED.
+- Cloudflare automatic deployments are enabled, but the last readable dashboard snapshot still showed Production commit 121c856 and did not list either 9aef827 or 740d950. Parent browser context was not used for authenticated Finance navigation. Cloudflare parity and deployed runtime E2E remain UNVERIFIED.
 - **Readiness: FIX APPLIED — E2E PARTIALLY VERIFIED.**
 
 ## Next priority
 
-Verify a successful Cloudflare Production deployment containing 9aef827 or a later descendant, then run the authenticated Finance tab and rapid-tab-switch acceptance tests. Do not claim deployed/fully verified status until the artifact and browser behavior are confirmed.
+Verify a successful Cloudflare Production deployment containing both lifecycle corrections (740d950 or a later descendant), then run the authenticated Finance tab and rapid-tab-switch acceptance tests. Do not claim deployed/fully verified status until the artifact and browser behavior are confirmed.
 
 ---
 
