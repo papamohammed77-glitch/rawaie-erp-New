@@ -1,4 +1,20 @@
-## LVE-2026-11-08-641 — Employee Custody Surgical ChangeSet / Live Revalidation
+## LVE-2026-11-08-643 — Daily CTO / Employee Custody Continuity Revalidation
+- Report643: doc/Draft/Reprots/Report643_DAILY_EMPLOYEE_CUSTODY_CONTINUITY_REVALIDATION_20261108.md; commit abaa280bbd010bc0b30452088aefc7503f2b0333.
+- Re-read CURRENT_STATE and the complete permanent constitution (SHA 3a6b1e220af8509e314e94df76563bbc6f84910d); Report640 and Report641 were reviewed. LVE642 is the current prior checkpoint; the opening LVE641 snapshot was historical and has now been explicitly superseded in CURRENT_STATE.
+- Permanent Production ChangeSet is verified live: current function fingerprints match Report641 §18 exactly; buyer_custodies.received_at is nullable/no-default; function owners/search_path/SECURITY DEFINER/ACL preserved; anon execute denied. No new tables, Edge Functions, RLS/ACL changes or direct DML grants.
+- Current cash custody tables and 127 posted lines are empty; custody/QA cash_box, operation registry and QA storage objects are zero. This review created no QA data or business/financial/stock effects.
+- Parent main, Core and Buyer source hashes unchanged at 59241e741abcbc318fa68d3c10775e40e2688927 / f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1 / 5ab9f4e268cbf266e6ff950fe41bf5c9a4c9390a. Operational HEAD b728c09e1bb4c482effc48a492546b393ff02c1f; latest diff is Receiver only.
+- Reconciled finance_save_expense: 14-argument branch wrapper calls guarded 13-argument Expense function, so Parent backend guard is active. Remaining issue is UI dropdown showing non-Expense accounts.
+- Buyer UI issue modal permits blank branch and broad Treasury options; advance/settlement also offer all active treasuries. RPCs reject wrong branch, central/POS and non-Cash accounts; UI should filter before calls.
+- Ordinary employees should use existing self-only RLS and ownership-checked RPCs directly; keep save-purchase-order v30 finance/purchases gate restricted. No new Edge Function or parallel ledger.
+- HR hr_salary_advances is a distinct salary installment/repayment workflow, currently empty; never treat it as operational cash custody.
+- Treasury constraints: CASH-01 central unassigned 10,685 EGP; BR-01 Cash tills 0; POS 190 excluded; BR-2 has no active Cash Treasury. No eligible operating Expense leaf was found for fuel/transport/tolls; 51/52 must not be used.
+- Cloudflare Production commit matches operational HEAD; login page delivery observed, but authenticated E2E/Realtime proof remains UNVERIFIED.
+- No broader audit of every app was performed. Readiness READY WITH LIMITATIONS. Next: owner applies Parent Finance and Buyer UI patches, then first employee self-service consumer via RLS/RPC, with authenticated E2E before Core-wide adoption.
+
+---
+
+### Historical snapshot — LVE641 (superseded by LVE642 and LVE643)
 
 ## OWNER OPERATIONAL CORRECTION — 2026-11-08 (AUTHORITATIVE)
 
