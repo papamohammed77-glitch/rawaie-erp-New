@@ -1,12 +1,19 @@
 # LVE-2026-11-08-641 — Employee Custody Surgical ChangeSet / Live Revalidation
 
+## OWNER OPERATIONAL CORRECTION — 2026-11-08 (AUTHORITATIVE)
+
+The owner clarified the one and only execution model: deploy/apply directly to SMART ERP Production \`fiilmooggumokxanwiyx\` and operational GitHub \`erp-frontend/main/companies/company-1\`. Do not create Supabase Staging branches/projects, Git execution branches, duplicate app files, or parallel implementation copies. Synthetic QA fixtures may be created directly on Production when clearly tagged, reversible/disposable, and fully cleaned after proof; use BEGIN/ROLLBACK when possible, and for committed E2E fixtures record IDs, baseline snapshots, complete dependent-row/storage cleanup and post-cleanup balance/count reconciliation. Never mutate real business records or leave QA rows/effects behind. This directive supersedes report text that says "Staging only" or "never test Production"; §6.4 was added to the permanent operating constitution. It does not bypass the specific-change review and approval gate for lasting Production changes.
+
+Evidence basis: Report631 §10 documents SQL migration tests in BEGIN/ROLLBACK and RLS tests rolled back; Report632 §10 calls for E2E with removable QA data. Report640's Staging-only recommendation was an assistant-added constraint, not the owner's target operating model.
+
+
 **LAST VERIFIED EVENT:** 2026-11-08 — Read-only GitHub, Supabase Production schema/data/function and security-advisor revalidation after LVE640.  
 **Report641:** doc/Draft/Reprots/Report641_EMPLOYEE_CUSTODY_SURGICAL_CHANGESET_20261108.md — ChangeSet prepared; no operational or Production write.  
 **Previous checkpoint:** LVE-2026-11-07-640 / Report640.
 
 ## Current verified state
 - Operational repository main HEAD remains b728c09e1bb4c482effc48a492546b393ff02c1f; Parent main.html blob 59241e741abcbc318fa68d3c10775e40e2688927; Core blob f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1; Buyer blob 5ab9f4e268cbf266e6ff950fe41bf5c9a4c9390a.
-- Supabase SMART ERP fiilmooggumokxanwiyx ACTIVE_HEALTHY, PostgreSQL 17.6.1.121; no development branches / no Staging.
+- Supabase SMART ERP fiilmooggumokxanwiyx ACTIVE_HEALTHY, PostgreSQL 17.6.1.121. No Staging branch exists because owner policy uses Production directly; absence of a branch is not a blocker.
 - Live save-purchase-order v30 remains ACTIVE, verify_jwt=true, SHA 838f8c05d5e64f040dc4a346eae52816877d635bab41684d32d77eebeae304e6.
 - Account 127 and 121 remain active Asset/Debit; no child GL accounts or posted journal lines under 127. Custody tables remain empty; no QA/business custody data created.
 - Confirmed P1: finance_save_expense accepts any active COA account without enforcing account_type='expense'; generic Parent payment can misclassify Asset 127 as an Expense document.
@@ -19,12 +26,12 @@
 ## ChangeSet status
 - Prepared in Report641: finance_save_expense account-type guard; Treasury/branch/employee-scope checks in existing custody RPCs; received_at timing correction; Issue/Add payload idempotency checks; Parent Finance custody tab and Buyer branch-filter UI patch; shared employee self-service via existing RLS/RPC contracts.
 - No Production DDL/RPC/ACL/RLS/Edge deployment, operational HTML/Core change, cash-box/treasury/journal movement or test record was created.
-- No Staging branch is available. Production is not a test environment.
+- QA and E2E are performed directly on SMART ERP Production using tagged synthetic disposable fixtures or BEGIN/ROLLBACK; this run created no fixtures.
 - Parent/Core/Buyer HTML changes remain owner-applied. The exact current source must be re-extracted before the owner applies the surgical snippets.
 - Full proposed CREATE OR REPLACE bodies for six existing functions are now included in Report641 Appendix A, preserving signatures and current search_path. They remain unexecuted and untested; general architectural approval is not approval to run them.
 
-**Readiness:** CHANGESET PREPARED — OWNER APPROVAL / STAGING GATE OPEN.  
-**Next:** owner reviews the exact six-function SQL bodies in Report641 Appendix A and gives specific approval; then establish isolated Staging, validate SQL/ACL/search_path and run acceptance tests. Owner applies Parent/Buyer/Core UI patches; no Production execution before these gates.
+**Readiness:** CHANGESET PREPARED — PRODUCTION QA / SPECIFIC CHANGE APPROVAL GATE OPEN.  
+**Next:** validate the proposed SQL on SMART ERP Production using a fully rolled-back transaction or uniquely tagged disposable QA fixtures, with before/after snapshots and verified cleanup. Apply lasting Production function changes only after the exact change review gate; owner applies Parent/Buyer/Core UI patches directly to the operational main files.
 
 ---
 
