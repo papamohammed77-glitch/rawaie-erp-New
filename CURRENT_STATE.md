@@ -1,3 +1,33 @@
+# LVE-2026-11-08-641 — Employee Custody Surgical ChangeSet / Live Revalidation
+
+**LAST VERIFIED EVENT:** 2026-11-08 — Read-only GitHub, Supabase Production schema/data/function and security-advisor revalidation after LVE640.  
+**Report641:** doc/Draft/Reprots/Report641_EMPLOYEE_CUSTODY_SURGICAL_CHANGESET_20261108.md — ChangeSet prepared; no operational or Production write.  
+**Previous checkpoint:** LVE-2026-11-07-640 / Report640.
+
+## Current verified state
+- Operational repository main HEAD remains b728c09e1bb4c482effc48a492546b393ff02c1f; Parent main.html blob 59241e741abcbc318fa68d3c10775e40e2688927; Core blob f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1; Buyer blob 5ab9f4e268cbf266e6ff950fe41bf5c9a4c9390a.
+- Supabase SMART ERP fiilmooggumokxanwiyx ACTIVE_HEALTHY, PostgreSQL 17.6.1.121; no development branches / no Staging.
+- Live save-purchase-order v30 remains ACTIVE, verify_jwt=true, SHA 838f8c05d5e64f040dc4a346eae52816877d635bab41684d32d77eebeae304e6.
+- Account 127 and 121 remain active Asset/Debit; no child GL accounts or posted journal lines under 127. Custody tables remain empty; no QA/business custody data created.
+- Confirmed P1: finance_save_expense accepts any active COA account without enforcing account_type='expense'; generic Parent payment can misclassify Asset 127 as an Expense document.
+- Confirmed P1: issue/add/settle/ack custody paths do not enforce Treasury.branch_id = custody.branch_id; issue permits branch_id NULL; issue sets received_at before employee acknowledgement; Issue/Add idempotency returns existing rows without comparing payload.
+- Live Treasury snapshot: central CASH-01 10,685 EGP with no branch; BR-01 cashiers each 0 EGP; BR-01 POS 190 EGP; POS excluded from custody payout. Active BR-2 Alexandria has no active Treasury. No central-to-branch exception is enabled.
+- users is the operative HR identity source; employee_profiles empty. allowed_branch_ids data shape/count conflicts with Report640 aggregate, and requires normalization before declaring all employees branch-mapped.
+- Custody tables RLS-enabled with scoped SELECT; anon cannot execute custody SECURITY DEFINER RPCs. Supabase security advisor currently flags many authenticated SECURITY DEFINER functions, including these custody RPCs; they contain caller/ownership checks and are not to be weakened or blindly revoked.
+- No new Edge Function, parallel custody ledger, GL subaccounts per employee, employee-payable posting or payroll deduction is recommended.
+
+## ChangeSet status
+- Prepared in Report641: finance_save_expense account-type guard; Treasury/branch/employee-scope checks in existing custody RPCs; received_at timing correction; Issue/Add payload idempotency checks; Parent Finance custody tab and Buyer branch-filter UI patch; shared employee self-service via existing RLS/RPC contracts.
+- No Production DDL/RPC/ACL/RLS/Edge deployment, operational HTML/Core change, cash-box/treasury/journal movement or test record was created.
+- No Staging branch is available. Production is not a test environment.
+- Parent/Core/Buyer HTML changes remain owner-applied. The exact current source must be re-extracted before the owner applies the surgical snippets.
+- Specific Production SQL approval remains required after the full CREATE OR REPLACE bodies and ACL/search_path preservation are presented. General approval of the architecture is not an approval of undisclosed SQL.
+
+**Readiness:** CHANGESET PREPARED — OWNER APPROVAL / STAGING GATE OPEN.  
+**Next:** generate the final full-body SQL patch from live pg_get_functiondef snapshots, then obtain specific approval; owner applies Parent/Buyer/Core UI patches; run all acceptance tests only in isolated Staging.
+
+---
+
 # LVE-2026-11-07-640 — Employee Custody / Parent Finance / Cross-App Revalidation
 
 **LAST VERIFIED EVENT:** 2026-11-07 — Read-only revalidation after LVE639.  
