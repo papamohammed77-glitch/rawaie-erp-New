@@ -21,10 +21,10 @@
 - No Production DDL/RPC/ACL/RLS/Edge deployment, operational HTML/Core change, cash-box/treasury/journal movement or test record was created.
 - No Staging branch is available. Production is not a test environment.
 - Parent/Core/Buyer HTML changes remain owner-applied. The exact current source must be re-extracted before the owner applies the surgical snippets.
-- Specific Production SQL approval remains required after the full CREATE OR REPLACE bodies and ACL/search_path preservation are presented. General approval of the architecture is not an approval of undisclosed SQL.
+- Full proposed CREATE OR REPLACE bodies for six existing functions are now included in Report641 Appendix A, preserving signatures and current search_path. They remain unexecuted and untested; general architectural approval is not approval to run them.
 
 **Readiness:** CHANGESET PREPARED — OWNER APPROVAL / STAGING GATE OPEN.  
-**Next:** generate the final full-body SQL patch from live pg_get_functiondef snapshots, then obtain specific approval; owner applies Parent/Buyer/Core UI patches; run all acceptance tests only in isolated Staging.
+**Next:** owner reviews the exact six-function SQL bodies in Report641 Appendix A and gives specific approval; then establish isolated Staging, validate SQL/ACL/search_path and run acceptance tests. Owner applies Parent/Buyer/Core UI patches; no Production execution before these gates.
 
 ---
 
