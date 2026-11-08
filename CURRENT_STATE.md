@@ -1,3 +1,15 @@
+# LVE-2026-11-08-656 — Employee Custody Audit Permission Failure Fixed
+
+**LAST VERIFIED EVENT:** 2026-11-08 (Africa/Cairo) — traced the Employee Custodies tab HTTP 400 to SQLSTATE 42501 in Edge v35: the GET_CUSTODY branch queried public.audit_log through the service-role client, while service_role intentionally had INSERT but no SELECT. Refused the unsafe blanket GRANT suggested by PostgREST. Created app_private.buyer_custody_cancellation_audit_read_internal(uuid,uuid[]) as a tightly scoped SECURITY DEFINER STABLE function with empty search_path, active-company/auth checks, purchases/finance permission validation, max-200 ID batch, company validation, and purchaser-own-custody restriction. Exposed only a SECURITY INVOKER public wrapper; authenticated can execute, anon/service_role cannot. No audit_log SELECT privilege, RLS policy, or data scope was widened.
+
+**EDGE:** existing save-purchase-order upgraded to version 36, ACTIVE, verify_jwt=true; SHA-256 40db7903fe2ce396c18dec8f13492a48b7a04b5a5ba37cc577666a7b599f4304. GET_CUSTODY no longer reads audit_log directly with service_role; it invokes the scoped RPC with the caller JWT. Post-deploy logs show requests from the same purchaser session returning HTTP 200 at 2026-11-08 19:23:37Z, 19:23:52Z and 19:24:07Z; the checked post-deploy window contains no recurrence of permission denied for table audit_log.
+
+**QA:** purchaser own-custody audit read PASS; unrelated custody ID rejected with CUSTODY_AUDIT_SCOPE_FORBIDDEN; Finance Manager register read PASS. Synthetic audit records were transactionally rolled back. Final DB counts buyer_custodies=1, advances=1, expenses=0, payments=0, settlements=0, QA audit rows=0, custody update/cancel audit rows=0. Existing acknowledged EGP 5,000 custody plus Initial advance, cash-box ID and journal-entry ID remain unchanged.
+
+**REPORT656:** doc/Draft/Reprots/Report656_PARENT_EMPLOYEE_CUSTODY_AUDIT_PERMISSION_FIX_20261108.md. Report655 remains the immediately preceding UI/modal deployment checkpoint. Tailwind CDN production warning remains unrelated and unchanged. Parent source was not edited for this backend-only repair; visual browser control walkthrough is not claimed, although same-session backend requests returned 200.
+
+---
+
 # LVE-2026-11-08-655 — Parent Employee Custody Modal, Guarded Edit/Cancel and Deployment
 
 **LAST VERIFIED EVENT:** 2026-11-08 (Africa/Cairo) — the task was resumed from LVE654 and executed end-to-end. The operational Parent source was re-fetched, surgically patched, syntax-compiled, committed and verified at current Parent blob d785c25ea325dfa3df12acb5dbc4d7a848728ee6. Parent commits: main UI commit 7d04ca065a34fd295ada4f503119c5dd0b8ff5d0; follow-up current-employee preselection 084836175f322c08fe96c1fd89ed0e052fb5d3e7. Current operational HEAD 61b50ecfb3c104677aa97ed26e1cb5f81270495e adds only the forensic extract after the UI commit. Cloudflare check run 128831392851 for project rawaea-erp / commit 0848361 completed SUCCESS; deployment preview URL https://9be60acf.rawaea-erp.pages.dev. The deployed commit's Parent blob is byte-identical to current main branch Parent blob.
