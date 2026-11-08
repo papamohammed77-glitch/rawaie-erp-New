@@ -1,4 +1,7 @@
 # Report641 — Employee Custody Surgical ChangeSet / Live Revalidation
+
+> **تصحيح المالك الملزم — 8 نوفمبر 2026:** التنفيذ والاختبار لهذا المشروع يتمان مباشرة على SMART ERP Production \`fiilmooggumokxanwiyx\` وعلى \`erp-frontend/main/companies/company-1\` فقط. لا تنشئ Supabase Staging أو Git branches أو نسخ تطبيق بديلة. يجوز إنشاء Fixtures اصطناعية مؤقتة على Production، بعلامة QA فريدة، مع baseline وIDs وخطة cleanup معروفة؛ استخدم BEGIN/ROLLBACK متى أمكن، وبعد E2E committed احذف كل Fixture والتابعات والمرفقات وتحقق أن الأرصدة والعدادات عادت إلى baseline. لا تلمس بيانات أعمال حقيقية ولا تترك أثر QA. هذا التصحيح يتجاوز كل عبارة «Staging فقط» أو «Production ليس بيئة اختبار» في هذا التقرير. لا يتجاوز بوابة اعتماد التغييرات الدائمة المنصوص عليها في الدستور §6.2/§6.4.
+
 **التاريخ:** 8 نوفمبر 2026 — Africa/Cairo  
 **نقطة البداية:** LVE-2026-11-07-640 / Report640  
 **نوع العمل:** مراجعة حية، تحليل جذري، تجهيز ChangeSet جراحي، دون كتابة على Production أو المصدر التشغيلي  
@@ -19,7 +22,7 @@
 5. واجهة Buyer الحالية تجعل الفرع اختياريًا وتعرض الخزائن دون تصفية حسب الفرع؛ يلزم تعديلها من المالك.
 6. لا توجد خزينة نشطة لفرع الإسكندرية BR-2، كما أن خزائن BR-01 النقدية العادية رصيدها صفر وقت الفحص. خزينة POS الوحيدة ذات رصيد 190 جنيهًا لا يجوز استعمالها كخزينة صرف عهدة.
 7. واجهة الموظف العامة غير مكتملة: جداول العهد تسمح بقراءة الموظف لسجلاته، لكن Edge GET_CUSTODY الحالي يقيد غير الماليين بصلاحيات المشتريات/المالية. لذلك لا نستخدم هذا المسار لتطبيقات الموظفين العامة؛ القراءة الذاتية تتم عبر RLS، والإقرار/المطالبة عبر RPCs القائمة التي تتحقق من auth.uid() وملكية السجل.
-8. لا توجد بيئة Staging متاحة في مشروع Supabase؛ لا يجوز اختبار هذه الدورة بإنشاء عهدة أو تحريك خزينة أو قيد في Production.
+8. لا توجد Supabase Staging branch، وهذا متوافق مع نموذج العمل المعتمد وليس عائقًا. اختبارات هذه الدورة تتم على Production ببيانات QA اصطناعية مؤقتة وموسومة وقابلة للإزالة، أو داخل BEGIN/ROLLBACK، مع إثبات استعادة baseline قبل الإغلاق.
 
 **لم يتم تنفيذ أي DDL أو RPC أو تعديل Edge أو HTML أو حركة نقدية/محاسبية أو بيانات اختبار في هذا التشغيل.** تم تنفيذ القراءة والتحقق فقط، وتوثيق ChangeSet وحالة الاستئناف.
 
@@ -32,7 +35,7 @@
 - Buyer buyer.html blob: 5ab9f4e268cbf266e6ff950fe41bf5c9a4c9390a.
 - Governance checkpoint السابق: LVE640؛ تقريره Report640.
 - Supabase SMART ERP: fiilmooggumokxanwiyx، ACTIVE_HEALTHY، PostgreSQL 17.6.1.121.
-- Supabase development branches: صفر؛ Staging غير متاح.
+- Supabase development branches: صفر؛ لا يُنشأ Staging أو فرع بديل وفق توجيه المالك. الاختبار المباشر على Production ببيانات QA مؤقتة ومضبوطة.
 - سجل migrations وفق آخر نقطة موثقة LVE640: 755، آخر إصدار مسجل 20261104223538.
 - save-purchase-order: ACTIVE v30، verify_jwt=true، SHA-256 838f8c05d5e64f040dc4a346eae52816877d635bab41684d32d77eebeae304e6.
 - لم يظهر أي تعديل على Parent/Core/Buyer منذ HEAD التشغيلي أعلاه.
@@ -178,7 +181,7 @@ END IF;
 - لا تغيير في جداول Buyer أو RLS أو ACL أو Storage.
 - لا Edge Function جديدة ولا تغيير في save-purchase-order v30 ضمن هذه الحزمة.
 - لا مسار Employee Payable أو خصم رواتب؛ المصروف الزائد يظل محجوبًا كما هو حتى إعداد حساب التزام ومسار سداد مستقل.
-- لا إنشاء بيانات اختبار في Production.
+- يجوز إنشاء بيانات QA اصطناعية مؤقتة على Production وفق §6.4 من الدستور؛ يجب أن تكون موسومة وفريدة وقابلة للإزالة، مع إثبات cleanup وعودة الحالة إلى baseline. لا تنشأ بيانات في هذا التنفيذ التوثيقي.
 
 ملاحظة تنفيذية: PostgreSQL لا يتيح تعديل جزء من PL/pgSQL function body مباشرة؛ عند اعتماد SQL يجب إصدار CREATE OR REPLACE لكل دالة مع الحفاظ على نصها الحالي كاملًا وتغيير المقاطع المحددة أعلاه فقط. هذا لا يعني إعادة تصميم الدوال أو استبدال منطقها.
 
@@ -243,9 +246,11 @@ Buyer الحالي هو المستهلك النقدي الوحيد لدفتر bu
 | زيادة عهدة | Dr127/Cr121 فقط بعد تسليم فعلي وإقرار مستقل |
 | مصروف أكبر من العهدة | محجوب حاليًا؛ لا رصيد دائن غير مفسر على127 ولا خصم رواتب تلقائي |
 
-## 12. خطة الاختبار المطلوبة قبل Production
+## 12. خطة الاختبار والقبول على Production
 
-لا توجد Staging branch حاليًا. لا ننشئ فرعًا مدفوعًا أو نبدأ اختبارات تتكلف دون عرض التكلفة. بعد توفير Staging معزول:
+تُنفّذ الاختبارات على SMART ERP Production نفسها وفق توجيه المالك §6.4، ولا يُنشأ مشروع أو فرع Staging أو نسخة بديلة. قبل أي Fixture: احفظ baseline للأعداد والأرصدة والقيود والمخزون والخزائن والجداول المتأثرة، وضع خطة cleanup كاملة ومعرّفات QA فريدة. استخدم BEGIN/ROLLBACK لاختبارات SQL/RPC التي يمكن إثباتها داخل معاملة واحدة. ولـBrowser E2E الذي يحتاج بيانات committed، أنشئ فقط سجلات QA اصطناعية معلّمة، لا تمس بيانات أعمال فعلية، واحذفها بعد الاختبار مع كل العلاقات والمرفقات والآثار التابعة المسموح بحذفها. لا تنفذ مسار ترحيل يُنتج أثرًا لا يمكن التراجع عنه أو إثبات تنظيفه. بعد كل تشغيل، طابق الأعداد والأرصدة مع baseline وأثبت عدم بقاء أي QA record أو أثر.
+
+خطة الاختبار:
 
 1. اختبار رفض حساب 127 و121 و211 في finance_save_expense، وقبول حساب Expense صالح.
 2. اختبار رفض branch_id فارغ.
@@ -266,7 +271,7 @@ Buyer الحالي هو المستهلك النقدي الوحيد لدفتر bu
 17. اختبار عدم تكرار أي cash_box أو journal_entry أو treasury delta عند retry.
 18. اختبار إغلاق/إلغاء قبل الصرف دون أثر مالي.
 
-بعد Staging فقط: فحص RLS/ACL، Supabase advisors، JavaScript syntax، Browser E2E، ثم نشر Owner-approved files ومطابقة Cloudflare artifact مع commit.
+بعد اختبارات SQL/RPC وE2E المضبوطة مباشرة على Production مع rollback/cleanup: افحص RLS/ACL وSupabase advisors وJavaScript syntax، ثم تحقق من Cloudflare artifact ومطابقته للـcommit المنشور.
 
 ## 13. خطة التراجع
 
@@ -285,7 +290,7 @@ Buyer الحالي هو المستهلك النقدي الوحيد لدفتر bu
 - النص الكامل بعد التعديل، مع تغييرات داخلية محدودة فقط.
 - grants/owner/search_path قبل وبعد.
 - مقاطع HTML الأصلية والبديلة الدقيقة للمالك.
-- الاختبارات ونتائج Staging وخطة التراجع.
+- الاختبارات ونتائج Production QA، وbaseline/cleanup proof، وخطة التراجع.
 - تأكيد أن فرع BR-2 لديه خزينة Cash مفعلة وتمويل حقيقي قبل تفعيل الصرف عليه.
 
 ## 15. التقييم النهائي
@@ -324,7 +329,7 @@ Buyer الحالي هو المستهلك النقدي الوحيد لدفتر bu
 
 -- Capture the existing function owner, ACL, volatility, and search_path before deployment.
 
--- Execute only in isolated Staging after explicit owner approval; do not run in Production as a test.
+-- Proposed QA validation on SMART ERP Production only: BEGIN/ROLLBACK when possible; otherwise use uniquely tagged disposable QA fixtures and prove complete cleanup. Do not touch real business records. This is a proposed patch and has NOT been executed.
 
 BEGIN;
 
@@ -731,8 +736,8 @@ COMMIT;
 
 ### مراجعة قبل اعتماد التنفيذ
 
-1. لم يتم اختبار النصوص على Postgres Staging بعد، لعدم وجود Supabase branch.
-2. يجب تشغيل EXPLAIN/اختبارات RPC في Staging، وفحص أن جميع function signatures والـsearch_path والـACL مطابقة.
+1. لم تُختبر النصوص بعد. الاختبار التالي يكون مباشرة على SMART ERP Production داخل BEGIN/ROLLBACK حيث يمكن ذلك، أو ببيانات QA اصطناعية مؤقتة بعلامة فريدة عند الحاجة إلى Browser E2E.
+2. قبل الاختبار، احفظ function signatures والـowner/ACL/search_path والـcounts/balances كـbaseline؛ وبعد الاختبار تحقق من مطابقتها أو من cleanup الكامل. لا تنشئ Staging أو فرعًا بديلًا.
 3. يلزم تعديل Buyer UI ليجعل branch_id إلزاميًا ويصفّي Treasury حسب الفرع، وإلا ستظهر أخطاء رفض صحيحة من الخادم.
 4. يلزم تفعيل خزينة Cash فعلية لفرع الإسكندرية BR-2 وتمويل خزائن الفروع من خلال تحويلات حقيقية موثقة قبل إطلاق الصرف.
 5. لا تُفعّل أي صلاحية مركزية للخزينة CASH-01 ضمن هذه الحزمة.
