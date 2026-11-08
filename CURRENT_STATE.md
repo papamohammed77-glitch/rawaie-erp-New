@@ -1,4 +1,32 @@
-# LVE-2026-11-08-641 — Employee Custody Surgical ChangeSet / Live Revalidation
+# LVE-2026-11-08-643 — Daily CTO / Employee Custody Continuity Revalidation
+
+**LAST VERIFIED EVENT:** 2026-11-08 — re-read the permanent constitution and Reports640/641; independently verified current GitHub source, SMART ERP Production function fingerprints/column/RLS/business-data counts, Employee/HR distinction, Parent/Buyer/Core contracts, and Cloudflare Production source parity.
+**Report643:** doc/Draft/Reprots/Report643_DAILY_EMPLOYEE_CUSTODY_CONTINUITY_REVALIDATION_20261108.md — commit abaa280bbd010bc0b30452088aefc7503f2b0333.
+**Previous checkpoint:** LVE-2026-11-08-642.
+
+## Current verified state
+- The latest previous checkpoint LVE642 is already recorded in the appended history below. The opening LVE641 snapshot is historical and superseded; it incorrectly remained the first heading after LVE642 was appended.
+- The permanent Report641 §18 SQL ChangeSet is CONFIRMED APPLIED in SMART ERP Production. Live MD5s exactly match Report641: acknowledge_advance d4f498a50b5f122780a578e2d3f0b35a; acknowledge c723a3c5f7557fe3d0d173667d2eebe7; add_advance c1cfdd85679917a43dd35e22c76e03b3; issue a5dc356cf8d8ed2fa15417394b216138; settle fbcec6d79c6f46bf4c6bea0e5f0cd3c7; finance_save_expense 13-arg eafbdf9ba7d3b7b01a927816019555e1; 14-arg branch wrapper remains af1a15d07b0523ec70d6dce7d03aefd6.
+- buyer_custodies.received_at is nullable and has no default. Owner postgres, SECURITY DEFINER/search_path, and ACL remain preserved; anon EXECUTE=false; authenticated EXECUTE=true. No new table, Edge Function, direct DML grant or RLS change.
+- All five cash-custody tables remain empty; posted GL lines under account 127=0; custody/QA cash_box and erp_operation_registry rows=0; QA-CUSTODY storage objects=0. No custody cash, journal, stock or QA fixture was created by this revalidation.
+- Operational HEAD remains b728c09e1bb4c482effc48a492546b393ff02c1f. Parent, Core and Buyer blobs remain 59241e741abcbc318fa68d3c10775e40e2688927 / f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1 / 5ab9f4e268cbf266e6ff950fe41bf5c9a4c9390a. Latest operational diff is Receiver only.
+- Parent finance has no Employee Custody tab. Its generic expense account dropdown shows all active accounts; the server-side 13-arg Expense guard is reached by the unchanged 14-arg branch wrapper, so this is a P2 UI filtering defect, not a confirmed posting bypass.
+- Buyer issueCustody permits blank branch and broad Treasury options; addCustodyAdvance and settleCustody also list all active treasuries. Server RPC guards reject missing/mismatched/central/POS Treasury. Owner-applied UI filtering remains open.
+- General employee self-service must use self-only RLS/PostgREST reads and the existing ownership-checking acknowledgement/submission RPCs directly. Do not widen save-purchase-order v30 Edge permissions or use its Finance/purchasing GET_CUSTODY route for ordinary staff.
+- public.users is the current employee identity source. 31 active users; zero employee_id values; default_branch_id on 3; allowed_branch_ids mixed JSON arrays/scalars (JSONB ? membership checks tested successfully for both). employee_profiles is not the HR identity source and contains sensitive fields.
+- hr_salary_advances is a distinct salary/repayment-installment workflow, currently zero rows; it is not operational cash custody. Keep it separate from buyer_custodies.
+- Treasury readiness: CASH-01 central unassigned branch 10,685 EGP; BR-01 Cash tills 0 EGP; BR-01 POS 190 EGP and excluded; BR-2 has no active Cash Treasury. No branch custody disbursement should be enabled until the correct branch Cash Treasury is actually configured and funded.
+- Current operational Expense accounts are 5/51/52; other-expense approval requires a valid Expense leaf and excludes 51/52. Fuel/transport/toll approval remains blocked pending Finance-approved Expense leaf accounts.
+- Cloudflare Production shows main at b728c09e1bb4c482effc48a492546b393ff02c1f and deployment c2f858c3.rawaea-erp.pages.dev, matching GitHub HEAD. The login route rendered, but authenticated UI/E2E and an explicit dashboard Success indicator remain unverified.
+- No authenticated Browser JWT/PostgREST self-vs-other E2E, no measured Realtime latency, and no field/multidevice test completed. Other apps beyond the recorded Parent/Core/Buyer/HR/Receiver scope were not fully re-audited.
+
+**Readiness:** READY WITH LIMITATIONS. Database custody ChangeSet is applied and fingerprint-verified; source/deployment commit parity is confirmed. UI adoption, Employee Self-Service, operational Treasury/Expense prerequisites and authenticated E2E remain open.
+
+**Next priority:** owner applies the exact Parent Finance and Buyer UI patches to the current operational main files; then the first employee application integrates self-only RLS/RPC cash custody. Do not modify Core broadly or widen permissions before that consumer passes authenticated E2E. See Report643 §8–18.
+
+---
+
+## HISTORICAL SNAPSHOT — LVE-2026-11-08-641 (SUPERSEDED BY LVE642 AND LVE643)
 
 ## OWNER OPERATIONAL CORRECTION — 2026-11-08 (AUTHORITATIVE)
 
