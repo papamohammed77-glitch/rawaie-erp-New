@@ -212,8 +212,8 @@ No active eligible Expense leaf for transport/fuel/tolls was identified in LVE64
 - Re-read LVE643 and its source evidence; reconciled the current branch history.
 - Compared the integration commit against the LVE643 source baseline; the four-file scope is explicit.
 - Re-read the exact main/driver blobs, made only the two race-correction edits, and committed them directly to main.
-- Compiled every inline JavaScript block in the updated main.html and driver.html using a JavaScript parser (new Function) — both files passed.
-- Re-fetched the new main and driver blobs after commit and repeated the syntax compilation — PASS.
+- Compiled core.js as JavaScript and every inline JavaScript block in buyer.html, main.html and driver.html using a JavaScript parser (new Function) — all four operational files passed.
+- Re-fetched the current blobs for all four files and repeated syntax compilation — PASS.
 - Compared HEAD 68de9b to the later HEAD 121c856; the later commit changes only the forensic extract file.
 - Rechecked the live custody RPC signatures, function security attributes and grants.
 - Rechecked the five custody table counts and current Treasury balances.

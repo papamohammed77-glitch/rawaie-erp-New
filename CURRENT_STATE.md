@@ -7,7 +7,7 @@
 
 ## Current verified state — LVE644
 - Employee-custody UI integration is present in Parent Finance, Buyer, shared Core and Delivery Driver via commit 180d318d3be8d095daab557207d037aa87147267.
-- A follow-up surgical correction in 68de9b prevents stale asynchronous Finance/Driver custody renders from overwriting another selected tab. Updated inline JavaScript in Parent and Driver compiled successfully.
+- A follow-up surgical correction in 68de9b prevents stale asynchronous Finance/Driver custody renders from overwriting another selected tab. JavaScript syntax compilation passed for core.js and the inline scripts in Buyer, Parent and Driver.
 - Parent payment account selection is restricted to active Expense accounts; the existing server-side Expense guard remains unchanged.
 - Buyer issue requires branch and filters to active same-branch Cash non-POS Treasury; advance and settlement use the same filter. Server RPC guards remain authoritative.
 - Driver cash custody is a distinct tab and calls the opt-in Core service; vehicle stock and the existing driver balance tab remain separate. The service uses get_my_effective_profile, self-scoped RLS reads and existing ownership-checked RPCs; no user row is auto-created and no Edge permission gate was widened.
