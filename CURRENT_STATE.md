@@ -1,3 +1,34 @@
+# LVE-2026-11-08-647 — Parent Finance Custody API Runtime Fix
+
+**LAST VERIFIED EVENT:** 2026-11-08 — resumed from LVE646; inspected the actual open Parent Finance page and current operational GitHub source; identified the invalid dependency on shared-core `RW_API` from a Parent page that does not load `core.js`; replaced the one local custody API helper with an authenticated request through Parent's existing Supabase client; added fail-closed handling for malformed responses; validated the final source and isolated request contract; committed Report647. No database or business data changes.
+
+**Report647:** `doc/Draft/Reprots/Report647_PARENT_FINANCE_CUSTODY_RW_API_RUNTIME_FIX_20261108.md` — governance commit `71b1275e0c6bc2980b46fc2f1c5667fa8a8f41a7`.
+
+**Operational repository:** `papamohammed77-glitch/erp-frontend`  
+**Operational code file:** `companies/company-1/main.html` only.  
+**First API correction:** `4214cda5d180a003d79233a806ce7d6a2255b66b`.  
+**Follow-up fail-closed parsing correction:** `2a751e67405326d940af6eaf0f69ce42c7eca969`.  
+**Latest operational HEAD observed:** `b48f1d660473764a8d26536632899404b2789b9d` (later descendant; forensic extract commit does not alter custody implementation).  
+**Final Parent main.html blob:** `4d25abf0d01b65acf48d7a76634293b8ea3e06ee`.
+
+## Current verified state — LVE647
+
+- **Live symptom observed:** the connected Parent page at `rawaea-erp.pages.dev/companies/company-1/main` displayed the Finance tabs then `RW_API is not defined`.
+- **Root cause confirmed:** Parent `main.html` initializes its own Supabase client and does not load `core.js`. Shared `RW_API` is defined by `core.js`, not by Parent. The Employee Custody module's single local helper invoked `RW_API.call` during its first `GET_CUSTODY` load, so the tab failed immediately.
+- **Correction:** only that module-local helper was replaced with a request using the existing Parent `supabase.auth.getSession()`, existing `RW_SUPABASE_URL`, and the same `/functions/v1/save-purchase-order` endpoint. It preserves POST, Bearer session JWT, and `{operation,payload,operation_id?}` contract. Missing session, missing response, HTTP failure, malformed JSON and `success:false` fail safely.
+- **Architecture choice:** do not import the entire shared `core.js` into Parent. Parent already owns a separate client/auth closure; use the Parent-native session and client here. No global shim or duplicate client was introduced.
+- **Validation on final committed blob:** zero `RW_API` references remain; the one executable inline script compiles; isolated helper tests pass for the request endpoint, POST body and operation id, Bearer JWT, expired session, HTTP 400 error propagation, malformed JSON rejection and missing-response rejection.
+- **Compare:** from `be4647d` to observed HEAD, operational code change is limited to `companies/company-1/main.html` (+19/-1); `_forensic_current_main_extract.md` is an automated forensic extraction, not an operational app file. CI status had no entries; no CI pass is claimed.
+- **Database/side effects:** no SQL, DDL, DML, migration, Edge Function, RPC, RLS/ACL, permission or schema change. No custody/test records, documents, cash, treasury, cash-box, journal, stock, supplier/AP or inventory movement created or altered by LVE647.
+- **Deployment:** Cloudflare dashboard snapshot read in this cycle still listed `be4647d` as Production latest and did not show `2a751e6` or a descendant. Automatic deployments are enabled, but LVE647 deployment is **UNVERIFIED**.
+- **Browser runtime:** connected browser tools are read-only in this session; the open Parent tab was not reloaded after the source commit. Post-deployment removal of the error and authenticated Finance E2E remain **UNVERIFIED**.
+
+**Readiness:** SOURCE FIX COMMITTED — STATIC / REQUEST-CONTRACT VALIDATED — DEPLOYMENT / AUTHENTICATED E2E PENDING.
+
+**Next exact action:** verify Cloudflare Production deploys `2a751e67405326d940af6eaf0f69ce42c7eca969` or a later descendant; refresh the Parent page; open Finance > Employee Custody; confirm the error is gone and the `GET_CUSTODY` view loads. Then proceed to authenticated, tagged, removable-QA acceptance and cleanup reconciliation.
+
+---
+
 # LVE-2026-11-08-646 — Parent Employee Custody Ledger UI Completion
 
 **LAST VERIFIED EVENT:** 2026-11-08 — continued from LVE645; read the full writing-block-8-10 prompt, current state, permanent constitution and relevant Reports641/644/645; revalidated Parent Finance source and SMART ERP Production; completed the existing Employee Custody ledger renderer; committed the surgical Parent-only change; recompiled all six inline scripts; recorded Report646.
