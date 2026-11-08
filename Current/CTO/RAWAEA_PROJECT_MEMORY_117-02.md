@@ -1,3 +1,19 @@
+## LVE-2026-11-08-641 — Employee Custody Surgical ChangeSet / Live Revalidation
+
+- Report641: doc/Draft/Reprots/Report641_EMPLOYEE_CUSTODY_SURGICAL_CHANGESET_20261108.md. Read-only forensic revalidation after LVE640; no code/Production writes.
+- Operational HEAD unchanged: b728c09e1bb4c482effc48a492546b393ff02c1f. Parent main.html blob 59241e741abcbc318fa68d3c10775e40e2688927; Core f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1; Buyer 5ab9f4e268cbf266e6ff950fe41bf5c9a4c9390a.
+- Live SMART ERP remains ACTIVE_HEALTHY, no Staging branches. Account 127/121 active Asset/Debit, no child GL or posted 127 lines; custody tables empty.
+- Confirmed critical defect: finance_save_expense does not require account_type='expense'; asset 127 can enter generic finance_expenses. ChangeSet proposes only a type guard in the existing function, not a new writer.
+- Existing buyer_custody_* tables/RPCs remain the single ledger. Existing issue/add/ack/settle RPCs need Treasury-to-branch enforcement, branch scope validation, received_at correction and payload-aware idempotency. Do not create parallel tables or new Edge Functions.
+- Current Treasury snapshot: central CASH-01=10,685 EGP (branch_id NULL), BR-01 cashiers=0 EGP each, POS=190 EGP (must not fund employee custody), BR-2 Alexandria has no active Treasury. Phase 1 must only use same-branch Cash Treasury; central exception requires separate policy/permission; branch treasury must be provisioned and funded by real transfer.
+- users is current employee identity source; employee_profiles empty. allowed_branch_ids is mixed scalar/array JSONB and current membership counts conflict with Report640; normalize before rollout. Do not expose employee_profiles sensitive HR fields to Finance.
+- Employee self-service should use RLS-scoped reads and existing ownership-checking RPCs directly; do not use save-purchase-order GET_CUSTODY for ordinary employees because its current Edge gate is restricted to purchases/finance/finance_manager.
+- Report641 documents Parent Finance tab and Buyer UI surgical owner patches. No operational HTML/Core changes have been applied. Full SQL replacement bodies and specific owner approval are still required before Production.
+- No Production DDL/RPC/RLS/ACL/Edge deployment, treasury/journal/cash_box movement, QA rows, or test records created. Staging unavailable.
+- Readiness: CHANGESET PREPARED — SPECIFIC PRODUCTION APPROVAL AND STAGING GATE OPEN.
+
+---
+
 ## LVE-2026-11-07-640 — Employee Custody / Parent Finance / Cross-App Revalidation
 
 - Report640: `doc/Draft/Reprots/Report640_EMPLOYEE_CUSTODY_PARENT_FINANCE_CONSUMER_REVALIDATION_20261107.md`, commit `806d40acdb92f2260dd022a20cd26dbd16949d20`.
