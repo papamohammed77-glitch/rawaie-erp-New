@@ -1,3 +1,45 @@
+# CURRENT STATE UPDATE — LVE-2026-11-10-682
+
+**Recorded:** 2026-11-10 (Africa/Cairo)  
+**Workstream:** Warehouse Receiver — PO and Quick Market physical receiving
+
+## Last verified source event
+- Operational repository: `papamohammed77-glitch/erp-frontend` / `main`.
+- HEAD: `11f49dc381d522549e76d47419b10a19316e3a93`.
+- Receiver: `companies/company-1/warehouse/receiver.html`, blob `b0d7796ffe7f227ebd7973009d0e8190fa6d8f51` (436 lines).
+- Picker reference only: `companies/company-1/warehouse/picker.html`, blob `d483bd15b36585b975b63c2ef641481a01d5d084`.
+- Receiver Edge: `supabase/functions/receive-purchase/index.ts`, blob `a482839164f281d4a5733ad341ce7bb7668a6051`; deployed Supabase version 15 ACTIVE, verify_jwt=true, Git source byte-equal to deployed source.
+- Production dashboard DOM reports Cloudflare Pages Production/main at 11f49dc; published Receiver asset byte parity and authenticated browser runtime remain unverified.
+- Supabase project `fiilmooggumokxanwiyx` is ACTIVE_HEALTHY.
+
+## Confirmed forensic findings
+- Receiver presently mixes PO and Quick Market in one pending queue; no per-delivery sent_qty vs accepted_qty; no Picker-quality item photo/description/barcode details; Completed tab is PO-only rather than receiving-operation history.
+- PO list is company-scoped but not branch-filtered in Receiver; server-side PO receive RPC still enforces branch authorization.
+- Receiver subscribes to receiving / receiving_details, which are not published in supabase_realtime; receiving_details has no company_id column. Current Core applies a company filter by default to each subscription unless overridden. Published parent refresh sources include purchase_orders, purchase_invoices and buyer_goods_custody_events.
+- Receiver uses dynamic HTML interpolation through RW_UI.safeHTML (direct innerHTML assignment) and dynamic document identifiers in inline onclick handlers; replace with safe DOM text/attributes and event delegation.
+- Receiver does not supply operation_id; Edge falls back to deterministic identity derived from the document/items. A later physical delivery with identical payload can collide with a previous receipt. Use a unique UUID per physical receipt and persist/reuse it for the same unresolved retry.
+- PO RPC effect: accepted PurchaseIn stock + PO qty/status + inventory debit / supplier payable credit journal + supplier-ledger credit.
+- Quick Market Employee Custody RPC effect: accepted PurchaseIn stock + reduce Buyer goods custody + invoice receipt progress; no supplier AP/ledger, Treasury/cash or GL posting.
+- Current production receipt tables are empty: receiving=0, receiving_details=0; current QMP PINV-1002/PINV-1003 total 29 invoice units, received 0. No production documents were used as test fixtures.
+- Critical security finding: legacy public.receive_quick_market_invoice_atomic(uuid,uuid,text,jsonb,uuid) is SECURITY DEFINER, trusts caller-supplied p_user_email without binding to auth.uid(), and its live ACL grants EXECUTE to PUBLIC, anon and authenticated. It was not invoked. Current Edge does not call it. Proposed revoke is documented in Report682.
+- Production migration history / current-main migration source drift exists for Buyer phase-1 and 2026-11-09 invoice-derived custody migrations. Do not recreate/reapply these migrations; recover exact live definitions before changing RPC source.
+- save-purchase-order Edge also calls receive_purchase_atomic in its RECEIVE_PO operation; preserve compatibility and trace the parent UI caller before changing the shared PO RPC contract.
+
+## Safety / execution status
+- No operational source file changed.
+- No SQL/DDL/RLS/Edge Function write or deployment performed.
+- No business data or inventory/AP/supplier/custody/Treasury/journal/GL rows changed.
+- Browser E2E was not run: open ERP tab is Parent sign-in and browser interaction is read-only. GitHub combined status for 11f49dc returned no status entries.
+- Current production Cloudflare pointer is consistent with 11f49dc, but no byte-level verification of the published Receiver file is claimed.
+
+## Mandatory next gate
+Master CTO Governance §77.1/§77.2 and the permanent constitution require Owner review of the exact ChangeSet before a risky receipt/permission/RPC change. The proposed exact scope, security revoke, quantity contract, accounting boundaries, test matrix and rollback gates are in:
+`doc/Draft/Reprots/Report682_RECEIVER_GOLD_UX_SECURITY_AND_CUSTODY_FORENSIC_20261110.md`.
+
+**Closure state:** `FORENSIC COMPLETE — FIX NOT APPLIED — OWNER CHANGESET APPROVAL REQUIRED`. Do not begin operational writes until that ChangeSet is explicitly approved. After approval, recover exact Production RPC definitions/source drift, preserve the second PO RPC caller, then implement and test only the approved patch. Do not use live PO/QMP documents as test fixtures.
+
+---
+
 # CURRENT STATE UPDATE — LVE-2026-11-09-681
 **Recorded:** 2026-11-09 (Africa/Cairo)  
 **Workstream:** Purchasing Supervisor — restore legacy KPI / Today / Notifications / Suppliers navigation
