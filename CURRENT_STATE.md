@@ -1,3 +1,47 @@
+# CURRENT STATE UPDATE — LVE-2026-11-09-681
+**Recorded:** 2026-11-09 (Africa/Cairo)  
+**Workstream:** Purchasing Supervisor — restore legacy KPI / Today / Notifications / Suppliers navigation
+
+## Last verified source event
+A surgical UI-only change was committed to operational `papamohammed77-glitch/erp-frontend` / `main`:
+- Commit: `11f49dc381d522549e76d47419b10a19316e3a93`
+- File: `companies/company-1/purchasing/supervisor.html`
+- Final blob: `916636b89f6e376b437a9328087b02de82c2610d`
+- Only one operational source path changed.
+
+## Implemented
+- Restored the existing expanded dashboard as the visible **KPI's** tab.
+- Repositioned the existing Suppliers tab beside the legacy tabs.
+- Added **Today** as a read-only, company-scoped view of today's purchasing documents and open POs due today.
+- Added **Notifications** as a read-only, current-user email-scoped view of the existing `notifications` table.
+- Preserved all ten procurement-cycle tabs and the existing Suppliers renderer.
+- All 13 tab IDs have matching allowlist entries and renderer mappings.
+
+## Production contract and safety
+- SMART ERP project `fiilmooggumokxanwiyx` is `ACTIVE_HEALTHY`.
+- Read-only schema inspection confirmed the purchasing date columns and PO expected-delivery fields used by Today.
+- `public.notifications` has RLS enabled and an existing `notifications_select_own` policy based on the authenticated JWT email.
+- No SQL/DDL/RLS/Edge/trigger changes and no business-data writes occurred.
+- No inventory, buyer goods custody, supplier/AP, cash custody, Treasury, journal or GL records were modified.
+
+## Verification
+- Final source re-fetched; blob SHA matched.
+- Inline JavaScript syntax parse: PASS.
+- Synthetic Today and Notifications rendering: PASS.
+- Company scoping for all seven procurement queries: PASS.
+- Current-user email filter for notifications: PASS.
+- 13/13 navigation IDs, allowlist entries and renderer mappings: PASS.
+- Direct database write calls in supervisor source: 0; the one existing PO approval API call remains unchanged.
+- Authenticated supervisor browser E2E: **NOT RUN** (available browser access is read-only and the open ERP tab is at Parent sign-in).
+- Cloudflare Production deployment for commit `11f49dc`: **UNVERIFIED**; visible dashboard snapshot is stale and identifies previous commit `4240285`.
+- GitHub combined status/workflow runs for the new commit: none returned by available endpoints. No CI pass is claimed.
+
+**Detailed report:** `doc/Draft/Reprots/Report681_SUPERVISOR_LEGACY_TABS_RESTORATION_20261109.md`  
+**Closure state:** `FIX APPLIED — E2E PARTIALLY VERIFIED`  
+**Next exact task:** verify the Cloudflare Production artifact for `11f49dc`, then perform authenticated supervisor E2E without approving POs or creating/posting transactions.
+
+---
+
 # RAWAEA ERP — CURRENT STATE
 
 **Last Verified Event:** LVE-2026-11-09-680  
