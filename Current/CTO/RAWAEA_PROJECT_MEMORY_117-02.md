@@ -1589,3 +1589,16 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 
 
 - LVE642 Cloudflare recheck: dashboard Production row now shows `erp-frontend/main` commit `b728c09e1bb4c482effc48a492546b393ff02c1f` and deployment URL `https://c2f858c3.rawaea-erp.pages.dev/`, matching current GitHub HEAD. Explicit Success label and authenticated runtime E2E remain unverified.
+
+
+## LVE679 — Daily CTO review / Buyer–Parent–Receiver source parity — 2026-11-09
+- Report679: `doc/Draft/Reprots/Report679_DAILY_CTO_REVIEW_AND_BUYER_PARENT_PRODUCTION_DRIFT_20261109.md`.
+- Operational main HEAD `0c949128930eeea57748f8b4303077173cbe0894`; UI commit `df8db3a37e4eab590d9583d048d3d7b7b6df3ec7`. Buyer blob `98e23e2b2eeb0dd23d2cb7e0d4762acdcdebf8a4`; Parent `be58fb0e54a8e4c09ce081b15ebf5420e072bdfd`; Core `2d11b852862c523fc89e6a8b9c510462bb65cc4e`; Receiver `b0d7796ffe7f227ebd7973009d0e8190fa6d8f51`.
+- SMART ERP ACTIVE_HEALTHY. save-purchase-order v41 and receive-purchase v15 are ACTIVE, verify_jwt=true, deployed source byte-equal to main. No operational writes were made.
+- Quick Market invoices PINV-1002/1003 remain Draft/EGP, 20+9=29 units, zero received; custody events=0; linked receiving=0; quotations/details/RFQs=0.
+- Live supplier-return Storage INSERT/SELECT policies allow `supplier-return-<timestamp>_<file>` with MIME/size and owner/permission checks. The return RPC is SECURITY DEFINER, authenticated-only, locks invoice, and writes only buyer_goods_custody_events. Receiver queue subtracts accepted supplier returns; receiving RPC posts stock only on actual receipt.
+- **Critical source drift:** Production migration `20261109190444 buyer_quick_market_invoice_derived_custody_and_supplier_return` is in live migration history but no matching migration file exists on operational main. Tracked 13:00 storage migration lacks supplier-return filename support while live policies include it. Restore exact applied SQL; do not re-run DDL.
+- main branch is unprotected; required status checks are off. PR #11 remains open/diverged (26 ahead, 5 behind; mergeable=false). No merge.
+- Buyer CSS blob `c09c5fbd0268bb295d931d3329016861c837f7fa` lacks `.bg-amber-700` and `.hover\\:bg-amber-800` used by the new return action. Parent quotation loader is capped at 300 rows without pagination; Buyer invoice eligibility read is capped at 500.
+- Cloudflare deployment and authenticated E2E remain unverified. No test records or business effects created.
+- Governance: permanent constitution SHA `3a6b1e220af8509e314e94df76563bbc6f84910d`; Master CTO Governance SHA `1a0c81c2984103b5a7f3b40db41607d74051b310`; §77.2 approval gate remains mandatory for operational changes.
