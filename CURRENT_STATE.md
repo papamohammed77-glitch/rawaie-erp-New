@@ -1,3 +1,25 @@
+# LVE-2026-11-09-672 — Buyer SupplierReturn Partial-Acceptance Accounting Review
+
+**LAST VERIFIED EVENT:** 2026-11-09 (Africa/Cairo) — revalidated operational Buyer source, LVE670/LVE671 production migrations, live cash/goods custody RPCs, SupplierReturn completion core/trigger, Edge v4 contract, and source warehouse voucher actions. Operational `main` latest observed commit is `c5251859bd360fbf69f9875a8bb482bbd667fe4c`; Buyer blob `94e2e95d13d2d1aa8687a8c0d394a8508176137e`.
+
+**COMPLETED / PRESERVE:**
+- LVE670 migration `20261109154258_buyer_custody_cash_claim_and_ownership_balances_20261109` is present in Production. It fixes approved cash commitments, supports separate active QMP receipt claims, and groups goods custody by ownership/supplier/source.
+- LVE670 Buyer source changes are committed in `f6b5f169f2fbd90bebaf4dc0b4961d8f3b167d47`, Tailwind build `96ae1dbbea3ded0390859dfdf10196d225afbd9e`, and UOM-summary correction `c5251859bd360fbf69f9875a8bb482bbd667fe4c`.
+- LVE671 migration `20261109155413_buyer_supplier_return_send_complete_role_scope_guards_20261109` is present in Production and enforces SupplierReturn send/complete role and branch-scope guards. Existing Edge v20/v4 remain the entry points.
+- Report672 records the detailed accounting analysis and safe next architecture.
+
+**OPEN CRITICAL GAP:** SupplierReturn partial acceptance is not implemented. Current completion core posts supplier ledger, inventory credit, tax and journal for full original voucher quantities. The custody trigger rejects partial received quantities; Edge v4 accepts only a voucher code; there is no mandatory supplier proof / Buyer-representation exception payload and no separate Buyer-to-Warehouse return document. Do not patch only the trigger or set partial `received_qty` before replacing the full-quantity financial posting contract. The next atomic design must track issued = supplier accepted + warehouse returned + Buyer custody open per line; post supplier credit/tax/journal only for actually accepted quantities; and increase warehouse stock only after a separate warehouse acceptance document.
+
+**EXTERNAL DESIGN EVIDENCE:** ERPNext Purchase Receipt / Purchase Return / Debit Note and Microsoft Dynamics 365 Product receipt / purchase return references are documented in `Report672_BUYER_SUPPLIER_RETURN_PARTIAL_ACCEPTANCE_ACCOUNTING_FORENSIC_20261109.md`.
+
+**VERIFICATION LIMITS:** Production migrations and current function contracts were read back. No business data, voucher, stock, supplier ledger, tax, journal or custody event was changed in this review. GitHub combined status for `c525185` returned no status checks; Cloudflare terminal Production Success, served Buyer byte parity, and authenticated browser E2E remain unverified. Staging remains out of schema/security parity.
+
+**REPORT:** `doc/Draft/Reprots/Report672_BUYER_SUPPLIER_RETURN_PARTIAL_ACCEPTANCE_ACCOUNTING_FORENSIC_20261109.md`; commit `ee16ffa32898e673a8ea4ec2cd65fc4857992748`.
+
+**CHECKPOINT STATUS:** LVE670 CASH/GOODS HARDENING PRESERVED · LVE671 SERVER AUTHORIZATION PRESERVED · ACCOUNTING ROOT CAUSE CONFIRMED · PARTIAL ACCEPTANCE / SEPARATE WAREHOUSE RETURN STILL OPEN · NO PRODUCTION BUSINESS-DATA WRITES.
+
+---
+
 # LVE-2026-11-09-669 — Buyer Cash Custody & Goods Custody Integration Forensic Review
 
 **LAST VERIFIED EVENT:** 2026-11-09 (Africa/Cairo) — re-read operational main HEAD `0fe255e3d9dae44332ee1863c43d9c1b0ea0ff79`, Buyer cash/goods tab source, warehouse voucher UI and SMART ERP Production contracts. Read-only Production snapshot confirms the Buyer has EGP 5,000 actually acknowledged, two Quick Market invoices charged to `EMPLOYEE_CUSTODY` (`PINV-1002` EGP 1,000 and `PINV-1003` EGP 430), EGP 1,430 open reservations, no custody expenses, and no Buyer goods custody events or assigned stock vouchers. No business records were changed.
