@@ -79,7 +79,7 @@ Changing only the trigger or the custody event would make the custody ledger dis
 5. allow a Buyer-as-supplier-representative exception only when the assigned receiver submits a mandatory note and evidence;
 6. enforce the applicable role/branch authorization server-side, not only by hiding UI buttons.
 
-The current SupplierReturn send/complete Edge/RPC path also needs a dedicated permission review. Do not infer security from the existing UI action visibility alone.
+A follow-up production migration `20261109155413_buyer_supplier_return_send_complete_role_scope_guards_20261109` has now added server-side guards to the existing SupplierReturn send and complete RPC wrappers. Both require the same warehouse-management gate already used by the SupplierReturn contract endpoints (owner wildcard, active warehouse role `أذونات`, or role مدير عام / مدير مخازن / مشرف مخازن); completion also validates the source branch context and branch scope. Both wrappers remain service-role-only (`anon EXECUTE=false`, `authenticated EXECUTE=false`), so the existing authenticated Edge endpoints remain the entry point. A read-only role matrix confirmed the warehouse supervisor passes while the buyer and accountant do not. Do not infer security from UI action visibility alone; the wrapper checks are now the server-side control.
 
 ## 6. External ERP control comparison
 The implemented separation follows established ERP control patterns:
@@ -89,3 +89,12 @@ The implemented separation follows established ERP control patterns:
 
 ## 7. Change boundaries
 No other application file, Edge Function source, or live operational row was changed. No new Edge Function was deployed. The SQL changes are contained in one versioned migration; the UI changes are contained in Buyer HTML only. Existing SupplierReturn financial completion remains unchanged until an end-to-end accepted/rejected quantity design is implemented and tested.
+
+
+## 8. SupplierReturn authorization follow-up (LVE671)
+- Applied migration `20261109155413_buyer_supplier_return_send_complete_role_scope_guards_20261109`.
+- `send_stock_voucher_atomic`: SupplierReturn send now requires owner wildcard, active warehouse role `أذونات`, or one of the established manager roles. Existing branch-scope logic remains intact.
+- `complete_manual_stock_voucher_atomic`: SupplierReturn completion now applies the same role gate and validates an active source branch plus allowed-branch scope before calling the unchanged full-posting core. Other voucher types continue through the unchanged core without the new SupplierReturn branch.
+- The wrappers are service-role-only; verified `anon EXECUTE=false` and `authenticated EXECUTE=false`. Edge v20/v4 remain the authenticated entry points; no Edge source or new function was added.
+- Read-only role matrix: `warehouse.supervisor@rawaea.com` / مشرف مخازن passes; `buyer1@rawaea.com` / مسئول مشتريات and `accountant@rawaea.com` / محاسب do not pass this SupplierReturn role gate. No posting or voucher status change was attempted.
+- The Buyer-as-supplier-representative exception remains unavailable because the current complete Edge contract does not accept a proof file and mandatory exception note. SupplierReturn partial quantity acceptance remains open for the atomic cross-ledger implementation in section 5.
