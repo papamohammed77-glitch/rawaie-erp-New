@@ -99,3 +99,45 @@ The ChangeSet adds a Buyer supplier-return modal for goods actually accepted by 
 
 ## Previous checkpoint
 LVE-2026-11-09-674 — Buyer Quick Market goods-custody forensic diagnosis and production read-only evidence.
+
+
+---
+
+# CURRENT STATE UPDATE — LVE-2026-11-09-676
+**Recorded:** 2026-11-09  
+**Workstream:** Buyer Quick Market goods custody and supplier-accepted return
+
+## Last verified event
+The surgical Buyer + existing Edge Function patch is committed directly to operational `main`:
+- Buyer commit: `36431ef45a175c989315d6fa7322dd4a85e64f4f`
+- Edge commit: `85a1773430a6d76799cd31e85b1a03f79f132369`
+- Buyer blob: `266a33b6104a1e7497529f525059dad53ae38c7e`
+- Edge blob: `2f47c692c53f596e5abe35770a5e05659dcf2383`
+
+The existing Supabase `save-purchase-order` Edge Function was deployed as version **40 ACTIVE**. Its re-fetched deployed `index.ts` matched the operational `main` source byte-for-byte. The Edge return operation calls the exact 63-character deployed PostgreSQL RPC identifier ending in `_atomi`.
+
+Production migration `20261109190444 buyer_quick_market_invoice_derived_custody_and_supplier_return` already exists. Live function definitions were inspected for buyer balance, invoice handover progress, supplier return, Receiver queue and atomic receiving. No migration or operational data write was performed in this checkpoint.
+
+## Production data evidence
+PINV-1002 and PINV-1003 still contain 29 invoice units in total, with zero received quantity and zero custody events. These invoices were not backfilled or modified. The expected invoice-derived buyer custody is 29 units before any accepted warehouse receipt or supplier return; this was computed from read-only invoice lines. The protected balance RPC could not be invoked from SQL editor without authenticated Buyer context and correctly raised `BUYER_GOODS_AUTH_REQUIRED`.
+
+## Verification state
+- Task `writing-block-8888-10.md` fully read (1,035 lines).
+- Buyer and Edge writes verified on `main`.
+- Supabase Edge version 40 ACTIVE and source parity verified.
+- No stock, supplier ledger, cash custody, Treasury, journal, GL or invoice rows were modified.
+- Authenticated Buyer browser E2E: **NOT RUN**; connected ERP tab showed the login form and available Browser tools were read-only.
+- Cloudflare deployment for the new `main` commits: **NOT VERIFIED**.
+- Automated CI/Node/Tailwind tests on these exact `main` commits: **NOT RUN**.
+- Do not call the task fully E2E complete until authenticated Buyer tests, Receiver receipt/return scenarios, and Cloudflare main deployment are verified.
+
+## Required next actions
+1. Resume from Report676; do not reapply the patch.
+2. Use an authenticated Buyer browser session and verify invoice-derived goods custody for PINV-1002/1003.
+3. Exercise partial supplier return, over-return rejection, idempotent retry, and Receiver queue/receipt behavior without creating persistent test movements.
+4. Verify no physical-return action posts supplier AP, Treasury, cash, journal or GL.
+5. Verify Cloudflare deployment for the current main revision and run automated tests against that exact revision.
+
+**Detailed checkpoint:** `doc/Draft/Reprots/Report676_BUYER_QUICK_MARKET_CUSTODY_MAIN_PRODUCTION_PATCH_20261109.md`
+
+**Previous checkpoint:** LVE-2026-11-09-675 — PR #11 implementation proposal.
