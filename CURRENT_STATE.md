@@ -1,3 +1,42 @@
+# CURRENT STATE UPDATE — LVE-2026-11-10-687
+
+**Recorded:** 2026-11-10 (Africa/Cairo)  
+**Workstream:** Warehouse Receiver — completed receiving operations now follow Returns completed-card UX
+
+## Last verified operational source event
+- Operational repository: `papamohammed77-glitch/erp-frontend` / `main`.
+- Final operational commit: `d3676c00d69369693b2c12cbf02cca8ed8c27a2b`.
+- Changed file only: `companies/company-1/warehouse/receiver.html`.
+- Final Receiver blob: `ce82dd75e5bf434531e01a3b74cbedb2badb1a7d`.
+- Reference-only `companies/company-1/warehouse/returns.html` was not changed; blob `16d02fff2d00759451879204abf218202898f9c0`.
+
+## Implemented
+- Receiver completed tab label now matches Returns: **مكتملة**.
+- Compact completed operations worklist matches Returns' green completed heading, search field, responsive grid cards and centered card hierarchy.
+- Each actual physical receiving operation is a distinct card with source document code/type, date, supplier, branch, receiving person, accepted quantity and one **عرض تفاصيل الاستلام** action.
+- Full-rejection operation remains in history and is labelled **شحنة مرفوضة** where sent quantity is positive and accepted quantity is zero.
+- Selecting a card opens a dedicated read-only detail view with source identity, totals, item lines, sent/accepted/difference, reasons and operation UUID.
+- No edit/reopen action was copied from Returns: physical receipt may already have posted stock and AP effects, and editing a posted event without a separately designed reversal process is unsafe.
+- Existing company and authorized-branch filters and actual receiving/receiving_details data source remain unchanged.
+- Completed-tab realtime reconciliation defers while a detail is open, uses quiet signature-based updates, and restores cached list before background refresh.
+
+## Verification
+- Inline JavaScript parse: PASS.
+- Completed card render assertions: 8/8 PASS.
+- Read-only details assertions: 4/4 PASS.
+- Static scope/sync/safety assertions: 10/10 PASS.
+- Total: **22/22 PASS**.
+- GitHub compare from `a0569470c2312fd633068748ca6ae6b353380d22` confirms only Receiver changed.
+- No SQL, RPC, Edge, RLS, schema or business data mutation; no receiving writer invoked.
+- Authenticated browser E2E: NOT RUN.
+- Cloudflare Production pointer / published Receiver byte parity: NOT VERIFIED.
+
+## Detailed report and handoff
+`doc/Draft/Reprots/Report687_RECEIVER_COMPLETED_OPERATIONS_RETURNS_STYLE_20261110.md`.  
+Next: verify Cloudflare points to `d3676c00d69369693b2c12cbf02cca8ed8c27a2b` and serves blob `ce82dd75e5bf434531e01a3b74cbedb2badb1a7d`, then run authenticated no-submit E2E for list/search/detail/back. Do not modify Returns.
+
+---
+
 # CURRENT STATE UPDATE — LVE-2026-11-10-686
 
 **Recorded:** 2026-11-10 (Africa/Cairo)  
