@@ -1,3 +1,36 @@
+# LVE-2026-11-09-667 — Buyer Quick-Market Invoice Modal Parity Implemented in Source
+
+**LAST VERIFIED EVENT:** 2026-11-09 (Africa/Cairo) — owner requested the Buyer → «فواتيري» → «شراء سوق سريع» invoice-entry modal to follow the PO supplier-invoice editor's interaction pattern while remaining a direct, non-PO market purchase. The current Buyer source, Parent invoice consumer, Core path, existing Edge v37 and Production Quick Market create/update RPC contracts were independently rechecked before and after the change.
+
+**SOURCE CHANGE — CONFIRMED:** Operational repo `papamohammed77-glitch/erp-frontend`, branch `main`. Pre-task HEAD `8745355ae9962bb26c9ebab1a9f51febdffccc1f`; pre-task Buyer blob `56b3ef8fed56f4ac788b4535c371aae16a8f901e`. Two surgical commits, both limited to `companies/company-1/purchasing/buyer.html`:
+- `e932e004980919b660cd44a82938e0f96e6c3c16` — align Quick Market modal/cart with PO invoice editor.
+- `e4065cd8eceee4f6287251c2a09609edf7504cb7` — make the modal supplier selection use a local `chosenSupplier` binding.
+Final operational HEAD `e4065cd8eceee4f6287251c2a09609edf7504cb7`; final Buyer blob `e8c519ac3e6e67ad82598c8d9cf2e9afbed3aa20`.
+
+**WHAT CHANGED:** Replaced only `quickPurchase(invoiceId)` and its Quick Market search/selection/cart methods. The modal now provides supplier autocomplete, branch/due date/supplier invoice no/notes, central item search and camera action, explicit catalogue selection, quantity and manually entered actual purchase price, editable quantity/price/discount/tax per line, line totals, invoice total, duplicate prevention and line removal. Existing Quick Market supplier invoice evidence, custody/credit settlement, ownership, handover/expense edit guards and API operations are retained. Manual price is still required; no `cost_price` is auto-filled.
+
+**BUSINESS CONTRACT PRESERVED:** Quick Market continues to call the existing `CREATE_QUICK_MARKET_INVOICE` / `UPDATE_QUICK_MARKET_INVOICE` operations and their separate atomic RPCs. No `purchase_order_id` is created or sent. Discount/tax percentages are sent on each item, and totals are calculated after discount and tax with line-level two-decimal rounding. The server contract keeps the document as `purchase_source='QUICK_MARKET'`, `receipt_status='NOT_RECEIVED'`, `settlement_status='UNSETTLED'`, `is_received=false`, and `received_date=NULL` while it remains a draft. A draft does not create stock, treasury, supplier-ledger or GL effects.
+
+**PARENT VISIBILITY — SOURCE CONTRACT CONFIRMED:** Current Parent `RW_PurchaseGold.invoices()` reads the shared `purchase_invoices` collection and its filtered Realtime consumer subscribes to the same table. There is no `purchase_source` filter that excludes Quick Market; the invoice therefore appears in Parent → دورة المشتريات → فواتير الشراء through the central invoice row. Parent source `main.html` was not edited. Parent currently renders absence of PO as «بدون PO»; a dedicated Quick Market source badge there is a separate visual enhancement, not a data-integration prerequisite.
+
+**CORE / BACKEND:** Core path independently confirmed at `companies/company-1/core.js`, blob `2d11b852862c523fc89e6a8b9c510462bb65cc4e`; not edited. Existing `save-purchase-order` Edge Function remains ACTIVE v37; no Edge deployment, RPC, schema, RLS, Grant, trigger or migration was changed. Current create/update Quick Market RPC definitions accept and validate discount/tax and use the existing company/user/permission/idempotency/custody checks.
+
+**VERIFICATION — PASS:** Final Buyer source fetched back from GitHub; full inline JS syntax compiled. Exact source comparison confirms unchanged `createPO()`, unchanged `createPurchaseInvoice()`, and unchanged content outside the two targeted method blocks. Controlled local harnesses passed: Arabic/Persian letter item search, result selection, selection surviving a simulated Realtime shared-cache clear, manual quantity/price, discount/tax updates and arithmetic (2 × 12.50 × 0.90 × 1.05 = 23.63), duplicate rejection, row removal, invalid-quantity rejection, supplier autocomplete, custody limit path, attachment upload/registration stub, operation ID forwarding, Quick Market API payload without PO ID, and invoices-list refresh. These were local harnesses with stubbed DOM/API/storage only, not authenticated browser E2E.
+
+**PRODUCTION DATA SAFETY:** Supabase checks were read-only. A read-only count after source changes still found one pre-existing Quick Market Draft marked not received. No invoice, attachment, custody, stock, supplier balance, cash-box, treasury, journal or GL business record was created/modified by this task.
+
+**UNVERIFIED / OPEN:** Cloudflare terminal Production build status and served Buyer byte parity are not proven. Authenticated Buyer browser E2E, physical camera scan, live attachment persistence and Parent visual verification of a newly created invoice were not run. Full Quick Market physical handover to warehouse/Receiver and stock posting were not implemented or closed by this modal task; they remain separate operational work.
+
+**REPORT:** `doc/Draft/Reprots/Report667_BUYER_QUICK_MARKET_MODAL_PO_PARITY_20261109.md`; report commit `a78c0e7faa97e758624539dd699348e29e5cac40`.
+
+**ROLLBACK:** revert `e4065cd8eceee4f6287251c2a09609edf7504cb7`, then `e932e004980919b660cd44a82938e0f96e6c3c16`. No database or business-data cleanup is required.
+
+**NEXT ACTION:** verify Cloudflare terminal deployment and served-file parity, then authenticate as a Buyer and test the real modal plus Parent invoice list without creating Production QA business data. Use an approved isolated environment for a full draft lifecycle test. Overall Buyer receiving, vehicle goods custody, supplier-return acceptance and end-to-end Procure-to-Pay remain OPEN.
+
+**CHECKPOINT STATUS:** SOURCE CHANGE COMMITTED · LOCAL INTERACTION / RPC CONTRACT TESTS PASS · PARENT SHARED-TABLE VISIBILITY CONFIRMED · NO PRODUCTION BUSINESS-DATA WRITES · CLOUDFLARE / AUTHENTICATED BROWSER E2E UNVERIFIED · READY WITH LIMITATIONS.
+
+---
+
 # LVE-2026-11-09-666 — Buyer Quick-Market Item Selection Race Fixed
 
 **LAST VERIFIED EVENT:** 2026-11-09 (Africa/Cairo) — investigated why a visible product search result in Buyer → فواتيري → شراء سوق سريع could fail to enter the cart and prevent the draft invoice from continuing.
