@@ -1,3 +1,43 @@
+# CURRENT STATE UPDATE — LVE-2026-11-10-688
+
+**Recorded:** 2026-11-10 (Africa/Cairo)  
+**Workstream:** Warehouse Receiver — return to Pending tab must render immediately
+
+## Root cause verified
+When returning from Completed to Pending, the previous `switchTab('pending')` only called `loadPurchaseOrders()`. Since `queueLoaded=true`, the loader did not show an initial Skeleton. If the server data matched `queueSignature`, it intentionally skipped `renderList()`. But the DOM still displayed the Completed tab. This left the Completed view on screen while the tab state had changed, appearing as an unresponsive Pending tab.
+
+## Last verified operational source event
+- Operational repository: `papamohammed77-glitch/erp-frontend` / `main`.
+- Commit: `97d63a91668406b863f05db05ddeb1222b5f2dfe`.
+- File changed only: `companies/company-1/warehouse/receiver.html`.
+- Final Receiver blob: `47ca645aa82c14cd143f5b485afddee31f1cb87b`.
+- Returns reference remains unchanged: `16d02fff2d00759451879204abf218202898f9c0`.
+
+## Fix applied
+- When Pending queue is already cached, switching to Pending now immediately calls `renderList()` before any network request.
+- Existing search and PO / Quick Market source filter are preserved by the existing renderer.
+- One immediate quiet background refresh is scheduled after display.
+- First-ever load still uses the original loader / Skeleton path.
+- Existing Realtime deferral while an order or receipt submission is active remains intact.
+- Completed view, read-only operation details, receipt submission and idempotency are unchanged.
+
+## Verification
+- Inline JavaScript parse: PASS.
+- Simulated Completed → Pending switch with cached unchanged queue: cached list rendered synchronously, PASS.
+- Background quiet reconciliation scheduled, PASS.
+- Tab state reset, active-history detail state cleared, pending refresh guard and unchanged-signature optimization retained: PASS.
+- Returns blob unchanged.
+- GitHub compare shows only Receiver changed.
+- No production transaction or business-data write performed.
+- Cloudflare Production currently has not been verified for this new commit; last available dashboard snapshot showed older commit `25eb518d4459bfafcb76d672d862fbc4b981466c`.
+- Authenticated Receiver browser E2E: NOT RUN.
+
+## Detailed report and handoff
+`doc/Draft/Reprots/Report688_RECEIVER_PENDING_TAB_RETURN_RENDER_FIX_20261110.md`.  
+Next: verify Cloudflare Production/main commit `97d63a91668406b863f05db05ddeb1222b5f2dfe`, confirm the published asset matches blob `47ca645aa82c14cd143f5b485afddee31f1cb87b`, then test repeated tab switching in an authenticated Receiver session. Do not submit a real receipt for this UI test.
+
+---
+
 # CURRENT STATE UPDATE — LVE-2026-11-10-687
 
 **Recorded:** 2026-11-10 (Africa/Cairo)  
