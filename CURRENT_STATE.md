@@ -1,3 +1,70 @@
+# CURRENT STATE UPDATE — LVE-2026-11-10-684
+
+**Recorded:** 2026-11-10 (Africa/Cairo)  
+**Workstream:** Warehouse Receiver — PO and Quick Market physical receiving
+
+## Last verified operational source event
+- Operational repository: `papamohammed77-glitch/erp-frontend` / `main`.
+- Latest operational HEAD: `8a703e1716b4754f005a9ef9827ee8769fc74ccc`.
+- Receiver file: `companies/company-1/warehouse/receiver.html`, final blob `ac8f79424d272eff5b3e4b9fcef839d1c9ee9275` (638 lines / 51,414 chars).
+- Receiver Edge: `supabase/functions/receive-purchase/index.ts`, blob `25b002ea4bcb76f0d7a42bf8410d275f8523b59e`; deployed Supabase version 17 ACTIVE, verify_jwt=true; deployed source byte-equal to GitHub.
+- Picker reference was not modified.
+- Parent `main.html` and shared `core.js` were not modified by this workstream.
+
+## Production migrations applied
+1. `20261110143000_receiver_per_delivery_quantities_and_legacy_rpc_acl.sql` — per-delivery sent/accepted quantities, fingerprint contract and legacy QMP writer ACL revoke.
+2. `20261110153000_receiver_record_zero_accepted_physical_delivery.sql` — records fully rejected deliveries without PO/invoice status or stock effects.
+3. `20261110160000_qmp_receipt_retry_after_full_acceptance.sql` — QMP duplicate operation lookup before final invoice state gate, after actor/branch authorization.
+
+Exact source definitions captured before modification in `Report683_RECEIVER_LIVE_RPC_SOURCE_SNAPSHOT_20261110.md`.
+
+## Implemented Receiver contract/UI
+- Separate PO and Quick Market source filters/counters and a combined search across document, supplier and item metadata.
+- Verified-user branch scope on PO list and receipt history; fail-closed when a non-owner has no proven branch scope. Quick Market queue uses its existing authenticated RPC branch guard.
+- Item metadata/photos/barcode/description loaded from same-company item master. HTTPS-only images, fallback and preview.
+- Per-shipment sent quantity and warehouse-accepted quantity; accepted <= sent, sent <= remaining order/invoice/buyer custody, four-decimal validation; reason mandatory for discrepancies.
+- Fully rejected shipment can be recorded with reason and accepted=0; no stock or accounting/custody effect.
+- Unified receipt history reads actual receiving headers/details for both sources.
+- Operation UUID persisted locally across uncertain retries; changed payload blocked until uncertainty is resolved; fresh UUID after confirmed completion.
+- Dynamic values escaped; data-dependent inline handlers removed; Realtime uses published parent tables only.
+- Session restoration checks active receiving role and populates user identity.
+
+## Production posting / permission invariants re-verified
+- PO accepted quantity only: PurchaseIn + PO detail/status + existing inventory debit / supplier payable credit journal + supplier-ledger credit.
+- Quick Market accepted quantity only: PurchaseIn + accepted Buyer goods custody reduction / invoice receipt progress. No supplier AP/ledger, Treasury/cash, journal or GL.
+- Zero-accepted full-rejection operation records receiving/audit details only; PO/invoice status is unchanged; no inventory, AP, custody, cash, Treasury, journal or GL posting.
+- Modern PO and Quick Market receipt writers are service_role-only.
+- Legacy `receive_quick_market_invoice_atomic(...)` anon=false / authenticated=false / service_role=true after ACL revoke. It remains present, not dropped.
+- QMP same-operation duplicate check now precedes final invoice receipt state gate, while authenticated actor / warehouse role / branch authorization remains first.
+- Existing `save-purchase-order` `RECEIVE_PO` caller retains backward compatibility because omitted sent quantity defaults to accepted quantity.
+
+## Verification completed
+- Receiver inline JavaScript syntax: PASS.
+- Synthetic in-memory behavior harness: **23/23 PASS**.
+- Branch mapping / missing-scope fail-closed / owner scope: PASS.
+- Realtime parent table contract: PASS.
+- Sent/accepted/reason validations: PASS.
+- Retry UUID retention / unchanged retry / changed-payload block / successful clear: PASS.
+- Fully rejected UI flow and explicit no-stock confirmation: PASS.
+- Queue RPC output fields matched Receiver consumer: PASS.
+- Static production function effect and idempotency-order assertions: PASS.
+- Production ACL assertions: PASS.
+- Production business counts remain unchanged: receiving 0; receiving_details 0; inventory_log 76; supplier_ledger 2; journal_entries 20; buyer_goods_custody_events 0.
+- No real operational receipt/write was used for testing.
+
+## Release gates still open
+- Authenticated Receiver browser E2E: NOT RUN; available ERP browser tab is not a Receiver session and browser access is read-only.
+- Cloudflare Production UI artifact: NOT VERIFIED for final Receiver blob. The only available dashboard snapshot predates the final Receiver commits; direct published asset retrieval was not available. Automatic deployments enabled is not proof of final artifact.
+- GitHub combined status for the final operational HEAD returned no status entries; no CI pass is claimed.
+- Final status: `SOURCE + PRODUCTION RPC/ACL + EDGE APPLIED — SYNTHETIC LOGIC TESTS PASS — AUTHENTICATED E2E / FINAL CLOUDFLARE UI NOT VERIFIED`.
+
+## Detailed report and next handoff
+`doc/Draft/Reprots/Report684_RECEIVER_GOLD_IMPLEMENTATION_20261110.md`.
+
+Resume by verifying Cloudflare Production points to HEAD `8a703e1716b4754f005a9ef9827ee8769fc74ccc` and published Receiver bytes match `ac8f79424d272eff5b3e4b9fcef839d1c9ee9275`. Then run authenticated Receiver browser E2E. Do not reapply migrations or redeploy Edge v17. Do not create production test receipts without a provably reversible approved document/cleanup path.
+
+---
+
 # CURRENT STATE UPDATE — LVE-2026-11-10-682
 
 **Recorded:** 2026-11-10 (Africa/Cairo)  
