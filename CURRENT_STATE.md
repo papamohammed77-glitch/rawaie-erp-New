@@ -1,3 +1,35 @@
+# CURRENT STATE UPDATE — LVE-2026-11-10-685
+
+**Recorded:** 2026-11-10 (Africa/Cairo)  
+**Workstream:** Warehouse Receiver — dedicated order opening workspace
+
+## Last verified operational source event
+- Operational repository: `papamohammed77-glitch/erp-frontend` / `main`.
+- Final operational HEAD for this task: `b8e4a6547942ee0686af938d1f0f72d74d3e4de9`.
+- File changed: `companies/company-1/warehouse/receiver.html` only.
+- Final Receiver blob: `2851324e9a8188399b9d732c59c1130acd3280ba`.
+- The former accordion expansion was replaced with a dedicated document workspace, in the same navigation pattern as Returns: open document, show standalone detail screen, return to filtered list.
+- The workspace shows PO / Quick Market source, document code, supplier, date, branch, supplier invoice reference for Quick Market, summary metrics and enriched product details.
+- Existing sent/accepted quantity capture, mismatch reasons, document/custody limits, idempotency UUID/fingerprint, and `receive-purchase` submission path were preserved.
+- `companies/company-1/warehouse/returns.html` is reference-only and unchanged; blob remains `16d02fff2d00759451879204abf218202898f9c0`.
+- No SQL, RPC, Edge, RLS, core, parent, Picker or business data mutation in this UX-only change.
+
+## Verification
+- Inline JavaScript syntax: PASS.
+- Structural/regression assertions: 14/14 PASS.
+- GitHub compare from `8a703e1716b4754f005a9ef9827ee8769fc74ccc` to final source: exactly one changed path, Receiver only.
+- Authenticated browser E2E: NOT RUN.
+- Cloudflare published asset / deployment commit: NOT VERIFIED.
+
+## Release caution
+The source history includes intermediate UI commit `f7b194aa4778697390a6d7a9cff3dd9cae13db15`, immediately followed by corrective final commit `b8e4a6547942ee0686af938d1f0f72d74d3e4de9`. The final fetched source parses successfully. Because automated deployment may have observed the intermediate commit, verify Cloudflare Production points to the final corrective commit and compare the served asset with blob `2851324e9a8188399b9d732c59c1130acd3280ba` before declaring the UI live.
+
+## Detailed report and handoff
+`doc/Draft/Reprots/Report685_RECEIVER_ORDER_OPEN_WORKSPACE_MATCH_RETURNS_20261110.md`.  
+Next: verify final Cloudflare artifact, then run authenticated Receiver navigation E2E without submitting a real receipt. Do not modify Returns.
+
+---
+
 # CURRENT STATE UPDATE — LVE-2026-11-10-684
 
 **Recorded:** 2026-11-10 (Africa/Cairo)  
