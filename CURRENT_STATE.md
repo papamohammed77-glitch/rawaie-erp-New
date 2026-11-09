@@ -7083,3 +7083,13 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - **OPEN CRITICAL BUYER GAP:** SupplierReturn partial acceptance is not implemented. Existing complete core posts full voucher totals to supplier ledger, inventory, tax and journal; trigger rejects partial `received_qty`; Edge v4 has no accepted-quantity/evidence/exception-note payload. Do not patch only the trigger or custody event. A future atomic change must post only accepted quantities, keep rejected quantities on Buyer custody, require a separate warehouse-return document, capture supplier proof and mandatory Buyer-representation exception, and enforce role/branch authorization server-side.
 - The current SupplierReturn send/complete Edge/RPC role checks also need explicit hardening; UI action visibility is not server-side authorization. This was not modified in LVE670.
 - Staging was not used because it remains behind production schema/security parity. Existing Supabase Advisor findings are broader pre-existing items and were not mass-modified; no unrelated RLS or function grants were changed.
+
+# LVE-2026-11-09-671 — SupplierReturn Send/Complete Server Authorization
+
+**LAST VERIFIED EVENT:** 2026-11-09 — Applied `20261109155413_buyer_supplier_return_send_complete_role_scope_guards_20261109` to SMART ERP Production.
+
+- Added a SupplierReturn-only role gate to `send_stock_voucher_atomic`, matching the existing SupplierReturn contract gate: owner wildcard, active warehouse role `أذونات`, or `مدير عام` / `مدير مخازن` / `مشرف مخازن`. Existing send branch-scope control was retained.
+- Added the equivalent role gate to `complete_manual_stock_voucher_atomic` and a source-branch/allowed-branch validation before the unchanged completion core is invoked. Non-SupplierReturn voucher completion continues through the existing core without this added gate.
+- Both wrappers remain service-role-only; verified `anon EXECUTE=false` and `authenticated EXECUTE=false`. Edge `send-stock-voucher` v20 and `complete-stock-voucher` v4 remain the authenticated entry points. No Edge function source/version was changed.
+- Read-only role check: `warehouse.supervisor@rawaea.com` (`مشرف مخازن`) passes; `buyer1@rawaea.com` (`مسئول مشتريات`) and `accountant@rawaea.com` (`محاسب`) fail the SupplierReturn management gate, consistent with existing contract access rules. No voucher status, stock, supplier balance, tax, journal or custody row was changed.
+- Report670 updated with this follow-up. Open gaps remain: SupplierReturn partial acceptance and the documented Buyer-as-supplier-representative exception; do not change only the custody trigger while the posting core still accounts for the entire voucher.
