@@ -1,3 +1,32 @@
+# LVE-2026-11-09-668 — Buyer Quick-Market Attachment Storage RLS Repair
+
+**LAST VERIFIED EVENT:** 2026-11-09 (Africa/Cairo) — investigated the reported Buyer Quick Market invoice upload failure. SMART ERP logs confirmed that the authenticated Storage upload failed with SQLSTATE 42501 because `storage.objects` had no Buyer-owner INSERT/UPDATE policy for the `buyer-goods` invoice path. The subsequent Edge attachment registration called `storage.info()` and received `NoSuchKey` because no object had been created. This establishes the upload RLS failure as root cause and `Object not found` as its downstream symptom.
+
+**PRODUCTION REPAIR — APPLIED AND READ BACK:** In `fiilmooggumokxanwiyx`, created/replaced three policies on `storage.objects`: `buyer_goods_docs_insert_owner`, `buyer_goods_docs_select_owner`, `buyer_goods_docs_update_owner`. The owner predicates require authenticated active Buyer, effective `purchases` permission, exact company/user/invoice path, invoice ownership via `purchase_invoices.purchaser_user_id`, and `purchase_source='QUICK_MARKET'`. INSERT/UPDATE are additionally restricted to Draft, not received, no received date. SELECT remains available to the owner after the invoice progresses. Existing `buyer_goods_docs_select_finance` remains unchanged. Bucket `employee-documents` remains private. No DELETE policy, public access, new Edge function, RPC, table, schema, or financial/inventory change was added.
+
+**SECOND BUYER STORAGE FLOW COVERED:** Current Buyer source also uploads Supplier→Buyer handover evidence through `recordQuickMarketHandover()`. The INSERT/SELECT policy accepts only `supplier-invoice-*` and `handover-<timestamp>_<safe-name>` file families. UPDATE remains restricted to supplier invoice files only. Buyer now prefixes the handover evidence filename with `handover-`, preserving `upsert=false` and preventing handover evidence replacement.
+
+**BUYER SOURCE FIX — CONFIRMED:** Operational repository `papamohammed77-glitch/erp-frontend`, branch `main`. Source commits:
+- `e76592865ef3e11a6fbbe6960655c5ba8e2b2eaf` — upload errors now stop attachment registration; keep the modal open and retryable; validate returned attachment document/path.
+- `539768dcab4f3a47b4512454155fcf1d1c94a7b4` — namespace the handover evidence path.
+Final Buyer blob `c6baf1cdedd4e6f5d219a3c95b6c9450a54dd2d0`; final operational HEAD at verification `0fe255e3d9dae44332ee1863c43d9c1b0ea0ff79`.
+
+**VERIFICATION:** Production logs show upload RLS 42501 then same-path `NoSuchKey`. Re-read Production policies; the private bucket remains private. Simulated authenticated owner/path predicates passed for the valid owner and denied wrong user/company/invoice/folder and wrong filenames. Supplier invoice file is permitted INSERT/SELECT/UPDATE for owner Draft; handover evidence INSERT/SELECT only; other filename denied. Buyer inline JavaScript parsed. Controlled actual-method harness injected upload failure, proved no attachment registration occurred, retained modal retry, reused the same operation_id and storage path, then simulated successful retry and registration with matching invoice/path. No Production test upload/object/attachment/business row was created.
+
+**CURRENT FAILED INVOICE — RECOVERABLE:** Existing invoice `PINV-1003` remains a QUICK_MARKET Draft, `is_received=false`, `received_date=NULL`, with 0 attachment rows, 0 handover events and 0 linked custody expenses. Do not create a duplicate invoice. Recovery is to open `PINV-1003` in Buyer → «فواتيري», edit the same Draft, attach the supplier invoice file and save after the updated Buyer asset is served.
+
+**SOURCE RECORD:** `supabase/migrations/20261109130000_buyer_goods_supplier_invoice_owner_storage_rls_20261109.sql`, final blob `88374d3d25f328ad9f5763b04908d1d280599fd1`. This is the exact SQL source record for policies applied directly to Production using the authorized SQL path; no Supabase migration-history entry was created. Do not apply it again with `apply_migration`.
+
+**REPORT:** `doc/Draft/Reprots/Report668_BUYER_QUICK_MARKET_ATTACHMENT_STORAGE_RLS_REPAIR_20261109.md`; creation commit `291e33df795a22da24ec5ad97ecdf6d4eeeaf723`.
+
+**UNVERIFIED / OPEN:** Cloudflare terminal Production Success and served Buyer byte parity have not been confirmed. Authenticated live browser upload/reopen/read and Finance-vs-other-Buyer denial cases have not been executed. The remaining acceptance step is to verify deployment, then recover existing `PINV-1003` rather than creating a new invoice. No stock, cash-box, treasury, supplier ledger, journal, GL or custody movement was performed by this repair.
+
+**ROLLBACK:** Remove only the three owner policies (INSERT, owner SELECT, UPDATE); leave the existing Finance SELECT policy untouched. Revert Buyer commits in reverse order `539768d`, then `e765928` if a source rollback is required. Do not delete the existing invoice.
+
+**CHECKPOINT STATUS:** STORAGE RLS ROOT CAUSE FIXED IN PRODUCTION · OWNER POLICIES VERIFIED · BUYER RETRY / REGISTRATION FLOW FIXED IN SOURCE · CONTROLLED TEST PASS · EXISTING DRAFT RECOVERABLE · CLOUDFLARE / AUTHENTICATED BROWSER E2E UNVERIFIED · READY WITH LIMITATIONS.
+
+---
+
 # LVE-2026-11-09-667 — Buyer Quick-Market Invoice Modal Parity Implemented in Source
 
 **LAST VERIFIED EVENT:** 2026-11-09 (Africa/Cairo) — owner requested the Buyer → «فواتيري» → «شراء سوق سريع» invoice-entry modal to follow the PO supplier-invoice editor's interaction pattern while remaining a direct, non-PO market purchase. The current Buyer source, Parent invoice consumer, Core path, existing Edge v37 and Production Quick Market create/update RPC contracts were independently rechecked before and after the change.
