@@ -203,3 +203,68 @@ Master CTO Governance §77.2 requires the exact ChangeSet and production impact 
 
 **Detailed report:** `doc/Draft/Reprots/Report677_BUYER_PURCHASING_EDGE_BOOT_RECOVERY_20261109.md`  
 **Previous checkpoint:** LVE-2026-11-09-676 — Buyer Quick Market custody and supplier-return main patch.
+
+
+---
+
+# CURRENT STATE UPDATE — LVE-2026-11-09-678
+**Recorded:** 2026-11-09  
+**Workstream:** Buyer goods-custody supplier return action + Parent supplier quotation register
+
+## Last verified event
+A surgical UI-only patch was committed to operational erp-frontend/main:
+- Change commit: df8db3a37e4eab590d9583d048d3d7b7b6df3ec7.
+- Current operational branch head at verification: 0c949128930eeea57748f8b4303077173cbe0894 (one subsequent forensic-extract commit; the UI patch remains its direct ancestor and target source blobs remain unchanged).
+- Buyer source: companies/company-1/purchasing/buyer.html, blob 98e23e2b2eeb0dd23d2cb7e0d4762acdcdebf8a4.
+- Parent source: companies/company-1/main.html, blob be58fb0e54a8e4c09ce081b15ebf5420e072bdfd.
+- No changes to core.js, save-purchase-order Edge source, SQL functions, migrations, policies or Production data.
+
+## Buyer change
+renderVehicleBalance() now presents a per-invoice supplier-return action only when all conditions are met:
+1. Balance ownership class is SUPPLIER_OWNED and source document is PurchaseInvoice.
+2. Source id is a valid UUID and matches an invoice loaded through the existing Buyer data API.
+3. Invoice source is QUICK_MARKET, status is Draft or PartiallyPaid, and purchaser_user_id equals the logged-in Buyer.
+4. Custody owner equals the logged-in Buyer and balance_qty > 0.0001.
+
+If invoice eligibility cannot be re-read, the action is hidden (fail-closed). The button calls the existing recordQuickMarketSupplierReturn(invoiceId) handler; that original handler continues to check live handover progress, quantity bounds, evidence validation/upload, idempotent operation tracking and uncertain-result verification. Successful completion refreshes the visible goods-custody tab. Existing invoice-detail action remains.
+
+The action intentionally excludes COMPANY_OWNED_SUPPLIER_RETURN / StockVoucher goods. That is a distinct company-owned return flow and was not merged into supplier-owned Quick Market return logic.
+
+## Parent supplier quotation register change
+RW_PurchaseGold.quotations(host) continues to use the existing tenant-scoped purchase_quotations source shared with Buyer. The Parent tab now shows supplier name/code/contact, RFQ, quotation date, validity, recorded currency/value, creator, status, expiry marker, summary counts, and query/status/date filters. Values are displayed per recorded currency; currencies are not added together.
+
+A quotation detail dialog reads the quote within company scope, loads quotation lines under the existing RLS policy, and displays items, quantities, units, unit prices, discounts, tax, line totals, subtotal/discount/tax/total, currency, RFQ, supplier, created/accepted metadata, terms/notes and status history. Existing accept and convert-to-PO actions remain. No change was made to the Parent sales/customer quotation module.
+
+## Verification completed
+- Entire Buyer inline JavaScript block parsed successfully (241,101 characters).
+- Entire Parent inline JavaScript block parsed successfully (1,887,122 characters).
+- 18 isolated behavioral assertions passed against actual extracted UI functions using read-only fixtures:
+  - Buyer (6): eligible invoice action appears once; correct invoice id; Posted invoice excluded; StockVoucher/company-owned return excluded; click routes to existing handler; eligibility read failure hides action.
+  - Parent list (6): supplier name/code, RFQ, expiry indicator, per-record currency, existing Accept/Convert actions, and search/status/date filtering.
+  - Parent detail (6): item/quantity, unit price/discount, tax/line total, status history, supplier/RFQ, and explicit non-posting business disclaimer.
+- Production table counts re-read after source changes: purchase_quotations=0; purchase_quotation_details=0; accepted supplier-return events=0; all buyer_goods_custody_events=0; POs=2; purchase invoices=5.
+- save-purchase-order remains version 41 ACTIVE, verify_jwt=true. No Edge deployment was performed.
+- RLS for quotation headers, quotation details and status history was inspected and is company-scoped.
+- Existing buyer-tailwind-build.yml is configured to rebuild Buyer CSS after a push changing buyer.html. However, the generated CSS blob remains c09c5fbd0268bb295d931d3329016861c837f7fa, identical to the pre-change blob. Some newly introduced utility selectors are absent. Tailwind build completion is NOT VERIFIED.
+
+## Open verification gates — do not mark fully released
+- GitHub Actions checks for commit df8db3a were not exposed by the available run-list connector; combined commit status returned no status entries. The Parent browser E2E workflow is push-triggered for main.html, but its run result could not be independently read.
+- The connected Browser surface was read-only. No authenticated Buyer session was available, so interactive Buyer E2E (evidence upload, successful partial supplier return, replay/idempotency, refresh, and Parent quote navigation) was NOT RUN.
+- Cloudflare Pages has automatic deployments enabled. The only available dashboard snapshot was captured before this commit and showed Production at ca34cd7; it is stale and does not verify the new build. Production deployment of df8db3a is NOT VERIFIED.
+- No production write tests were attempted. No artificial quotation, invoice, receipt, return event, stock movement, supplier/AP movement, treasury movement or journal/GL record was created.
+
+## Production and accounting safety
+- Accepted Quick Market supplier return continues to reduce only the Buyer goods custody ledger balance through the existing approved handler/atomic operation.
+- This patch creates no new stock receipt/return, supplier balance adjustment, cash movement, payable posting, journal or GL effect.
+- No database DDL, SQL write, Edge code change or deployment was made.
+- Do not test an accepted return in Production as a fixture. Use a reversible isolated environment or an explicitly approved real business transaction only.
+
+## Next actions
+1. Verify buyer-tailwind-build.yml and the generated CSS commit; confirm the new Buyer panel selectors exist in buyer.tailwind.css.
+2. Verify Cloudflare Pages Production or the intended Preview deployment points to a commit containing df8db3a and serves both updated files.
+3. Run authenticated browser E2E for Buyer custody and Parent supplier quotations, using a session with the appropriate permissions; keep mutation tests isolated and reversible and assert that no stock/finance side effects occur.
+4. Re-read Production counts after those checks; do not create test business movements in Production.
+
+**Operational change commit:** df8db3a37e4eab590d9583d048d3d7b7b6df3ec7  
+**Detailed report:** doc/Draft/Reprots/Report678_BUYER_CUSTODY_RETURN_AND_PARENT_SUPPLIER_QUOTATIONS_20261109.md  
+**Previous checkpoint:** LVE-2026-11-09-677 — Buyer purchasing Edge startup recovery.
