@@ -1,3 +1,21 @@
+# LVE-2026-11-09-669 — Buyer Cash Custody & Goods Custody Integration Forensic Review
+
+**LAST VERIFIED EVENT:** 2026-11-09 (Africa/Cairo) — re-read operational main HEAD `0fe255e3d9dae44332ee1863c43d9c1b0ea0ff79`, Buyer cash/goods tab source, warehouse voucher UI and SMART ERP Production contracts. Read-only Production snapshot confirms the Buyer has EGP 5,000 actually acknowledged, two Quick Market invoices charged to `EMPLOYEE_CUSTODY` (`PINV-1002` EGP 1,000 and `PINV-1003` EGP 430), EGP 1,430 open reservations, no custody expenses, and no Buyer goods custody events or assigned stock vouchers. No business records were changed.
+
+**CASH CUSTODY ROOT CAUSE:** Buyer `renderCustody()` displays QMP reservations, but `submitCustodyExpense()` and `buyer_custody_submit_expense_atomic` require a linked PO and completed PO Receiving. The current `buyer_custody_review_expense_atomic` posts Supplier AP 211 / Employee Custody 127, creates a supplier-payment record and supplier-ledger debit. This PO-only contract cannot safely settle a QMP `EMPLOYEE_CUSTODY` cash purchase; reuse would double-settle the supplier. The QMP no-PO path also lacks invoice-ID Receiving: live `receive-purchase` v14 accepts only `po_code`. Required cash treatment is after invoice-linked warehouse acceptance and Finance review: Dr Inventory 124 / Cr Employee Custody 127 once, with no Supplier AP, supplier ledger, supplier-payment row or second Treasury movement. Preserve PO and OPERATIONAL-expense branches.
+
+**GOODS CUSTODY ROOT CAUSE:** `buyer_goods_custody_get_balances_atomic` correctly sums all append-only event deltas and does not filter out warehouse or market movements; vehicle is optional. Direct Supplier→Buyer QMP handover already records positive `SUPPLIER_TO_BUYER_QUICK_MARKET` events only after explicit actual-quantity confirmation and evidence. Warehouse→Buyer has no completed writer: `enforce_stock_voucher_custodian()` clears `custodian_user_id` except for DirectSale/DirectReturn; warehouse SupplierReturn UI has no Buyer recipient; stock send/complete wrappers do not append Buyer custody events; event `WAREHOUSE_TO_BUYER_SUPPLIER_RETURN` has no live writer. Do not overload DirectSale/DirectReturn/Transfer. A dedicated Buyer-custody stock document must reduce source stock and append positive Buyer event atomically; accepted warehouse/supplier outflows must append negative events only for actually accepted quantities.
+
+**PROPOSED SCOPE:** see Report669 for cash no-PO submission/review, invoice-linked Receiving, dedicated Buyer warehouse issue/acceptance lifecycle, focused Buyer UI/Realtime separation, existing Edge route extensions, acceptance and rollback tests. No Parent/Core redesign is indicated.
+
+**CHANGE GATE:** This pass performed SELECT-only Production inspection. No SQL function, trigger, schema, RLS, Edge Function, Buyer source or warehouse source was changed. Because the repair changes financial/stock posting contracts, explicit owner approval of the full scope is required under the permanent operational constitution §6.2 before preparing/running the final executable ChangeSet.
+
+**REPORT:** `doc/Draft/Reprots/Report669_BUYER_CASH_AND_GOODS_CUSTODY_INTEGRATION_FORENSIC_20261109.md` (creation commit recorded in Report669's Git history).
+
+**CHECKPOINT STATUS:** FORENSIC REVIEW COMPLETE · ROOT CAUSES CONFIRMED · NO CODE/SCHEMA/BUSINESS DATA CHANGED · WAITING FOR EXPLICIT CHANGESET APPROVAL.
+
+---
+
 # LVE-2026-11-09-668 — Buyer Quick-Market Attachment Storage RLS Repair
 
 **LAST VERIFIED EVENT:** 2026-11-09 (Africa/Cairo) — investigated the reported Buyer Quick Market invoice upload failure. SMART ERP logs confirmed that the authenticated Storage upload failed with SQLSTATE 42501 because `storage.objects` had no Buyer-owner INSERT/UPDATE policy for the `buyer-goods` invoice path. The subsequent Edge attachment registration called `storage.info()` and received `NoSuchKey` because no object had been created. This establishes the upload RLS failure as root cause and `Object not found` as its downstream symptom.
