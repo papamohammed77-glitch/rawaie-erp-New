@@ -1,3 +1,44 @@
+# CURRENT STATE UPDATE — LVE-2026-11-10-686
+
+**Recorded:** 2026-11-10 (Africa/Cairo)  
+**Workstream:** Warehouse Receiver — Realtime refresh must not interrupt active order / receipt entry
+
+## Root cause verified
+Receiver subscribed to purchase_orders, purchase_invoices, buyer_goods_custody_events and items. Its previous Realtime `onEvent` callback called `loadPurchaseOrders()` independently for every table event, while `onReconcile` called it on each periodic reconciliation. Core's debounce is per table, not across Receiver's entire subscription. The Receiver loader always showed a Skeleton and rebuilt the list after every successful fetch, without protecting the active standalone document view. Bursts of events could therefore wipe the document view and entered quantities. Core's reconciliation interval is 30 seconds; event bursts can happen more frequently.
+
+## Last verified operational source event
+- Operational repository: `papamohammed77-glitch/erp-frontend` / `main`.
+- Commit: `a0569470c2312fd633068748ca6ae6b353380d22`.
+- Changed file only: `companies/company-1/warehouse/receiver.html`.
+- Final Receiver blob: `9b85902b2c11b21769b4b4a57927f66fbca1a082`.
+- Returns remains reference-only and unchanged, blob `16d02fff2d00759451879204abf218202898f9c0`.
+
+## Fix applied
+- Realtime and reconcile callbacks now use a single 1.2-second Receiver-wide refresh scheduler.
+- Queue refresh is deferred while a document is open or a receipt is being submitted. The current work area and field values are not replaced.
+- Opening an order invalidates stale list requests before those requests can render.
+- Background refresh does not show Skeleton.
+- Stable queue signature suppresses DOM rebuild when fetched data is unchanged.
+- A failed background refresh preserves the currently visible screen.
+- Returning to list first shows cached data and requests a single quiet refresh.
+- Submission is single-flight; success clears the active document state before the regular queue reload.
+- Shared `core.js`, main/Parent, Picker, Returns, SQL, RPCs, Edge Functions, RLS and schema were not changed.
+
+## Verification
+- Inline JavaScript parse: PASS.
+- Static regression / scope assertions: 13/13 PASS.
+- Scheduler/data-signature behavior harness: 7/7 PASS.
+- GitHub compare from the Receiver baseline shows Receiver as the only changed operational path.
+- No production receipt writer was called and no business/inventory/finance data mutation occurred.
+- Authenticated browser E2E: NOT RUN.
+- Cloudflare Production asset / deployment commit: NOT VERIFIED.
+
+## Detailed report and handoff
+`doc/Draft/Reprots/Report686_RECEIVER_REALTIME_REFRESH_ACTIVE_DOCUMENT_GUARD_20261110.md`.  
+Next: verify Cloudflare Production points to `a0569470c2312fd633068748ca6ae6b353380d22` and serves Receiver blob `9b85902b2c11b21769b4b4a57927f66fbca1a082`; then run authenticated read-only / no-submit E2E while editing receipt quantities. Do not change Returns or perform an unapproved live receipt.
+
+---
+
 # CURRENT STATE UPDATE — LVE-2026-11-10-685
 
 **Recorded:** 2026-11-10 (Africa/Cairo)  
