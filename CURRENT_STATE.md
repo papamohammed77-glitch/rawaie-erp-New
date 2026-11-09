@@ -1,10 +1,26 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last Verified Event:** LVE-2026-11-09-679  
+**Last Verified Event:** LVE-2026-11-09-680  
 **Last verified:** 2026-11-09 (Africa/Cairo)  
-**Status:** LVE-2026-11-09-679 daily CTO review completed. Current source, Production contracts and data were rechecked read-only; no operational write or deployment was performed. Migration source parity, Tailwind build, Cloudflare artifact and authenticated E2E remain open.
+**Status:** Purchasing Supervisor procurement-cycle UI expanded and committed to operational main in `companies/company-1/purchasing/supervisor.html` (commit `4240285ab136c0e36451b8c7623b989257d183e9`, blob `9ed398c3a14eefa34cb7857bbe3c82d6e71fda96`). Final source syntax and synthetic behavioural tests passed. No Production database/business writes or manual deployment occurred. Cloudflare Production artifact and authenticated supervisor browser E2E remain UNVERIFIED / NOT RUN.
 
-## Current verified production baseline
+
+## LVE-2026-11-09-680 — Purchasing Supervisor procurement-cycle expansion
+
+- Operational repo: `papamohammed77-glitch/erp-frontend`, `main`; latest verified commit for this workstream: `4240285ab136c0e36451b8c7623b989257d183e9`.
+- Sole changed operational path: `companies/company-1/purchasing/supervisor.html`; final blob `9ed398c3a14eefa34cb7857bbe3c82d6e71fda96`.
+- Expanded the original three tabs to ten parent-equivalent procurement-cycle tabs plus the Suppliers tab: Dashboard, Requests, RFQs, Supplier Quotations, Orders, Invoices, Returns, Payments, Reports, Settings, Suppliers.
+- Header reads use explicit company scope and paginated 200-row pages; invoices include all purchasers in the company, not only the session user. Child detail reads remain read-only and parent-linked.
+- Production RLS constraints are preserved: supplier directory reads use the existing supplier permission; branch enrichment is fail-soft when branches are denied; the UI does not read the broad users directory.
+- Purchase Payments and Purchase Returns currently have no currency column; their totals are not labelled EGP or grouped under an invented currency. PO/quotation/invoice totals remain separate by currency.
+- Existing PO approval path remains unchanged. No other create/accept/convert/post operation was added. No `main.html`, `core.js`, Buyer, Edge Function, SQL, migration, RLS, stock, AP, Treasury, cash, journal or GL source/data was changed by this workstream.
+- Final inline JavaScript syntax parse: PASS. Synthetic behavioural harness against the extracted application functions and schema-allowlisted Supabase mock: PASS for all tested tabs, 451 invoices across pagination, foreign-tenant exclusion, company filters, branch RLS fallback, RFQ supplier labels, payment allocation details, dashboard/report currency handling, and read-only action guardrails.
+- GitHub final commit metadata lists only `supervisor.html`; the final commit has no combined status checks or workflow runs reported.
+- Authenticated supervisor E2E: NOT RUN. The available app browser tab showed the Parent login page and the current browser integration is read-only.
+- Cloudflare Production deployment for commit `4240285`: UNVERIFIED. The visible Cloudflare tab snapshot referenced an earlier Buyer CSS commit, not this commit. Do not state that the new file is live until the deployment pointer and published artifact are checked.
+- Detailed record: `doc/Draft/Reprots/Report680_PURCHASING_SUPERVISOR_CYCLE_EXPANSION_20261109.md`.
+- Remaining release gates: confirm current Cloudflare deployment artifact, then run authenticated E2E using a Purchases Supervisor account with only `purchases_supervisor,suppliers`; do not approve POs or create/post transactions during acceptance.
+## Historical baseline recorded at LVE-679 (do not treat as current deployment pointer)
 
 - Operational repository: `papamohammed77-glitch/erp-frontend`, branch `main`.
 - Operational HEAD observed: `da37cbd27c0fd363bff95008919baee79622b654`.
