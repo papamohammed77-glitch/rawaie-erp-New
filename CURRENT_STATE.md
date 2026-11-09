@@ -1,8 +1,8 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last Verified Event:** LVE-2026-11-09-674  
+**Last Verified Event:** LVE-2026-11-09-679  
 **Last verified:** 2026-11-09 (Africa/Cairo)  
-**Status:** Buyer Quick Market goods-custody and direct supplier-return forensic review completed. No operational source, Production SQL, Edge Function, or business data was changed. The exact Owner ChangeSet remains pending because the governing approval gate requires review of the concrete patch before implementation.
+**Status:** LVE-2026-11-09-679 daily CTO review completed. Current source, Production contracts and data were rechecked read-only; no operational write or deployment was performed. Migration source parity, Tailwind build, Cloudflare artifact and authenticated E2E remain open.
 
 ## Current verified production baseline
 
@@ -268,3 +268,33 @@ A quotation detail dialog reads the quote within company scope, loads quotation 
 **Operational change commit:** df8db3a37e4eab590d9583d048d3d7b7b6df3ec7  
 **Detailed report:** doc/Draft/Reprots/Report678_BUYER_CUSTODY_RETURN_AND_PARENT_SUPPLIER_QUOTATIONS_20261109.md  
 **Previous checkpoint:** LVE-2026-11-09-677 — Buyer purchasing Edge startup recovery.
+
+
+---
+
+# CURRENT STATE UPDATE — LVE-2026-11-09-679
+**Recorded:** 2026-11-09
+**Workstream:** Daily CTO review — Buyer/Parent/Receiver/Production source parity
+
+## Verified current baseline
+- Operational repo `papamohammed77-glitch/erp-frontend`, branch `main`, HEAD `0c949128930eeea57748f8b4303077173cbe0894`.
+- Application UI change commit: `df8db3a37e4eab590d9583d048d3d7b7b6df3ec7`.
+- Buyer blob `98e23e2b2eeb0dd23d2cb7e0d4762acdcdebf8a4`; Parent main blob `be58fb0e54a8e4c09ce081b15ebf5420e072bdfd`; Core blob `2d11b852862c523fc89e6a8b9c510462bb65cc4e`; Receiver blob `b0d7796ffe7f227ebd7973009d0e8190fa6d8f51`.
+- Supabase SMART ERP is ACTIVE_HEALTHY. save-purchase-order v41 and receive-purchase v15 are ACTIVE, verify_jwt=true, and deployed sources match main byte-for-byte.
+- Current Quick Market data: PINV-1002 = 20 units, PINV-1003 = 9 units, both Draft/EGP and received_qty=0; buyer_goods_custody_events=0; linked receiving=0; no test data was created.
+- Production supplier-return Storage policies and atomic RPC are present. The live return RPC writes only buyer_goods_custody_events; Receiver queue subtracts accepted supplier returns; actual receiving RPC posts stock only after accepted receipt.
+- Parent quotation tables are tenant-scoped but currently empty.
+
+## Open risks / conflicts
+1. Production migration `20261109190444 buyer_quick_market_invoice_derived_custody_and_supplier_return` exists in live migration history but no matching migration file exists on operational main. The tracked 13:00 buyer-goods storage migration is older and lacks the live supplier-return filename policy. Restore and compare the exact applied SQL; do not rerun DDL.
+2. GitHub main is unprotected and required checks are disabled. Recent main commits have no combined status/workflow result.
+3. Buyer CSS blob `c09c5fbd0268bb295d931d3329016861c837f7fa` lacks `.bg-amber-700` and `.hover\\:bg-amber-800` used by the new return button; Tailwind workflow result is unverified.
+4. Parent quotation loader uses `getData(...).limit(300)` without pagination. Buyer invoice eligibility read is capped at 500.
+5. Cloudflare artifact and authenticated Buyer/Parent/Receiver E2E remain UNKNOWN/UNVERIFIED.
+6. PR #11 remains OPEN, MERGEABLE=false, 26 commits ahead and 5 behind current main; do not merge without full reconciliation.
+
+## Governance / execution
+- Permanent constitution SHA `3a6b1e220af8509e314e94df76563bbc6f84910d` and Master CTO Governance SHA `1a0c81c2984103b5a7f3b40db41607d74051b310` were read in full; §77.2 approval gate applies.
+- No operational source, SQL, RLS, Edge, deployment, or business-data write was performed in this daily review.
+- Report: `doc/Draft/Reprots/Report679_DAILY_CTO_REVIEW_AND_BUYER_PARENT_PRODUCTION_DRIFT_20261109.md`.
+- Next priority: restore and compare the exact source for Production migration 20261109190444 without reapplying SQL; prepare a reviewed ChangeSet before any operational write.
