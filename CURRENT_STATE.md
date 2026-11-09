@@ -1,3 +1,41 @@
+# LVE-2026-11-09-673 — Buyer Cash Custody UX Reorganization
+
+**LAST VERIFIED EVENT:** 2026-11-09 (Africa/Cairo) — operational Buyer cash custody UI restructured and verified in GitHub. Latest operational Buyer commits: `1b761d0ee60a4f7c2ab14b14e8e0390fb0c35aac` and `da37cbd27c0fd363bff95008919baee79622b654`; final Buyer blob `072710c9db0184b0744eebd027fcdd3daf297269`.
+
+**SOURCE CHANGE — CONFIRMED:**
+- Only `companies/company-1/purchasing/buyer.html` changed.
+- Added a prominent current-available-cash overview grouped by currency. The displayed available balance is acknowledged cash minus approved expenses, submitted expenses, open Quick Market reservations, and cash returned.
+- Personal current custodies are shown first. Finance employee registry is separated into a collapsed section; closed custody history is separately collapsible.
+- Custody records show the actual remaining balance prominently, original custody value, acknowledged cash, approved expense total, pending submissions, QMP reservation, cash returns and unacknowledged advances.
+- Expenses are grouped into approved, pending review, and rejected sections; document and receipt links, status, review actions, supplier-payment reference, journal posting indication, and review note are retained.
+- Negative available cash now appears as a visible deficit instead of being hidden by a zero clamp. Submission actions are withheld when no positive available cash remains.
+- Responsive scoped CSS is contained in the Buyer file. No shared styles, Parent, Core, warehouse or receiver file changed.
+
+**FINANCIAL CONTRACT REVIEW — PRESERVED:**
+- Reviewed `buyer_custody_review_expense_atomic`, `buyer_custody_review_quick_market_expense_atomic`, `buyer_custody_review_other_expense_atomic`, `buyer_custody_return_cash_atomic`, `buyer_custody_settle_atomic`, the `GET_CUSTODY` handler in `save-purchase-order` v39, and Buyer QMP reservation/review dispatch.
+- PO, Quick Market and operational-expense paths post through distinct current contracts. Approved QMP claims increase invoice `paid_amount`, reducing the remaining QMP reservation; the approved expense itself remains in committed cash. Therefore the UI counts it once, not twice.
+- Partial return remains a separately posted cash receipt. Existing financial RPCs and their journal/Treasury effects were not changed.
+
+**PRODUCTION SNAPSHOT / VERIFIED ARITHMETIC:**
+- One open EGP custody: registered EGP 5,000; acknowledged EGP 5,000.
+- Approved expenses EGP 0; one submitted expense EGP 200.
+- Two Draft / UNSETTLED Quick Market invoices with total reservation EGP 1,430.
+- Cash returned EGP 0.
+- Expected currently available balance: EGP 3,370.
+- This matches the committed UI formula.
+
+**TESTS:** Full inline Buyer JavaScript syntax PASS. Controlled harness extracted the actual `quickMarketCashReservation()` and `getMetrics()` functions from the committed source and passed: current 3,370 balance; Submitted→Approved status transition does not change the available total; partial QMP approval reduces reservation while increasing approved amount without double deduction; a 300 EGP cash return decreases available cash by 300. Final file re-fetched; blob SHA verified. No Production data was created or changed.
+
+**UNVERIFIED:** GitHub status/workflow queries returned no checks for `da37cbd`. Cloudflare terminal Production Success, served Buyer byte parity, and authenticated browser E2E are not confirmed. Do not claim deployment/runtime completion. No staging or Production fixture was seeded.
+
+**REPORT:** `doc/Draft/Reprots/Report673_BUYER_CASH_CUSTODY_UX_REORGANIZATION_20261109.md`; report commit `0d4c1c7fe13d4f4244a1c32383a8a8ddf3de5df7`.
+
+**ROLLBACK:** Revert Buyer commits in reverse order: `da37cbd27c0fd363bff95008919baee79622b654`, then `1b761d0ee60a4f7c2ab14b14e8e0390fb0c35aac`. No DB/Edge/data rollback is required.
+
+**CHECKPOINT STATUS:** BUYER CASH-CUSTODY UX REORGANIZED IN SOURCE · FINANCIAL RPC CONTRACTS REVIEWED AND PRESERVED · BALANCE CALCULATION TESTS PASS · NO PRODUCTION BUSINESS-DATA WRITES · CLOUDFLARE / AUTHENTICATED BROWSER E2E OPEN.
+
+---
+
 # LVE-2026-11-09-672 — Buyer SupplierReturn Partial-Acceptance Accounting Review
 
 **LAST VERIFIED EVENT:** 2026-11-09 (Africa/Cairo) — revalidated operational Buyer source, LVE670/LVE671 production migrations, live cash/goods custody RPCs, SupplierReturn completion core/trigger, Edge v4 contract, and source warehouse voucher actions. Operational `main` latest observed commit is `c5251859bd360fbf69f9875a8bb482bbd667fe4c`; Buyer blob `94e2e95d13d2d1aa8687a8c0d394a8508176137e`.
