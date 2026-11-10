@@ -36,7 +36,7 @@ No stock, accounting, supplier, treasury, voucher, employee, or other business r
 - supervisor.html: 792f8bbff15a0c724e47b6e6e28f2ffec903b024.
 - Shared core: companies/company-1/core.js, blob 2d11b852862c523fc89e6a8b9c510462bb65cc4e.
 - Shared warehouse authorization helper: supabase/functions/_shared/warehouse-auth.ts, blob cbeb79f5d5ba1bdd2f733db69c17f8e09808ed7a.
-- Parent main.html blob is be58fb0e54a8e4c09ce081b15ebf5420e072bdfd; GitHub file retrieval returned empty content because of file size. Do not fabricate a source insertion anchor. The open Parent browser DOM was inspected and still exposes the legacy separate entries under warehouse operations; no hub entry was present in that snapshot.
+- Parent main.html blob is be58fb0e54a8e4c09ce081b15ebf5420e072bdfd; full 1,906,820-character blob was subsequently retrieved. Exact Parent menu/action insertion anchors and surgical replacements are recorded in §8.4.
 
 ### 2.2 Relevant history
 - 08f7b20c13244f55589b27945f41d8c6f6f9e97c: adds the shared server-side warehouse role/branch authorization helper.
@@ -228,8 +228,7 @@ Specific server changes:
 
 ### Phase D — Supervisor and Parent
 - Supervisor role list and icon changes are specified in §3.2.
-- Parent: add one prominent entry under the existing warehouse operations section to open warehouse/warehouse.html, gated by the existing warehouse permission. Preserve all old links during rollout. Do not remove or repoint legacy app entries until hub E2E passes.
-- Parent main.html is very large and the GitHub content API returned an empty body for this fetch. The current browser DOM confirms the old separate menu entries, but does not provide the exact source insertion anchor. Before modifying Parent, retrieve the exact source slice from the owner/local repository or a supported raw-file retrieval path. Never guess a line or replace the whole Parent file.
+- Parent: exact surgical insertion is now confirmed in §8.4. Add one prominent entry under the existing warehouse operations section, gated by the existing warehouse permission, and add the corresponding action handler. Preserve all old links during rollout. Do not remove or repoint legacy app entries until hub E2E passes.
 
 ## 5. Acceptance and test matrix
 
@@ -283,12 +282,11 @@ This ChangeSet is prepared from current live evidence. It is not applied.
 The permanent constitution §6.2 and §7a require the exact operational source diff, effect, test and rollback to be presented before a production-impacting source/DB change; §7a reserves direct application of operational app files to the owner. The user's broad execution instruction does not authorize inventing unavailable source text, bypassing that explicit boundary, or making an unreviewed change to stock/supplier posting authority.
 
 The next work is not another general analysis:
-1. retrieve the exact Parent source slice;
-2. materialize the seven exact frontend gate replacements;
-3. copy the exact live Edge sources into their source-managed paths and build the narrow guard diffs;
-4. produce the read-only hub RPC definition after branch mapping is proven;
-5. run static and no-write tests;
-6. present the exact final diff and rollback as one coherent ChangeSet for the required operational apply gate.
+1. materialize the seven exact frontend gate replacements and the confirmed Parent menu/action patch;
+2. copy the exact live Edge sources into their source-managed paths and build the narrow guard diffs;
+3. produce the read-only hub RPC definition after branch mapping is proven;
+4. run static and no-write tests;
+5. present the exact final diff and rollback as one coherent ChangeSet for the required operational apply gate.
 
 ## 7. Final verified status
 
@@ -303,7 +301,7 @@ The next work is not another general analysis:
 - Receiver RPC role guards still exact-role: CONFIRMED.
 - Voucher SupplierReturn role guards: CONFIRMED; financial/stock effect must remain protected.
 - Hub dashboard branch-safe read contract: UNKNOWN until run-sheet branch mapping is resolved.
-- Parent source insertion anchor: UNVERIFIED because large file retrieval returned empty content; deployed DOM only confirms legacy menu.
+- Parent source insertion anchor: CONFIRMED by full Git blob retrieval; exact menu/action patch recorded in §8.4.
 - Cloudflare current production parity with HEAD 9a73e585: UNVERIFIED; available snapshot is stale.
 - Authenticated warehouse worker E2E: NOT RUN.
 - Business-data writes: NONE.
