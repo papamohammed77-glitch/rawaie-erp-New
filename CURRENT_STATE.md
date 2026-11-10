@@ -1,3 +1,70 @@
+# CURRENT STATE UPDATE — LVE-2026-11-10-691
+
+**Recorded:** 2026-11-10 (Africa/Cairo)  
+**Workstream:** Unified Warehouse — correction from launcher/navigation hub to single operational workbench
+
+## Last verified operational source state
+- Repository: `papamohammed77-glitch/erp-frontend` / `main`.
+- Latest verified commit from recent commit search: `fd45a7dd8a3dae92afcc66e485e74a133cb345ae`.
+- `companies/company-1/warehouse/warehouse.html` blob: `ead58ab7c5ad354b5b93a9a20781bfe81db7a245`.
+- Current file still exposes only four shell tabs: today, operations, vouchers, account. `operations()` and `vouchers()` create links to the seven original apps; no operation workspaces or in-tab native queues exist.
+- Commit `fd45a7d` is a one-commit follow-up after `2221eea`; its diff changes the warehouse browser E2E workflow and a branch-scoped card-access predicate only. It does not resolve the operational-workbench requirement.
+- Original app blobs re-fetched:
+  - Receiver `7766f6d9b3959de1b6a22bb7bcd2aee05c053bde`
+  - Picker `a94e18f1c7b2de5dad912011bb32999611976b8e`
+  - Loader `89aea6635771f1a3328e82a456f3ecfe9ee02acd`
+  - Returns `56868aa5c0300d22de2774e3643562cc23045d31`
+  - Unloader `c0a5ac89012e9e612b37dbcfd4e9334adf5c16b9`
+  - Counter `64f92fb9ef8127bd6ebe3c3ef21c1a86ad671ad4`
+  - Vouchers `bbbcd3bd577dfddf1a0ccb0f1e23b6060431b2fd`
+
+## Requirement correction / root cause
+Owner clarified that the unified app is not a link launcher. It must provide natural operation tabs for Receiving, Picking, Loading, Returns, Unloading, Counting and Manual Stock Vouchers, plus Today and My Account. Each tab must display the existing shared business records and execute through the existing operation workflow; a record must appear in its natural operation tab whether initiated from the unified shell or its original app. There must be no source-specific “my results” tab and no duplicate documents.
+- Root cause: previous design aggregated application links, not operational workspaces.
+- Current app is therefore functionally incomplete against the owner requirement, despite the navigation/role work in Report690.
+
+## Forensic evidence gathered
+- Existing app read/write contracts mapped:
+  - Receiver: purchase orders/invoices, receiving/receiving_details, quick-market queue RPC, receive-purchase Edge.
+  - Picker: runsheets/run_sheet_details and start/complete picking.
+  - Loader: runsheets/run_sheet_details/vehicles and existing loading Edge paths.
+  - Returns: runsheets/run_sheet_details/return_reasons/stock_discrepancies and existing return Edge paths.
+  - Unloader: runsheets/run_sheet_details and completed `stock_vouchers.type='Unloading'`; unload-runsheet Edge.
+  - Counter: inventory_counts/inventory_count_details and save-inventory-count Edge.
+  - Vouchers: stock_vouchers/stock_voucher_details and inventory_voucher_report, existing voucher Edge/RPC lifecycle.
+- The native apps have assignment/status semantics that must remain intact; do not replace them with company-wide duplicate queries.
+- Current table columns preserve distinct human actor fields (e.g. runsheets picker_id/loader_id/return_handler_id; inventory_counts.created_by; stock_vouchers.created_by/completed_by; receiving.responsible). There is no common `source_app` field across these operation tables and no common source_app function contract found. Do not fake an app source by overwriting a human actor.
+- The lower-risk Phase 1 direction is a single warehouse shell with nine natural top-level tabs and lazily mounted, persistent same-origin embedded native operation workspaces. The shell should hide duplicate child headers/account controls only after child authentication succeeds, while preserving each app's native pending/completed controls and operation screens. This keeps existing business logic and posting engines as the source of truth.
+- Same-origin framing, CSP/X-Frame-Options, auth sharing, service-worker behavior, realtime footprint, logout propagation and iframe state preservation remain runtime acceptance checks; not yet verified in a real authenticated browser.
+
+## Role and Production state
+- SMART ERP project `fiilmooggumokxanwiyx`.
+- Warehouse role migrations remain present: `20261109233602`, `20261110003307`, `20261110004233`. Do not reapply.
+- Current Edge inventory matches Report690: start-picking v36, complete-picking v19, start-loading v7, complete-loading v12, unload-runsheet v7, start-return v6, complete-return v28, receive-purchase v18; all ACTIVE and JWT verified.
+- Active user `أمين مخزن عام` has primary `users.role='أمين مخزن'`, branch scope BR-01, active status, and `active_warehouse_role` currently NULL. The existing `set_active_warehouse_role` allows `مخزن شامل` for `أمين مخزن`/ `مخزني` and enforces supervisor authority and branch intersection. No role assignment was performed.
+- Current user must be assigned through Supervisor / the existing RPC; do not update the column directly.
+
+## Governance and changes made in this checkpoint
+- Read the permanent constitution: SHA `3a6b1e220af8509e314e94df76563bbc6f84910d`; Master CTO Governance: SHA `1a0c81c2984103b5a7f3b40db41607d74051b310`.
+- Constitution §6.2 and §7.a plus Master Governance §77.2–77.3 require a specific reviewed ChangeSet and explicit owner approval before operational app source changes. Owner applies operational app files; do not directly commit `warehouse.html`.
+- Created the substantive change report:
+  `doc/Draft/Reprots/Report691_UNIFIED_WAREHOUSE_OPERATIONAL_WORKBENCH_CHANGESET_20261110.md`
+  Governance commit: `1c68600df099c55b8e838b97f143aaab361740e2`.
+- Report691 contains the exact target file/base blob, the nine-tab functional contract, data/workflow mapping, Phase 1 embedded-workspace design, actor/role/branch semantics, exclusions, tests and rollback.
+- No operational source, Parent/Core, Supabase schema/data, Edge deployment, role assignment or Cloudflare deployment was modified in this checkpoint. All Production queries were read-only.
+
+## Verification limits
+- Latest commit `fd45a7d` combined status returned no entries; workflow-run connector returned no runs. This is UNVERIFIED, not a pass or a failure.
+- Report690 deployment success applies to `2221eea`. Production deployment parity after `fd45a7d` is UNVERIFIED.
+- No real authenticated browser session was available to test same-origin embedded app workflows or cross-app document coherence.
+- No business-write or financial/inventory QA test was performed.
+
+**Last verified event:** the launcher-vs-operational-workbench mismatch is confirmed and Report691 ChangeSet is committed to the governance repo.  
+**Status:** ROOT CAUSE CONFIRMED — OPERATIONAL WORKBENCH CHANGESET READY — OWNER APPROVAL REQUIRED.  
+**Next step:** obtain approval of the exact Phase 1 `warehouse.html` ChangeSet in Report691 §11, then apply only that UI change and run the specified authenticated no-write E2E. Do not label the unified operational app complete before tab/workflow/coherence tests pass.
+
+---
+
 # CURRENT STATE UPDATE — LVE-2026-11-10-690
 
 **Recorded:** 2026-11-10 (Africa/Cairo)  
