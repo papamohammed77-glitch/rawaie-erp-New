@@ -1134,3 +1134,35 @@ The exact Edge ChangeSet was committed and deployed without first presenting it 
 **Detailed report:** doc/Draft/Reprots/Report697_UNIFIED_WAREHOUSE_LATEST_HEAD_AND_APPLIED_RECEIVER_FALLBACK_PARITY_20261110.md  
 **Report commit:** 6bd68ca87fa5c68ecffa637207193d0a0a19e55f  
 **Previous checkpoint:** LVE-2026-11-10-696
+
+---
+
+# CURRENT STATE UPDATE — LVE-2026-11-10-698
+**Recorded:** 2026-11-10
+**Workstream:** Unified Warehouse final CI evidence refresh
+
+## Latest verified state
+- Operational repo papamohammed77-glitch/erp-frontend main HEAD 76a80dfa1437f5a51a8f076f963c9328d8b1aa29.
+- Latest Warehouse E2E run 42906160386 completed SUCCESS on that HEAD; job 130144570312 succeeded.
+- The latest Playwright log includes WAREHOUSE_FULL_ROLE_STANDARD_TRANSFER_RECEIVE_ACTION=PASS plus four-tab shell, shared auth, all seven native modules, Picker profile, pending data rendering, counts, vouchers, SupplierReturn, branch receipt requester/source actions, logout/re-login, role alias and branch scope assertions.
+- These remain mocked Supabase/auth tests. No real signed-in production receipt, inventory posting, supplier/AP or GL transaction was executed.
+- Current warehouse.html blob 31c4f1ae903b389269a4b90afdf310784f77f194 and picker.html blob a94e18f1c7b2de5dad912011bb32999611976b8e remain unchanged.
+
+## Migration source status
+- Live SMART ERP has applied migrations 20261110212138 and 20261110213226; the active trigger uses the full-role fallback definition that matches tracked migration 20261110213226 (only the terminal semicolon differs in pg_get_functiondef output).
+- Git migration 20261110222000 is not applied and contains the narrower designated receiver function without the المخزن الشامل fallback. It must be reconciled/retired before pending-migration deployment; do not apply it as-is.
+
+## Unresolved production blockers
+- Picker cancel/reopen Edge gates still reject مخزن شامل though the UI permits it; Returns cancel has the same exact-role mismatch.
+- Completed sales-return reopen remains unsafe: raw stock decrement without inventory movement log or accounting/customer/credit-note reversal. Keep it closed until full atomic reversal is designed.
+- Legacy reopen-receiving remains active but is not used by current receiver.html; it directly decrements stock without movement log or purchase/AP reversal. Containment is required.
+- Cloudflare Production deployment of HEAD 76a80d remains UNVERIFIED.
+
+## Safety and next actions
+- No operational app/Edge/SQL/ACL/RLS change or deployment was made; no business data, stock, reservation, supplier/customer ledger, journal, treasury/cash or QA fixture was written. No Supabase branch or paid test environment was created.
+- Master CTO Governance §77.2/§77.3 exact-change approval gate remains applicable.
+- Next: retire/reconcile pending migration 20261110222000; prepare approved Picker/Returns auth parity guards; fail closed unsafe reopen routes; verify Cloudflare deployment; run authenticated E2E only using an existing or proven reversible assignment.
+
+**Detailed report:** doc/Draft/Reprots/Report697_UNIFIED_WAREHOUSE_LATEST_HEAD_AND_APPLIED_RECEIVER_FALLBACK_PARITY_20261110.md  
+**Report update commit:** 91304bb8e678eccb331e01b375957b0ff703ea85  
+**Previous checkpoint:** LVE-2026-11-10-697
