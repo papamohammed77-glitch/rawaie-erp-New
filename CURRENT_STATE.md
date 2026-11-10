@@ -1008,3 +1008,44 @@ The exact Edge ChangeSet was committed and deployed without first presenting it 
 
 **Detailed report:** `doc/Draft/Reprots/Report695_UNIFIED_WAREHOUSE_LOADING_EDGE_AUTHORIZATION_REPAIR_20261110.md`  
 **Previous checkpoint:** LVE-2026-11-09-679 — Buyer purchasing/Parent/Receiver source parity.
+
+---
+
+# CURRENT STATE UPDATE — LVE-2026-11-10-695
+**Recorded:** 2026-11-10
+**Workstream:** Unified Warehouse / Picker parity / live backend and supplier-return safety
+
+## Verified current operational baseline
+- Operational repo papamohammed77-glitch/erp-frontend, main HEAD 81bc832cb37f2eca22d6375497e2041f051546db.
+- warehouse.html blob 31c4f1ae903b389269a4b90afdf310784f77f194; standalone picker.html blob a94e18f1c7b2de5dad912011bb32999611976b8e; core.js blob 2d11b852862c523fc89e6a8b9c510462bb65cc4e.
+- Parent main.html already links the standalone warehouse app through the warehouse permission; no Parent change needed.
+- Picker embedded/standalone comparison: 26 methods found on each side, all 26 shared. Differences are expected wrapper/render/shared-auth identity/error handling; no core picker method gap found.
+- Latest unified warehouse CI run 42902690529 passed on current HEAD, but Playwright uses mocked Supabase/auth. It is not live authenticated E2E or proof of stock/finance posting.
+- SMART ERP project fiilmooggumokxanwiyx is ACTIVE_HEALTHY. Existing unified-role user has role مخزن شامل, permission warehouse, allowed branch BR-01, and branch helper confirms access to main branch.
+- Production run sheets are only two historical closed rows (RS-1 Delivered, RS-2 Returned); no safe open assigned work item exists for real lifecycle E2E. No production test data was created.
+- Cloudflare dashboard snapshot shows Production at commit 3748f4602c54961945c6e1ef74391a27ca3e6004, not current HEAD 81bc832. Current deployment parity remains UNVERIFIED.
+
+## Backend gaps independently confirmed
+1. reopen-picking v9 and cancel-picking v5 reject active role مخزن شامل although embedded Picker accepts that role and shows the actions. Their service-role SQL RPCs enforce company/auth identity, assigned picker, state and reservation semantics; Edge authorization must be aligned with shared warehouse-auth and main-branch guards.
+2. cancel-return v4 rejects مخزن شامل although Returns start/complete accept it; preserve the same-company, assigned-handler and return_end IS NULL conditions while aligning its role/branch gate.
+3. reopen-return v1 is unsafe: service-role code directly decrements stock_branches.qty and reopens a completed return without inventory_log movement or reversal of journal/customer ledger/POS refund/credit-note effects. stock_branches has no update trigger. Never call this endpoint. Fail-closed containment and a complete atomic reversal contract are required.
+4. Legacy reopen-receiving v1 is not called by current receiver.html (which uses receive-purchase v18), but remains ACTIVE and directly decrements stock_branches.qty without inventory_log or purchase/AP reversal. Fail closed/retire after verifying no other client depends on it.
+5. Current reopen-loading v3 already uses shared warehouse-auth, main-branch scope and loader assignment. Current start/complete loading, return and unloading, receiving v18, inventory_count_engine, and voucher RPCs have central guarded paths; do not rewrite them.
+6. SupplierReturn is centrally implemented: Draft contract has no posting; send performs SupplierReturn stock movement; complete posts supplier ledger debit, AP 211 debit, inventory 124 credit, tax reversal and finance_tax_transactions. Preserve creator/branch scope for unified-role actor.
+
+## Production safety and execution
+- Read-only production queries only. No SQL writes, DDL, Edge deployment, source app edits, user/role changes, test fixture, inventory/cash/treasury/supplier/customer movement or journal posting was performed.
+- No Supabase branch or additional paid test project was created.
+- Deployed Edge source for several affected endpoints is not present in the operational Git tree. Restore exact live source before reviewed patch/deployment; do not modify untracked remote code.
+- Master CTO Governance §77.2/§77.3 exact-change approval gate remains applicable. Exact patch and verification/rollback plan are documented in Report695; no operational patch is claimed complete.
+
+## Next actions
+1. Obtain exact approval for two Picker gate fixes and Returns cancel gate fix; prepare the tracked source patch and helper imports; keep SQL RPC semantics unchanged.
+2. Approve fail-closed containment of completed-return reopen and legacy reopen-receiving; do not attempt a partial stock reversal. Design a separate atomic/idempotent reversal contract covering stock, inventory_log, journals, customer/POS refunds and credit notes.
+3. Restore live Edge source into operational Git and inspect deployment workflows before any deploy.
+4. Add test coverage for unified-role allow, wrong role/company/branch/assignment denial, and fail-closed reopen behavior.
+5. Verify Cloudflare deployment SHA and perform authenticated E2E only with an existing open work item or a fully reversible fixture whose cleanup is proven; compare every stock/finance/audit ledger before and after.
+
+**Detailed report:** doc/Draft/Reprots/Report695_UNIFIED_WAREHOUSE_PICKER_INTEGRATION_AND_BACKEND_GAP_AUDIT_20261110.md  
+**Report commit:** e3f884fe3414dbbf372c0c6315fffabedc7cd93a  
+**Previous checkpoint:** LVE-2026-11-10-694
