@@ -1,3 +1,39 @@
+# CURRENT STATE UPDATE — LVE-2026-11-10-689
+
+**Recorded:** 2026-11-10 (Africa/Cairo)  
+**Workstream:** Unified Warehouse hub — forensic review and authorization ChangeSet gate
+
+## Last verified operational source state
+- Operational repository: `papamohammed77-glitch/erp-frontend` / `main`.
+- Current HEAD: `9a73e585443bdad8b55b73b2676ac77385055b63`.
+- `companies/company-1/warehouse/warehouse.html` was added at this HEAD, but its blob is identical to `returns.html`: `16d02fff2d00759451879204abf218202898f9c0`. It is a Returns app copy, not a warehouse hub.
+- Parent `main.html` has no link to `warehouse.html`; it retains the existing `warehouse` permission and legacy embedded `RW_Warehouse` module.
+- No operational source was modified during this forensic review.
+
+## SMART ERP current verified state
+- Applied migration: `20261109233602 unified_warehouse_role_and_scoped_inventory_counts`. Do not reapply.
+- It permits `مخزن شامل` in `set_active_warehouse_role`, scopes inventory-count reads by branch, and extends `inventory_count_engine` for the unified role.
+- No active user is assigned `مخزن شامل`; Supervisor UI role list still omits it.
+- Live aggregate counts: inventory_counts=0; inventory_count_details=0; inventory_log=78; stock_branches=58; journal_entries=21; supplier_ledger=3. Counts differ from the prior Receiver checkpoint; attribution is unknown. This review performed SELECT-only queries and no business writes.
+
+## Integration blockers
+- Existing app role gates remain exact: Receiver=استلام, Picker=تحضير, Loader=تحميل, Returns=مرتجعات, Unloader=تفريغ, Counter=جرد, Vouchers=أذونات.
+- Receiver, picking, returns and voucher RPC/Edge guards do not yet accept `مخزن شامل`.
+- Counter's `inventory_count_engine` supports it, but Counter UI still rejects it.
+- Loading/unloading Edge and RPC paths have pre-existing missing role/branch/assignment guards (Report590; confirmed again against deployed source/live function markers). Do not expose them through a frontend-only role alias.
+- Shared `warehouse-auth.ts` exists but is not yet wired into the inspected Edge Functions. Several deployed Edge functions are not source-managed in Git.
+- Supplier-return voucher completion affects stock and supplier accounting; preserve its server-side controls and posting semantics.
+
+## Detailed forensic report
+`doc/Draft/Reprots/Report689_UNIFIED_WAREHOUSE_FORENSIC_AND_CHANGESET_GATE_20261110.md`.
+
+## Next handoff
+Prepare exact owner ChangeSet with the source diffs and SQL/RPC/Edge replacements before implementation, per writing-block-8888-10 §10.1–10.3 and constitution §6.2/§7a. Proposed phases: (A) new hub + Parent/Supervisor entry points; (B) frontend and server-side unified-role/branch/assignment parity; (C) synthetic tests and authenticated no-write E2E; (D) approved reversible QA fixture for any stock/finance writer tests. Do not reapply migration or test by creating real stock/AP/Treasury/journal movements.
+
+**Release limits:** authenticated warehouse-worker E2E not run; Cloudflare Production pointer not refreshed after current HEAD and published asset parity not verified.
+
+---
+
 # CURRENT STATE UPDATE — LVE-2026-11-10-688
 
 **Recorded:** 2026-11-10 (Africa/Cairo)  
