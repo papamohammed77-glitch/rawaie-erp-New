@@ -1363,3 +1363,62 @@ The latest Report700 blob is `cd87149f3581bc5f4e65f2984ba77b4b62726abc`; latest 
 **Latest tested operational HEAD:** `9a6ac1f916d88cdbb54ab154c1aa3a0761c2a89a`  
 **Latest full E2E:** `42909714464` (success)  
 **Previous checkpoint:** LVE-2026-11-10-700
+
+
+---
+
+# CURRENT STATE UPDATE — LVE-2026-11-11-702
+
+**Recorded:** 2026-11-11 (Africa/Cairo)  
+**Workstream:** Unified Warehouse collaborator reconciliation / Edge production parity / Returns draft and discrepancy audit
+
+## Last verified operational source
+- Operational repository: `papamohammed77-glitch/erp-frontend` / `main`.
+- HEAD: `11c6a033cdb883daaf50fc9dab3458a64ffc6a5c`.
+- `companies/company-1/warehouse/warehouse.html` blob: `45840aef5403d86da9f2d41ce6d88a24d4b83b9f`.
+- `companies/company-1/warehouse/returns.html` blob: `2d725fede124a19c4cb4587eb97040ca2e2a1869`.
+- Warehouse E2E workflow blob: `46e7c8f8e7e7ac452323ad7ee62bbfb72d8317db`.
+
+## Collaborative changes confirmed in Git and live Supabase
+- `cancel-picking` v6 ACTIVE and `reopen-picking` v10 ACTIVE: both use `requireWarehouseRole` + `assertWarehouseMainBranch`; both permit the dedicated role or `مخزن شامل`; their original service-role SQL RPC contracts and grants remain unchanged.
+- `cancel-return` v6 ACTIVE: uses the shared Returns role/main-branch guard and preserves same-company, assigned-handler, Returning-state and null-return_end checks.
+- `reopen-return` v2 ACTIVE: fail-closed HTTP 409, no database client/writes.
+- `reopen-receiving` v2 ACTIVE: fail-closed HTTP 409, no database client/writes; current Receiver continues to use `receive-purchase v18`.
+- All five live Edge `index.ts` source files were compared to their current Git versions and matched byte-for-byte. Detailed live SHAs/versions are recorded in Report702.
+- The above Edge deployments were observed as parallel-contributor activity. This continuation did not deploy them or mutate operational source.
+
+## Returns application source state
+- Standalone Returns now persists draft quantities locally in Dexie and no longer writes draft quantities to `run_sheet_details`.
+- The active session calls `_loadLocalChanges` on reopen; final posting still uses the in-memory session payload through `complete-return v28`.
+- Both standalone and embedded completed-return reopen actions are disabled/warning-only.
+- Known local-draft defect remains: `localChanges` uses an auto-increment key and repeated edits create multiple rows; recovery uses truthy fallbacks, so intentional zero quantity or cleared notes may not replace an older local value.
+- `report-discrepancy v3` remains insufficiently scoped: employee resolved by email only; runsheet read by ID and Returning status only; no assigned-handler/company/warehouse-role check; insert uses a literal company ID. The literal currently equals the only live company row, but is not multi-tenant safe. Prepare `CS-WH-702-E` to enforce shared role/main-branch, auth_id/status/company, assigned handler, authoritative run-sheet item quantity and derived company ID. Keep no stock/GL side effects.
+- `stock_discrepancies` RLS is enabled. Its read policy permits an active same-company assigned return handler, reporter or supervisor/owner to read the row; update is restricted to supervisor/owner. The client completion gate has a matching read policy for the assigned handler.
+
+## Latest Warehouse E2E and Pages deployment
+- Latest Warehouse run `42914279861` on this HEAD failed at **Static source and module contract** with `RETURNS_WORKFLOW_MISSING:reopen-return`; Playwright was skipped. The stale workflow marker still expects an active `reopen-return` feature after the application intentionally removed the live call.
+- Exact test-only correction: remove `reopen-return` from the required live workflow marker list; replace it with assertions for the suspended warning, disabled `aria-disabled=true` control, and absence of `RW_API.call('reopen-return'`; rerun full Playwright.
+- Latest full mocked Warehouse Playwright pass in history is `42912967193` on `765dee0a`; it predates the latest Returns draft/discrepancy changes. Current HEAD is NOT E2E-certified.
+- Cloudflare Pages dashboard snapshot showed Production/main at `83c0f395c34a5562752bc715a64361e675e2b20d` (`https://e0ea2007.rawaea-erp.pages.dev/` shown as the deployment URL), with automatic deployments enabled. Current HEAD `11c6a033` was not shown as Production. Pages parity remains NOT VERIFIED. The 83c0 artifact includes the earlier UI disablement for completed-return reopen, but not proof of the latest draft/discrepancy improvements.
+
+## SMART ERP production baseline — read-only refresh
+- `receiving=1`, `receiving_details=2`, `inventory_log=78`, `stock_branches=58`, `stock_vouchers=0`, `supplier_ledger=3`, `journal_entries=21`, `buyer_goods_custody_events=0`.
+- Only company row is `الروائع`, ID `00000000-0000-0000-0000-000000000001`.
+- No business QA fixture, receipt, voucher, return completion, inventory movement, reservation, supplier/customer ledger entry, GL posting, cash/treasury or custody row was created by this continuation.
+
+## Governance and release status
+- Report702 records collaborator changes, live versions, source byte parity, the CI blocker, the Pages pointer and remaining defects.
+- The Master CTO Governance §§77.2–77.3 gate remains in force for further operational source/contract/deployment changes. This checkpoint does not infer an owner approval from the presence of a commit or a deployed function; no new production write was performed by this continuation.
+- Do not mark Warehouse Gold/Diamond or fully released until current-head Playwright, Pages parity, discrepancy authorization and local-draft correctness are closed.
+
+## Next actions
+1. Correct the stale Warehouse static assertion and get a full current-HEAD Playwright PASS; preserve the disabled completed-return assertion.
+2. Fix local draft zero/empty-value recovery and duplicate-row behavior; add persisted/reload/reopen regression coverage.
+3. Prepare/review `CS-WH-702-E` for `report-discrepancy` actor/company/assignment/role scoping and authoritative quantity validation.
+4. Verify Cloudflare Production reaches the reviewed app HEAD; do not infer Pages parity from Edge deployment success.
+5. Continue authenticated read-only employee checks; do not post production QA transactions against live stock/finance balances.
+6. Keep both reopen endpoints suspended until their complete atomic stock + accounting reversal contracts are approved and implemented.
+
+**Detailed report:** `doc/Draft/Reprots/Report702_UNIFIED_WAREHOUSE_COLLABORATOR_DELTA_AND_PRODUCTION_EDGE_PARITY_20261111.md`  
+**Report commit:** `051ef5ae6ccb9c5fe6b3dc4bfbd83c8c9f1b9248`  
+**Previous checkpoint:** LVE-2026-11-10-701.
