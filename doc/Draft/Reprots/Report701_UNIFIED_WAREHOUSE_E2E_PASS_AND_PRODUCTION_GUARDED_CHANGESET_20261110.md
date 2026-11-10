@@ -10,8 +10,8 @@
 
 تم الوصول إلى أول تشغيل كامل ناجح لاختبار Playwright الخاص بتطبيق المخزن الشامل بعد استكمال فحوص Receiver وCounter وإصلاح عيوب في بيانات Mock وبنية Workflow نفسها.
 
-**Latest verified operational HEAD:** `5dfc69fe4db13ef48a12ea313e0cf7943e7c385f`.  
-**Latest Warehouse E2E run:** `42909347268` — conclusion `success`, job `130155569183` / `standalone-warehouse` completed successfully.  
+**Latest verified operational HEAD:** `9a6ac1f916d88cdbb54ab154c1aa3a0761c2a89a`.  
+**Latest Warehouse E2E run:** `42909714464` — conclusion `success`, job `130156838407` / `standalone-warehouse` completed successfully on HEAD `9a6ac1f`. The immediately prior run `42909347268` also passed on `5dfc69f`.  
 **Production impact of this test:** zero. جميع الاستدعاءات التشغيلية في هذا السيناريو جرى اعتراضها أو محاكاتها داخل Playwright؛ لم تُرسل عملية استلام أو جرد أو تحويل إلى SMART ERP.
 
 التطبيق وبنية الوحدات الأساسية اجتازا مجموعة التحقق، لكن لا يزال هناك ChangeSet أمني/تشغيلي يلزم حسمه قبل اعتماد Gold/Diamond: تعارض الدور الشامل في cancel/reopen للتحضير وإلغاء المرتجعات، ومساران قديمان لإعادة الفتح يكتبان كميات المخزون مباشرة دون عكس محاسبي/حركي متكامل.
@@ -19,7 +19,7 @@
 ## 2. Latest source and deployment evidence
 
 - Operational main HEAD: `5dfc69fe4db13ef48a12ea313e0cf7943e7c385f` — `fix(warehouse-e2e): restore workspace loop after counter diagnostics`.
-- Compare from deployed application commit `a68a206184b2d588e10793a8146229eb35baddc9` to current HEAD: 9 commits ahead, 0 behind. Changed paths are only `.github/workflows/warehouse_hub_browser_e2e_20261110.yml` and the tracked transfer-receiver migration source. No operational HTML/Core/Parent file changed after `a68a206`.
+- Compare from deployed application commit `a68a206184b2d588e10793a8146229eb35baddc9` to current HEAD: 10 commits ahead, 0 behind. Changed paths are only `.github/workflows/warehouse_hub_browser_e2e_20261110.yml` and the tracked transfer-receiver migration source. No operational HTML/Core/Parent file changed after `a68a206`.
 - Current `warehouse.html` blob: `b617dc7a040df60f20f5d84321500d3dd8c11e31`.
 - Current standalone `receiver.html` blob: `f2bd1e427b902924a50531f886ba22bb61912b91`.
 - Current standalone `returns.html` blob: `56868aa5c0300d22de2774e3643562cc23045d31`.
@@ -266,7 +266,7 @@ Rollback policy:
 
 Performed:
 - Fixed Workflow-only Receiver active-filter assertions, Counter branch/vehicle Mock inheritance, Counter-stage diagnostics and workspace-loop syntax. These are test harness changes, not app/database behavior changes.
-- Verified full Playwright PASS at run `42909347268` on HEAD `5dfc69fe4db13ef48a12ea313e0cf7943e7c385f`.
+- Verified two consecutive full Playwright PASS runs: `42909347268` on `5dfc69f`, then latest `42909714464` on `9a6ac1f`.
 - Re-read live Edge versions and RPC privileges; inspected exact UI call sites and current branch/file blobs.
 - Read-only Production baseline after testing remained receiving=1, receiving_details=2, inventory_log=78, stock_branches=58, stock_vouchers=0, stock_voucher_details=0, supplier_ledger=3, journal_entries=21, buyer_goods_custody_events=0.
 - Cloudflare Production pointer remains `a68a206`; no application HTML files changed since that deployed app commit.
@@ -284,15 +284,15 @@ Master CTO Governance §§77.2–77.3 requires explicit approval of the exact pr
 
 ## 12. Final status
 
-**CONFIRMED:** operational HEAD `5dfc69f`; Receiver/Warehouse app blobs deployed at Cloudflare commit `a68a206`; full mocked Warehouse Playwright E2E PASS `42909347268`; Picker parity and all seven native modules tested; production row counts unchanged; transfer receiver fallback migration source reconciled.
+**CONFIRMED:** operational HEAD `9a6ac1f`; Receiver/Warehouse app blobs deployed at Cloudflare commit `a68a206`; two consecutive full mocked Warehouse Playwright E2E runs PASS (`42909347268` and latest `42909714464`); latest workflow adds stage-aware timeout diagnostics only; Picker parity and all seven native modules tested; production row counts unchanged; transfer receiver fallback migration source reconciled.
 
 **REMAINING:** apply the owner-approved guard/fail-closed ChangeSet; then perform deployment-specific verification. Authenticated browser E2E is not available in the connected read-only browser, and no successful live stock/finance mutation was run.
 
 **Closure:** `WAREHOUSE UI + MOCKED E2E PASS — PRODUCTION DATA UNCHANGED — BACKEND SAFETY CHANGESET READY FOR EXACT OWNER APPROVAL — NOT GOLD/DIAMOND RELEASED UNTIL APPROVED PATCHES AND DEPLOYMENT VERIFY`.
 
-Operational HEAD: `5dfc69fe4db13ef48a12ea313e0cf7943e7c385f`  
-Warehouse E2E: `42909347268` (success)  
+Operational HEAD: `9a6ac1f916d88cdbb54ab154c1aa3a0761c2a89a`  
+Warehouse E2E: `42909714464` (success; prior full pass `42909347268`)  
 Cloudflare Production app commit: `a68a206184b2d588e10793a8146229eb35baddc9`  
-Workflow blob: `cfab16b3a67316fc015ab1b2b793abcd4c0bc93b`  
+Workflow blob: `901ec101e69247d6b7cff1ba15703f1decb8e00e`  
 Production project: `fiilmooggumokxanwiyx`  
 Previous governance checkpoint: LVE-2026-11-10-700
