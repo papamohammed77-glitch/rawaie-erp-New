@@ -1285,3 +1285,19 @@ Read-only post-migration counts:
 3. In an authenticated Receiver session, perform non-posting UI E2E for queue/filter/workspace/validation/history, including full-rejection view reset.
 4. Only then assess a committed synthetic Production receipt test if a full cleanup/reversal path can be proven; otherwise keep live posting E2E open and preserve current balances.
 5. Continue the remaining unified warehouse module and cross-application closure audit without touching unsafe reversal paths.
+
+
+## FINAL HEAD RECONCILIATION — LVE-2026-11-10-700 (supersedes earlier intra-session HEAD)
+**Final refresh:** 2026-11-10  
+**Operational main HEAD:** `8f1c3a0e0bd2806f43ea9242a1eb4233a776ea7c`.
+
+The final commit after the earlier LVE-700 source correction adds only Receiver initial-queue failure diagnostics to the warehouse E2E workflow. Final blobs:
+- Receiver: `f2bd1e427b902924a50531f886ba22bb61912b91`.
+- Warehouse: `b617dc7a040df60f20f5d84321500d3dd8c11e31`.
+- Workflow: `7633d758ba57329068cb8e2314dbe46dfab06aa8`.
+
+The receiver success-return fix remains present in both standalone and embedded source. Receiver/host scripts and the workflow's Playwright Node script parse successfully. Static guards for PO/QMP active-filter retention, full-rejection return-to-list, and initial queue diagnostics are present.
+
+Latest Report700 blob: `0a1b524407b57b9ec541c2d0295a92a5246cfdad`. Latest Report700 governance commit: `dfd2ea1ed55c929b9becc9f775a182a7bf9f20dd`.
+
+**Remaining unverified gates:** GitHub Actions run/log and actual Playwright result (combined commit statuses returned empty); Cloudflare Production pointer / served asset byte parity (direct asset retrieval unavailable); authenticated Receiver browser E2E. No Production data or balances changed. Do not declare Gold/Diamond closure until these gates and the remaining unified warehouse module audit are complete.
