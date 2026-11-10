@@ -326,3 +326,22 @@ Design decisions derived from these references:
 4. Enforce work classes as role + branch + assignment + document status at the server boundary; a hub menu is never an authorization control.
 5. Do not create a new generic "warehouse transaction" engine or merge all operation-specific business rules into the hub.
 
+
+
+### 8.1 Voucher workflow nuance — preserve creator and receiver binding
+
+A deeper read of vouchers.html actionFor() shows that the unified role must not be treated as a universal bypass:
+
+- Transfer / status Sent: receive is permitted only when the current user's id equals stock_vouchers.receiver_user_id. Keep this exact receiver binding for all roles, including مخزن شامل. Never replace it with a generic warehouseVoucherRole check.
+- DirectReturn / status Sent: the current UI allows receive for privileged users or the active أذونات role when the destination branch is in scope. The warehouseVoucherRole predicate should accept أذونات OR مخزن شامل, while preserving branchInScope(v.to_id).
+- SupplierReturn / status Sent: the current UI permits completion only to the voucher creator or privileged warehouse/management users. Preserve this rule. For the new role to complete its own SupplierReturn, the RPC role predicate should allow مخزن شامل only when the acting user is the creator; it must not allow completion of another user's SupplierReturn merely because the actor has the unified role.
+- SupplierReturn send: preserve the existing creator/privileged UI action and supplier-return contract. The server role extension must be conditional on creator identity for مخزن شامل, or otherwise preserve the existing أذونات/manager path.
+- Draft update: preserve the existing status=Draft restriction, operation_id/idempotency, branch scope, and existing editor authorization. Do not allow edits after Sent/Received/Completed.
+- DirectSale and DirectReturn remain their existing creator/privileged/receiver workflows; do not make them generic actions for every user who can open the hub.
+
+Acceptance tests must explicitly prove:
+1. unified role cannot receive a Transfer unless receiver_user_id matches;
+2. unified role can receive DirectReturn only within allowed destination branch;
+3. unified role can send/complete its own SupplierReturn only, and cannot complete another employee's SupplierReturn;
+4. posted SupplierReturn remains non-editable and all supplier/stock effects continue through the existing atomic contract.
+
