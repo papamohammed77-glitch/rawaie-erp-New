@@ -1314,3 +1314,52 @@ The latest Report700 blob is `cd87149f3581bc5f4e65f2984ba77b4b62726abc`; latest 
 **Unverified remains unchanged:** the actual GitHub Actions push-run/Playwright logs; Cloudflare Production deployment pointer and served asset byte parity; authenticated user browser E2E. No test business operation, stock posting, AP/GL posting, treasury or cash event was created. The latest read-only Production count baseline remains receiving=1, receiving_details=2, inventory_log=78, stock_branches=58, stock_vouchers=0, supplier_ledger=3, journal_entries=21, buyer_goods_custody_events=0.
 
 **Closure status:** `RECEIVER FIX APPLIED — SOURCE/EMBEDDED PARITY AND STATIC SYNTAX PASS — CROSS-MODULE TEST HARNESS STRUCTURE RESTORED — CI RUNTIME / CLOUDFLARE / AUTHENTICATED E2E UNVERIFIED — NOT CLOSED`.
+
+---
+
+# CURRENT STATE UPDATE — LVE-2026-11-10-701
+**Recorded:** 2026-11-10 (Africa/Cairo)
+**Workstream:** Unified Warehouse full mocked E2E closure / guarded production ChangeSet
+
+## Latest operational source
+- Operational repo `papamohammed77-glitch/erp-frontend`, main HEAD `9a6ac1f916d88cdbb54ab154c1aa3a0761c2a89a` (`test(warehouse): add stage-aware E2E timeout diagnostics`).
+- Last deployed app commit shown by Cloudflare Pages Production dashboard: `a68a206184b2d588e10793a8146229eb35baddc9`; auto deployments enabled. Current app blobs remain receiver `f2bd1e427b902924a50531f886ba22bb61912b91`, warehouse `b617dc7a040df60f20f5d84321500d3dd8c11e31`, returns `56868aa5c0300d22de2774e3643562cc23045d31`. Compare from a68a206 to current HEAD is 10 ahead/0 behind and includes only workflow plus transfer-receiver migration source changes; no operational HTML/Core/Parent file changed after a68a206.
+- Latest Workflow blob `901ec101e69247d6b7cff1ba15703f1decb8e00e`.
+
+## Full Warehouse E2E evidence
+- Latest run `42909714464` on HEAD `9a6ac1f` completed success; job `130156838407` / standalone-warehouse and the Playwright stage completed successfully.
+- Previous full pass `42909347268` on HEAD `5dfc69f` also succeeded. Two consecutive full E2E passes are now confirmed.
+- PASS coverage: shell/four tabs; seven native bundles/shared auth/no iframe; Receiver PO and Quick Market, accepted/sent guards, required discrepancies, return to pending on unchanged queue, completed history; Picker identity/profile; Loader/Returns/Unloader reads; Counter branch/vehicle/general scope, session create/populate/save; six full workspaces; five voucher actions/SupplierReturn; branch receipt request payload, requester/source/assigned-receiver actions including unified-role receive; list filters; logout/re-login; restricted role/branch scope.
+- Mock fixture fix preserves base branch/vehicle rows while overlaying synthetic PO/QMP data. Workflow diagnostics and counter block repair are test-only. No application HTML was changed by these test commits.
+- Limitation: Playwright uses local synthetic Supabase/Auth mocks and intercepts receipt/Counter calls. It does not prove a successful authenticated production inventory/finance mutation. No real business movement was attempted.
+
+## Cloudflare / Production deployment
+- Cloudflare Pages dashboard Production is on `a68a206` and serves the latest actual Receiver/Warehouse app changes. Since all following commits in this range only modify Workflow and migration source, app asset byte parity is established by current Git blob stability; latest Workflow is not a Pages asset.
+- Connected app browser remains read-only/logged out; no authenticated employee browser E2E was performed.
+
+## SMART ERP read-only post-test baseline
+- Project `fiilmooggumokxanwiyx` remains the active SMART ERP production project.
+- Counts after the two E2E passes: `receiving=1`, `receiving_details=2`, `inventory_log=78`, `stock_branches=58`, `stock_vouchers=0`, `stock_voucher_details=0`, `supplier_ledger=3`, `journal_entries=21`, `buyer_goods_custody_events=0`.
+- Values match the earlier baseline. No inventory, reservation, PO/QMP receipt, voucher, supplier/customer ledger, journal, cash/Treasury, driver-liability or custody row was written or changed.
+- Live designated-transfer receiver fallback remains applied under migration `20261110213226`; tracked later source has been reconciled to preserve `أذونات` priority and scoped `مخزن شامل` fallback. No migration was applied.
+
+## Production backend gaps and approval-ready ChangeSet
+- `cancel-picking` v5 and `reopen-picking` v9 still reject active role `مخزن شامل` though the native Picker allows that role. Their central RPCs are SECURITY DEFINER, service_role-only (`authenticated` EXECUTE=false); preserve RPC assignment, state and reservation checks/grants.
+- `cancel-return` v4 still rejects `مخزن شامل` though start/complete Returns and the shared helper support it. Preserve same-company, assigned-handler, `Returning`, and `return_end IS NULL` checks; this route is non-posting.
+- `reopen-return` v1 is unsafe: raw `stock_branches.qty` decrement without `inventory_log`, transaction/idempotency or reversal of posted return journal/customer/POS credit/driver-liability effects. Completed-return reopen must fail closed; disable the reopen UI in standalone Returns and embedded Warehouse.
+- Legacy `reopen-receiving` v1 is still ACTIVE but no current caller was found in repository search; current Receiver uses `receive-purchase` v18. The old endpoint raw-decrements stock without movement log or purchase/AP reversal. Fail closed before any future call.
+- Exact ChangeSet `CS-WH-701-A/B/C/D`, with full proposed source blocks, impact, acceptance matrix and rollback, is documented in Report701 §§7–9. The deployed Edge sources for these endpoints are not currently tracked in Git; restore exact live v5/v9/v4/v1/v1 source before any approved patch.
+- Master CTO Governance §§77.2–77.3 requires explicit approval of these exact changes before any Edge/app production source write or deployment. No Edge/app/RPC/ACL/RLS/SQL change was made; only test workflow and governance documentation changed.
+
+## Next actions
+1. Obtain exact approval for `CS-WH-701-A`, `CS-WH-701-B`, `CS-WH-701-C`, and `CS-WH-701-D` as written in Report701.
+2. After approval, restore/byte-compare exact deployed Edge sources; patch A/B guards with `requireWarehouseRole` + `assertWarehouseMainBranch`, keeping existing RPCs and SQL grants unchanged.
+3. Fail closed `reopen-return` and `reopen-receiving`; update Returns UI identically in standalone and embedded bundle. Never restore the old raw stock writer on rollback.
+4. Run Deno/Playwright mocked auth-role/branch/handler regression tests; verify 409 + zero DB calls on both suspended reopen endpoints.
+5. Deploy approved Edge and Pages artifacts, verify versions/SHAs, and re-read Production baseline. Do not run successful stock/finance mutation E2E on existing production records.
+
+**Detailed report:** `doc/Draft/Reprots/Report701_UNIFIED_WAREHOUSE_E2E_PASS_AND_PRODUCTION_GUARDED_CHANGESET_20261110.md`  
+**Report update commit:** `14ad8c21df3059dd71a7c99d6abed4d7a2a75c80`  
+**Latest tested operational HEAD:** `9a6ac1f916d88cdbb54ab154c1aa3a0761c2a89a`  
+**Latest full E2E:** `42909714464` (success)  
+**Previous checkpoint:** LVE-2026-11-10-700
