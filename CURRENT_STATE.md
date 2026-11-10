@@ -59,7 +59,7 @@
 - Supervisor's existing role roster includes `مخزن شامل`; the existing guarded `set_active_warehouse_role` RPC is the assignment path. No user role was changed or assigned.
 
 ## Deployment and runtime limits
-- Cloudflare deployment parity is **UNVERIFIED**. The connected dashboard snapshot last visible in this session showed a Production pointer at `da5c8e1`, older than the final native-root correction; the dashboard tab was not refreshed after the latest source commit. The public Pages asset fetch was inaccessible through the available read-only path.
+- Cloudflare dashboard now shows a **Production** deployment for current main HEAD `66b3d7f616f1aef70fbc45bab7d20e5339e76bb8`, deployment ID `101c663c-5df2-487e-b7da-75be6eea4744`, preview URL `https://101c663c.rawaea-erp.pages.dev/` (approximately 3 minutes old at verification). Deployment entry is confirmed; authenticated browser runtime on the deployed route remains unverified.
 - An earlier open ERP browser snapshot showed the general-owner session, not an employee assigned `مخزن شامل`; it is not evidence of a real warehouse-worker session.
 - Authenticated no-write E2E with a real unified-role employee remains open. Real stock/supplier/treasury/GL posting E2E was intentionally not run.
 - Visual QA on the latest deployed artifact remains open, including modal boundaries, mobile/desktop layout, scrolling and potential cross-module CSS selector interactions.
@@ -72,8 +72,8 @@
 - Report692 governance commit: `7d6e03333dda3fbe8ebac0322bd0c608082c314d`.
 
 **Last verified event:** native workspace E2E passed; SupplierReturn/branch authorization migration `20261110172124` applied and verified; production business-row counts unchanged.  
-**Status:** `SOURCE IMPLEMENTED + SYNTHETIC E2E PASS + SUPABASE AUTH ALIGNMENT APPLIED / CLOUDFLARE DEPLOYMENT AND REAL-USER E2E OPEN`.  
-**Next exact action:** verify the current Cloudflare Pages deployment against warehouse blob `1de65df6...`; then run authenticated read-only E2E with a real employee assigned `مخزن شامل`. Do not run a business posting test until a reversible QA fixture and cleanup proof exist.
+**Status:** `SOURCE IMPLEMENTED + SYNTHETIC E2E PASS + SUPABASE AUTH ALIGNMENT APPLIED + CLOUDFLARE PRODUCTION DEPLOYMENT PRESENT / REAL-USER RUNTIME E2E OPEN`.  
+**Next exact action:** open the current Cloudflare Production deployment and run authenticated read-only E2E with a real employee assigned `مخزن شامل`. Do not run a business posting test until a reversible QA fixture and cleanup proof exist.
 
 ---
 
