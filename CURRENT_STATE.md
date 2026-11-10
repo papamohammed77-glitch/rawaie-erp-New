@@ -1166,3 +1166,56 @@ The exact Edge ChangeSet was committed and deployed without first presenting it 
 **Detailed report:** doc/Draft/Reprots/Report697_UNIFIED_WAREHOUSE_LATEST_HEAD_AND_APPLIED_RECEIVER_FALLBACK_PARITY_20261110.md  
 **Report update commit:** 91304bb8e678eccb331e01b375957b0ff703ea85  
 **Previous checkpoint:** LVE-2026-11-10-697
+
+---
+
+# CURRENT STATE UPDATE — LVE-2026-11-10-699
+**Recorded:** 2026-11-10 (Africa/Cairo)
+**Workstream:** Unified Warehouse manual voucher parity, receiver fallback, and accounting-impact closure audit
+
+## Last verified operational source
+- Operational repo `papamohammed77-glitch/erp-frontend` / `main`.
+- HEAD `76a80dfa1437f5a51a8f076f963c9328d8b1aa29`.
+- `warehouse.html` blob `31c4f1ae903b389269a4b90afdf310784f77f194`; `vouchers.html` blob `bbbcd3bd577dfddf1a0ccb0f1e23b6060431b2fd`.
+- Workflow blob `83d0c3313fc2380c657f868c545b6f52d92edc3c`.
+- The manual voucher module retains all original voucher operations and no native method was missing in the embedded module. Differences are isolated UI adaptation and explicit branch-receipt extension. The two HTML files were not rewritten.
+
+## Confirmed execution and test
+- SMART ERP migration `20261110213226_standard_transfer_unified_warehouse_receiver_fallback` is applied and its tracked Git source matches the live function definition.
+- The live trigger now prioritizes a unique eligible `أذونات` receiver and uses a unique branch-scoped `مخزن شامل` candidate only when no dedicated receiver exists. Multiple or ambiguous candidates block send.
+- Read-only production candidate evaluation preserves the existing single receiver at BR-01 and BR-2. Vehicle warehouses are not candidates.
+- Warehouse Actions run `42906160386`, job `130144570312`, completed SUCCESS on HEAD 76a80d. Browser tests remain synthetic auth/RPC; no actual production voucher lifecycle was executed.
+- `create-stock-voucher` deployed v14 remains byte-identical to Git source. No new Edge Function was created.
+
+## SMART ERP production data integrity
+Read-only post-migration counts:
+- stock_vouchers=0; stock_voucher_details=0; stock_voucher_operations=32.
+- inventory_log=78; stock_branches=58; inventory_stock_requests=0.
+- treasury=4; cash_box=9; supplier_ledger=3; journal_entries=21.
+- stock qty=142; allocated_qty=0; available_qty=142.
+- No business voucher, inventory movement, supplier ledger entry, journal, treasury or cash row was created by this task. No user/role/branch was changed.
+
+## Operational/accounting interpretation verified from live RPC definitions
+- Branch receipt request creates a Draft Transfer and details only; no stock movement.
+- Transfer send/receive post source `TransferOut` and destination `TransferIn`, without supplier/AP or GL movement.
+- DirectSale moves stock to vehicle and records driver custody; custody is not cash received.
+- DirectReturn removes vehicle stock on send and increases warehouse stock on receipt.
+- SupplierReturn removes stock on send and creates buyer goods-custody events; supplier/AP and GL are affected only at completion after full supplier acceptance under the current contract.
+- SupplierReturn completion debits supplier ledger (reduces liability) and posts the corresponding AP/inventory/input-tax journal.
+
+## Open release gates — NOT CLOSED
+1. Git migration `20261110222000_standard_transfer_requires_designated_branch_receiver.sql` remains a narrower unapplied source file. Do not apply it as-is; reconcile/retire it before any future pending-migration push.
+2. Cloudflare Production artifact parity with HEAD 76a80d is unverified.
+3. Real authenticated employee E2E and actual send/receive completion remain unverified.
+4. Picker cancel/reopen and Returns cancel Edge role gates still need a separately reviewed change; they were not changed here.
+5. Completed sales-return reopen and dormant legacy receiving reopen remain unsafe because stock can be decremented without the full inventory/accounting reversal. Keep blocked.
+
+## Safety / status
+- No business QA fixture or production posting was created.
+- No Edge deployment, user assignment, RLS/ACL/Grant change, Parent modification, or new Supabase branch was performed in this audit.
+- The existing receiver fallback migration is recorded as applied; business data and balances remain unchanged.
+- Gold/Diamond release is NOT certified until Cloudflare/authenticated and remaining release gates are closed.
+
+**Detailed report:** doc/Draft/Reprots/Report699_UNIFIED_WAREHOUSE_VOUCHER_PARITY_AND_ACCOUNTING_IMPACT_20261110.md  
+**Report commit:** 35f290dd92894fb7bda629ccc1e2b2737a87f30c  
+**Previous checkpoint:** LVE-2026-11-10-698
