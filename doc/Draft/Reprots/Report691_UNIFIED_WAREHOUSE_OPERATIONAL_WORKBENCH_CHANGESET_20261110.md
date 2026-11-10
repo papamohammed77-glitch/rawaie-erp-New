@@ -658,3 +658,20 @@ if (deck) deck.innerHTML = '';
 This prevents duplicate iframe IDs and stale, previously authenticated child documents after the next login.
 
 These A.7–A.8 constraints are mandatory corrections to the sample-level details in Appendix A; they do not expand Phase 1 beyond the single `warehouse.html` file.
+
+
+### A.9 Cloudflare Production pointer recheck — browser dashboard evidence
+
+After the initial report text was prepared, the already-open Cloudflare Pages dashboard tab was inspected read-only. The `rawaea-erp` Production row points to:
+
+- Commit: `fd45a7dd8a3dae92afcc66e485e74a133cb345ae`
+- Deployment URL: `https://c0ae9072.rawaea-erp.pages.dev/`
+- Cloudflare deployment detail URL: `https://dash.cloudflare.com/504e4fe3e1141a251c622ea69fd4ad06/pages/view/rawaea-erp/c0ae9072-8ccb-4f8e-9bea-d3970f7ff87d`
+
+This confirms the Production deployment pointer is on the latest `fd45a7d` launcher source rather than the older `2221eea` row. The browser text extraction did not expose the deployment status badge text, and the page asset itself was not directly fetched in this read-only review. Therefore:
+
+- Production commit pointer: **CONFIRMED**
+- Deployment success badge: **UNVERIFIED**
+- Served `warehouse.html` byte parity with GitHub blob: **UNVERIFIED**
+- Functional Production app still missing the requested operation tabs: source-level **CONFIRMED**; live authenticated click-through **NOT RUN**
+
