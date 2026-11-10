@@ -345,3 +345,32 @@ Acceptance tests must explicitly prove:
 3. unified role can send/complete its own SupplierReturn only, and cannot complete another employee's SupplierReturn;
 4. posted SupplierReturn remains non-editable and all supplier/stock effects continue through the existing atomic contract.
 
+
+
+### 8.2 Exact frontend gate replacements
+
+Apply only these predicate-level edits; do not reformat or replace complete functions:
+
+| File | Current predicate | Replacement predicate |
+|---|---|---|
+| receiver.html (2 occurrences) | if (!user.isOwner && user.activeWarehouseRole !== 'استلام') | if (!user.isOwner && user.activeWarehouseRole !== 'استلام' && user.activeWarehouseRole !== 'مخزن شامل') |
+| picker.html | if(!isOwner && activeRole !== 'تحضير') | if(!isOwner && activeRole !== 'تحضير' && activeRole !== 'مخزن شامل') |
+| loader.html | if (!isOwner && user.activeWarehouseRole !== 'تحميل') | if (!isOwner && user.activeWarehouseRole !== 'تحميل' && user.activeWarehouseRole !== 'مخزن شامل') |
+| returns.html | if (!isOwner && user.activeWarehouseRole !== 'مرتجعات') | if (!isOwner && user.activeWarehouseRole !== 'مرتجعات' && user.activeWarehouseRole !== 'مخزن شامل') |
+| unloader.html | if (!user.isOwner && user.activeWarehouseRole !== 'تفريغ') | if (!user.isOwner && user.activeWarehouseRole !== 'تفريغ' && user.activeWarehouseRole !== 'مخزن شامل') |
+| counter.html | if(!u.isOwner&&u.activeWarehouseRole!=='جرد') | if(!u.isOwner&&u.activeWarehouseRole!=='جرد'&&u.activeWarehouseRole!=='مخزن شامل') |
+| vouchers.html init | if(!s.user.isOwner&&s.user.activeWarehouseRole!=='أذونات') | if(!s.user.isOwner&&s.user.activeWarehouseRole!=='أذونات'&&s.user.activeWarehouseRole!=='مخزن شامل') |
+
+In vouchers.html, the local role variable is currently:
+    var warehouseVoucherRole =
+        String(user.activeWarehouseRole || user.active_warehouse_role || '') === 'أذونات';
+
+Replace only the final equality with:
+    ['أذونات','مخزن شامل'].indexOf(
+        String(user.activeWarehouseRole || user.active_warehouse_role || '')
+    ) >= 0;
+
+This local predicate is used for DirectReturn receiving and must continue to be combined with branchInScope. It must not be used to bypass the exact Transfer receiver binding or SupplierReturn creator restriction described in §8.1.
+
+Receiver's duplicate initialization/restored-session checks must both be updated. Do not edit RW_Auth.hasWarehouseRole globally; the seven app predicates are the narrow consumers.
+
