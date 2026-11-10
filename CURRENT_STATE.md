@@ -69,7 +69,7 @@
 - Report689's Returns-copy finding and Report691's iframe proposal are historical; the current source was independently fetched and verified after later commits.
 - Owner's explicit execution instruction was applied only to the requested standalone warehouse task. No unrelated Parent or original-app changes were made.
 - Detailed execution report: `doc/Draft/Reprots/Report692_UNIFIED_WAREHOUSE_NATIVE_OPERATIONAL_WORKBENCH_EXECUTION_20261110.md`.
-- Report692 governance commit: `7d6e03333dda3fbe8ebac0322bd0c608082c314d`.
+- Report692 latest governance commit: `927f841f68720b38187e385157e35fe911551555`; blob `2f6d6074f489bd191420dae8500c0497748e93cc`.
 
 **Last verified event:** native workspace E2E passed; SupplierReturn/branch authorization migration `20261110172124` applied and verified; production business-row counts unchanged.  
 **Status:** `SOURCE IMPLEMENTED + SYNTHETIC E2E PASS + SUPABASE AUTH ALIGNMENT APPLIED + CLOUDFLARE PRODUCTION DEPLOYMENT PRESENT / REAL-USER RUNTIME E2E OPEN`.  
