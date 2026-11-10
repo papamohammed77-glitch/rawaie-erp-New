@@ -8,7 +8,7 @@
 - HEAD: 9a73e585443bdad8b55b73b2676ac77385055b63 (from LVE-689 and current warehouse directory history).
 - warehouse.html remains a Returns copy; blob 16d02fff2d00759451879204abf218202898f9c0, identical to returns.html.
 - Existing app blobs rechecked: Receiver 47ca645aa82c14cd143f5b485afddee31f1cb87b; Picker d483bd15b36585b975b63c2ef641481a01d5d084; Loader 4375d3067f9fe5453b49f580339a1f906040967f; Returns 16d02fff2d00759451879204abf218202898f9c0; Unloader 30a41c3af75fb9455885b1b0b8427de6842924d6; Counter 32d0dc8ca0edb7cc68660f0fbd6246408117498d; Vouchers 339927c5476b74056a8ea9d9c64bd7cf9fefc088; Supervisor 792f8bbff15a0c724e47b6e6e28f2ffec903b024.
-- Parent main.html blob be58fb0e54a8e4c09ce081b15ebf5420e072bdfd; GitHub content retrieval returned empty content due file size. Parent browser DOM confirms legacy separate warehouse links and no unified-hub entry in the inspected snapshot. Exact source insertion anchor remains UNVERIFIED.
+- Parent main.html blob be58fb0e54a8e4c09ce081b15ebf5420e072bdfd; full 1,906,820-character blob retrieved through fetch_blob. Exact Parent menu insertion at source line 1530 and action handler insertion at line 2367 are confirmed in Report690 §8.4. Parent inline JS compile check PASS.
 - Shared core blob 2d11b852862c523fc89e6a8b9c510462bb65cc4e. Shared helper supabase/functions/_shared/warehouse-auth.ts blob cbeb79f5d5ba1bdd2f733db69c17f8e09808ed7a; helper already accepts مخزن شامل but is not wired into inspected deployed loading/unloading Edge Functions.
 - Live Edge Functions read from Supabase: start-loading v6; complete-loading v11; unload-runsheet v6; start-return v5; receive-purchase v17; create-stock-voucher v12; send-stock-voucher v20; receive-stock-voucher v22; complete-stock-voucher v4. Most checked Edge functions are not source-managed in operational Git; receive-purchase is source-managed. Exact live code must be copied before any deployment; never overwrite it with an older repo version.
 
@@ -30,14 +30,14 @@
 - Cloudflare browser snapshot was last opened 2026-11-09 23:33 and showed 08f7b20; this predates HEAD 9a73e585. Current Production parity is UNVERIFIED.
 
 ## ChangeSet and governance
-- Created and then extended Report690: doc/Draft/Reprots/Report690_UNIFIED_WAREHOUSE_CHANGESET_AND_LIVE_SECURITY_AUDIT_20261110.md (latest governance repo commit 5a8d0a39990236f68afe86bc8c5ed29c5ca5d375). It now includes official Odoo Barcode, Dynamics 365 Warehouse Management and SAP EWM RF benchmark findings, plus the SupplierReturn creator-only and Transfer receiver-binding constraints, and exact frontend role-gate replacement predicates, plus live picking/loading/unloading/return assignment and stock-RPC details.
+- Created and then extended Report690: doc/Draft/Reprots/Report690_UNIFIED_WAREHOUSE_CHANGESET_AND_LIVE_SECURITY_AUDIT_20261110.md (latest governance repo commit 909edc84052b76900db53513595e47ee43f2ce10). It now includes official Odoo Barcode, Dynamics 365 Warehouse Management and SAP EWM RF benchmark findings, plus the SupplierReturn creator-only and Transfer receiver-binding constraints, and exact frontend role-gate replacement predicates, plus live picking/loading/unloading/return assignment and stock-RPC details.
 - Report690 contains the live evidence, exact frontend role-gate map, Supervisor role-list replacement, deployed Edge/RPC security findings, hub design, read-only dashboard requirements, acceptance matrix and rollback/QA constraints.
 - Report590 exact file path could not be retrieved; exact-name repository search returned no result. Do not claim it was read.
 - No operational app file, Parent file, SQL/RLS policy, Edge Function, deployment, or business row was modified.
 - Operational app source application remains subject to constitution §6.2/§7a and prompt §10.1–10.3. Report690 records the precise remaining source retrieval and apply gates. This is not a completed hub release.
 
 ## Next continuation
-1. Retrieve exact Parent main.html source slice from a supported raw-file/local source path; do not guess insertion anchors.
+1. Apply the confirmed Parent menu/action patch from Report690 §8.4, preserving all legacy entries.
 2. Create the hub replacement for warehouse.html only; preserve returns.html.
 3. Add مخزن شامل to the seven narrow frontend role gates and Supervisor assignment UI; preserve all legacy roles.
 4. Source-manage the exact current live Edge versions before adding the helper; do not create new Edge Function slugs.
