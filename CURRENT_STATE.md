@@ -49,8 +49,8 @@ Owner clarified that the unified app is not a link launcher. It must provide nat
 - Constitution §6.2 and §7.a plus Master Governance §77.2–77.3 require a specific reviewed ChangeSet and explicit owner approval before operational app source changes. Owner applies operational app files; do not directly commit `warehouse.html`.
 - Created the substantive change report:
   `doc/Draft/Reprots/Report691_UNIFIED_WAREHOUSE_OPERATIONAL_WORKBENCH_CHANGESET_20261110.md`
-  Governance report initial commit: `1c68600df099c55b8e838b97f143aaab361740e2`; latest source-level ChangeSet append/correction commit: `a14ba29310a434a8d14cc10da2d3b5389bdd40ca`; latest report blob: `928ea0461d7a975c5b4160f47cadda025a516757`.
-- Report691 contains the exact target file/base blob, the nine-tab functional contract, data/workflow mapping, Phase 1 embedded-workspace design, actor/role/branch semantics, exclusions, tests and rollback. Appendix A adds the concrete frame registry/activation, tab dispatch, dashboard routing, logout cleanup, child-auth gating, and the required container-preserving `load()` corrections.
+  Governance report initial commit: `1c68600df099c55b8e838b97f143aaab361740e2`; latest source-level ChangeSet append/correction commit: `a14ba29310a434a8d14cc10da2d3b5389bdd40ca`; latest report update commit: `3846137ef18078b60897617f7005462e3ef3b654`; latest report blob: `761f1f9e1eef5144fb536b68d8a9e75a65294d25`.
+- Report691 contains the exact target file/base blob, the nine-tab functional contract, data/workflow mapping, Phase 1 embedded-workspace design, actor/role/branch semantics, exclusions, tests and rollback. Appendix A adds the concrete frame registry/activation, tab dispatch, dashboard routing, logout cleanup, child-auth gating, and the required container-preserving `load()` corrections. Appendix A.9 records the fresh Cloudflare Production source-pointer evidence (fd45a7d → c0ae9072).
 - No operational source, Parent/Core, Supabase schema/data, Edge deployment, role assignment or Cloudflare deployment was modified in this checkpoint. All Production queries were read-only.
 
 ## Verification limits
