@@ -30,7 +30,7 @@
 - Cloudflare browser snapshot was last opened 2026-11-09 23:33 and showed 08f7b20; this predates HEAD 9a73e585. Current Production parity is UNVERIFIED.
 
 ## ChangeSet and governance
-- Created and then extended Report690: doc/Draft/Reprots/Report690_UNIFIED_WAREHOUSE_CHANGESET_AND_LIVE_SECURITY_AUDIT_20261110.md (latest governance repo commit ac4ced33ad01cd3d3dc079efdd9fa378962518bd). It now includes official Odoo Barcode, Dynamics 365 Warehouse Management and SAP EWM RF benchmark findings, plus the SupplierReturn creator-only and Transfer receiver-binding constraints.
+- Created and then extended Report690: doc/Draft/Reprots/Report690_UNIFIED_WAREHOUSE_CHANGESET_AND_LIVE_SECURITY_AUDIT_20261110.md (latest governance repo commit dc61a517b116d08c74ce3313fd337c8f76702822). It now includes official Odoo Barcode, Dynamics 365 Warehouse Management and SAP EWM RF benchmark findings, plus the SupplierReturn creator-only and Transfer receiver-binding constraints, and exact frontend role-gate replacement predicates.
 - Report690 contains the live evidence, exact frontend role-gate map, Supervisor role-list replacement, deployed Edge/RPC security findings, hub design, read-only dashboard requirements, acceptance matrix and rollback/QA constraints.
 - Report590 exact file path could not be retrieved; exact-name repository search returned no result. Do not claim it was read.
 - No operational app file, Parent file, SQL/RLS policy, Edge Function, deployment, or business row was modified.
