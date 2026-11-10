@@ -386,3 +386,222 @@ No operational source, database, deployment, role assignment or business data wa
 The current workstream has moved from “hub navigation” to a confirmed functional requirement mismatch. The source, app workflows, relevant Production table columns, role assignment contract and deployed Edge inventory have been inspected. The exact workbench direction and Phase 1 target are now defined.
 
 **Next event:** after the owner approves the specific Phase 1 source ChangeSet, apply only the approved `warehouse.html` patch, run static + authenticated no-write E2E, and verify deployment. Do not mark the unified warehouse application complete until all nine tabs and cross-application document coherence pass.
+
+
+---
+
+## Appendix A — Source-level implementation details for Phase 1
+
+The following is the concrete implementation block to insert into the existing `App` object. It is designed to preserve the existing dashboard, authentication, account view and `allowed()` role/branch predicate.
+
+### A.1 Operation map and persistent frame registry
+
+Insert after the current `activeTab` / `loading` state:
+
+```javascript
+operationDefs: {
+  receiving: { title: 'الاستلام', file: 'receiver.html', role: 'استلام', scope: 'main' },
+  picking:   { title: 'التحضير', file: 'picker.html', role: 'تحضير', scope: 'main' },
+  loading:   { title: 'التحميل', file: 'loader.html', role: 'تحميل', scope: 'main' },
+  returns:   { title: 'المرتجعات', file: 'returns.html', role: 'مرتجعات', scope: 'main' },
+  unloading: { title: 'التفريغ', file: 'unloader.html', role: 'تفريغ', scope: 'main' },
+  counting:  { title: 'الجرد', file: 'counter.html', role: 'جرد', scope: 'branch' },
+  vouchers:  { title: 'الأذونات المخزنية', file: 'vouchers.html', role: 'أذونات', scope: 'branch' }
+},
+workspaceFrames: {},
+activateWorkspace: function(key) {
+  var self = this;
+  var def = this.operationDefs[key];
+  var dashboard = document.getElementById('warehouseDashboard');
+  var deck = document.getElementById('warehouseWorkspaceDeck');
+  if (!def || !dashboard || !deck) return;
+
+  dashboard.classList.add('hidden');
+  deck.classList.remove('hidden');
+
+  if (!this.allowed(def.role, def.scope)) {
+    deck.innerHTML = '<div class="empty">لا تملك صلاحية هذا التبويب أو نطاق الفرع المطلوب.</div>';
+    return;
+  }
+
+  var frame = this.workspaceFrames[key];
+  if (!frame) {
+    var pane = document.createElement('div');
+    pane.className = 'warehouse-workspace';
+    pane.id = 'warehouse-workspace-' + key;
+
+    var status = document.createElement('div');
+    status.className = 'empty warehouse-frame-status';
+    status.id = 'warehouse-frame-status-' + key;
+    status.textContent = 'جارٍ فتح واجهة العملية ومراجعة جلسة الدخول...';
+
+    frame = document.createElement('iframe');
+    frame.className = 'warehouse-operation-frame';
+    frame.id = 'warehouse-frame-' + key;
+    frame.title = def.title + ' — المخزن الشامل';
+    frame.setAttribute('allow', 'camera');
+    frame.setAttribute('loading', 'eager');
+    frame.style.visibility = 'hidden';
+
+    frame.addEventListener('load', function() {
+      var attempts = 0;
+      var timer = window.setInterval(function() {
+        attempts++;
+        try {
+          var child = frame.contentDocument;
+          var main = child && child.getElementById('mainApp');
+          if (main && !main.classList.contains('hidden')) {
+            window.clearInterval(timer);
+            var style = child.createElement('style');
+            style.setAttribute('data-warehouse-embed-style', 'true');
+            style.textContent =
+              'html,body{height:100%!important;min-height:100%!important;overflow:hidden!important}' +
+              'body{margin:0!important}' +
+              '#mainApp{height:100%!important;min-height:0!important;display:flex!important}' +
+              '#mainApp>header{display:none!important}' +
+              '#tab-account{display:none!important}' +
+              '#mainContent{min-height:0!important;overflow:auto!important}';
+            child.head.appendChild(style);
+            frame.style.visibility = 'visible';
+            var childStatus = document.getElementById('warehouse-frame-status-' + key);
+            if (childStatus) childStatus.classList.add('hidden');
+            frame.dataset.warehouseReady = 'true';
+            return;
+          }
+          if (attempts >= 40) {
+            window.clearInterval(timer);
+            var failed = document.getElementById('warehouse-frame-status-' + key);
+            if (failed) failed.textContent = 'تعذر مشاركة جلسة الدخول مع التطبيق الأصلي. لم نفتح واجهة كتابة غير مصادق عليها.';
+            frame.dataset.warehouseReady = 'false';
+          }
+        } catch (e) {
+          window.clearInterval(timer);
+          var blocked = document.getElementById('warehouse-frame-status-' + key);
+          if (blocked) blocked.textContent = 'تعذر تضمين التطبيق الأصلي داخل المركز؛ تحقق من سياسة التضمين والجلسة.';
+          frame.dataset.warehouseReady = 'false';
+        }
+      }, 250);
+    });
+
+    pane.appendChild(status);
+    pane.appendChild(frame);
+    deck.appendChild(pane);
+    this.workspaceFrames[key] = frame;
+    frame.src = def.file;
+  }
+
+  var panes = deck.querySelectorAll('.warehouse-workspace');
+  for (var i = 0; i < panes.length; i++) {
+    panes[i].classList.toggle('active', panes[i].id === 'warehouse-workspace-' + key);
+    panes[i].style.display = panes[i].id === 'warehouse-workspace-' + key ? 'block' : 'none';
+  }
+},
+```
+
+### A.2 Top-level tab dispatcher and renderer
+
+Replace the current `tab()` and `render()` implementations with:
+
+```javascript
+tab: function(t) {
+  this.activeTab = t;
+  var bs = document.querySelectorAll('#warehouseTabs [data-tab]');
+  for (var i = 0; i < bs.length; i++) {
+    bs[i].classList.toggle('active', bs[i].getAttribute('data-tab') === t);
+  }
+  this.render();
+},
+render: function() {
+  if (!this.snapshot) return;
+  var dashboard = document.getElementById('warehouseDashboard');
+  var deck = document.getElementById('warehouseWorkspaceDeck');
+  if (this.operationDefs[this.activeTab]) {
+    this.activateWorkspace(this.activeTab);
+    return;
+  }
+  if (deck) deck.classList.add('hidden');
+  if (dashboard) {
+    dashboard.classList.remove('hidden');
+    dashboard.innerHTML = this.activeTab === 'account' ? this.account() : this.today();
+  }
+},
+```
+
+The existing delegated click listener for `[data-tab]` can remain. It will now dispatch both top-level tabs and dashboard quick-action buttons to the in-app tab rather than navigating to another page.
+
+### A.3 Dashboard quick actions stay inside the unified app
+
+Replace the current `card()` helper with a tab-mapped version (the dashboard currently uses it for Receiver, Picker and Loader shortcuts):
+
+```javascript
+card: function(title, icon, file, description, role, scope) {
+  var routeToTab = {
+    'receiver.html': 'receiving',
+    'picker.html': 'picking',
+    'loader.html': 'loading',
+    'returns.html': 'returns',
+    'unloader.html': 'unloading',
+    'counter.html': 'counting',
+    'vouchers.html': 'vouchers'
+  };
+  var key = routeToTab[file];
+  var ok = !!key && this.allowed(role, scope);
+  return '<button type="button" class="card ' + (ok ? '' : 'locked') + '"' +
+    (ok ? ' data-tab="' + key + '"' : ' disabled aria-disabled="true"') + '>' +
+    '<span class="ico"><i class="fa-solid ' + icon + '"></i></span>' +
+    '<span class="cardbody"><span class="cardtitle">' + title + '</span>' +
+    '<span class="desc">' + description + '</span>' +
+    '<span class="foot">' + (ok ? 'فتح داخل المخزن الشامل' : 'غير متاح ضمن نطاقك') + '</span>' +
+    '</span></button>';
+},
+```
+
+### A.4 Logout must clear child workspaces first
+
+Replace `logout()` so an authenticated child page cannot remain mounted after the shell logs out:
+
+```javascript
+logout: function() {
+  var self = this;
+  Object.keys(this.workspaceFrames).forEach(function(key) {
+    var frame = self.workspaceFrames[key];
+    if (frame) frame.src = 'about:blank';
+  });
+  this.workspaceFrames = {};
+  RW_Auth.doLogout(function() {
+    self.user = null;
+    self.snapshot = null;
+    self.showLogin('');
+  });
+},
+```
+
+### A.5 Workspace presentation CSS
+
+Append to the existing `<style>` block:
+
+```css
+#tabContent{min-width:0;min-height:60vh}
+#warehouseDashboard{min-width:0}
+#warehouseWorkspaceDeck{min-width:0;width:100%}
+.warehouse-workspace{display:none;position:relative;width:100%;height:calc(100dvh - 245px);min-height:520px;overflow:hidden;border:1px solid var(--line);border-radius:18px;background:#f4f7fa}
+.warehouse-workspace.active{display:block}
+.warehouse-frame-status{position:absolute;inset:14px 14px auto;z-index:2}
+.warehouse-operation-frame{display:block;width:100%;height:100%;min-height:520px;border:0;background:#f4f7fa;border-radius:18px}
+@media(max-width:560px){
+  .tabs{justify-content:flex-start;gap:5px}
+  .tab{flex:0 0 auto;padding:9px 12px}
+  .warehouse-workspace{height:calc(100dvh - 215px);min-height:480px}
+  .warehouse-operation-frame{min-height:480px}
+}
+```
+
+### A.6 Exact implementation caveats
+
+- The nav and `#tabContent` replacement in §5.2 is required for `warehouseDashboard` and `warehouseWorkspaceDeck` containers.
+- Remove the current dashboard quick-link anchor behavior; the replacement `card()` routes to shell tab keys.
+- The old launcher-only `operations()` and `vouchers()` functions must no longer be selected by `render()`. They may be removed in the same focused patch once the tab contract is static-checked.
+- The frame source paths are fixed relative filenames, not user input.
+- A child app must not have its login/header hidden until `#mainApp` is visibly authenticated. The status timeout is fail-closed.
+- The same-origin, child-session, permissions, responsive fit, service-worker and Realtime conditions in §4.2 are release gates. Passing JavaScript parsing alone is not release evidence.
+- This implementation keeps the original child app's native work queues. A separate cross-table aggregator or cloned action form is intentionally not introduced.
