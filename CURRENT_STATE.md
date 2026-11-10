@@ -1049,3 +1049,44 @@ The exact Edge ChangeSet was committed and deployed without first presenting it 
 **Detailed report:** doc/Draft/Reprots/Report695_UNIFIED_WAREHOUSE_PICKER_INTEGRATION_AND_BACKEND_GAP_AUDIT_20261110.md  
 **Report commit:** e3f884fe3414dbbf372c0c6315fffabedc7cd93a  
 **Previous checkpoint:** LVE-2026-11-10-694
+
+---
+
+# CURRENT STATE UPDATE — LVE-2026-11-10-696
+**Recorded:** 2026-11-10
+**Workstream:** Unified Warehouse current HEAD refresh / designated transfer receiver migration parity
+
+## Current operational source and CI
+- Operational repo papamohammed77-glitch/erp-frontend main HEAD 92fc4475613b2bed597428191c1ac8b7da428449.
+- HEAD advanced 5 commits after 81bc832. Current warehouse.html remains blob 31c4f1ae903b389269a4b90afdf310784f77f194; picker.html remains blob a94e18f1c7b2de5dad912011bb32999611976b8e.
+- Latest workflow RAWAEA — Standalone Unified Warehouse E2E run 42905190791 on 92fc447 succeeded, job 130141231855. It is mocked Supabase browser E2E, not authenticated production operation or proof of physical/financial postings.
+- New tracked cancel-loading and reopen-loading Edge source files now use requireWarehouseRole + assertWarehouseMainBranch and enforce loader assignment/status. Do not duplicate or revert these guards.
+- Cloudflare dashboard snapshot showed Production at 3748f4602c54961945c6e1ef74391a27ca3e6004; deployment of current HEAD 92fc447 remains UNVERIFIED.
+
+## Critical migration source drift
+- Git migration supabase/migrations/20261110222000_standard_transfer_requires_designated_branch_receiver.sql (blob 9c7acad5fcea614705c5f348d9f4a1be786ed34b) has 381 lines.
+- SMART ERP records applied migration version 20261110212138 / standard_transfer_requires_designated_branch_receiver_20261110. Trigger public.trg_transfer_responsibility_contract is enabled.
+- Live enforce_transfer_responsibility_contract() is 14,754 chars / 416 lines; Git migration function block is 13,365 chars / 380 lines. They are semantically different.
+- Live function builds eligible candidates for exact أذونات receiver and scoped مخزن شامل fallback; it prioritizes أذونات and only falls back to مخزن شامل when no eligible أذونات recipient exists. Git migration source selects/counts only أذونات. Reapplying current Git migration could regress the live full-role fallback. Do not reapply; recover exact authoritative SQL and reconcile tracked source separately.
+
+## Unified Warehouse blockers retained from LVE-695
+- Embedded Picker matches standalone at 26 shared methods. UI permits مخزن شامل but reopen-picking v9 and cancel-picking v5 reject that role; cancel-return v4 also rejects مخزن شامل despite UI role access.
+- reopen-return v1 is unsafe: raw stock_branches.qty decrement, no inventory_log or reversal of journal/customer/POS credit-note effects, no transaction/idempotency/company scoping. Never invoke; fail closed pending full reversal design.
+- Legacy reopen-receiving v1 is not used by current receiver.html (receive-purchase v18 is active) but remains exposed and raw-decrements stock_branches without inventory_log or purchase/AP reversal. Containment still required.
+- Main warehouse app/Parent link, central receive-purchase, loading/unloading, count, voucher and SupplierReturn contracts were audited; no new function or alternate test branch is required.
+
+## Execution and safety
+- Read-only checks only. No operational app/Edge/RPC/SQL/ACL changes, migration deployment, user/role mutation, branch receipt, stock movement, inventory count, supplier/customer ledger, journal, treasury/cash or production test record created.
+- No Supabase branch or additional paid environment created.
+- Master CTO Governance §77.2/§77.3 approval gate remains applicable for each exact operational diff. Report695 and Report696 hold detailed findings/proposed changes.
+
+## Next actions
+1. Restore authoritative applied migration SQL for version 20261110212138 and reconcile it with the Git migration; never reapply the narrower file.
+2. Obtain exact approval for Picker cancel/reopen and Returns cancel role/branch guard patches; keep SQL RPC behavior untouched.
+3. Contain completed-return reopen and legacy receiving reopen before use; implement a complete atomic reversal lifecycle separately.
+4. Verify Cloudflare deployment SHA for current HEAD 92fc447.
+5. Run authenticated E2E only when an existing open work item or a proven reversible fixture is available; preserve before/after snapshots across inventory and financial ledgers.
+
+**Detailed report:** doc/Draft/Reprots/Report696_UNIFIED_WAREHOUSE_HEAD_92FC447_AND_TRANSFER_RECEIVER_MIGRATION_DRIFT_20261110.md  
+**Report commit:** e776a73dceea51be7e481413b469c066c28b44c4  
+**Previous checkpoint:** LVE-2026-11-10-695
