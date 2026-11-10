@@ -75,5 +75,5 @@ Both files use requireWarehouseRole and assertWarehouseMainBranch and enforce co
 Operational HEAD: 76a80dfa1437f5a51a8f076f963c9328d8b1aa29  
 Warehouse blob: 31c4f1ae903b389269a4b90afdf310784f77f194  
 Picker blob: a94e18f1c7b2de5dad912011bb32999611976b8e  
-Latest run: 42906160386 (in_progress at report time)  
+Latest run: 42906160386 (PASS; mocked Supabase)  
 Applied fallback migration: 20261110213226
