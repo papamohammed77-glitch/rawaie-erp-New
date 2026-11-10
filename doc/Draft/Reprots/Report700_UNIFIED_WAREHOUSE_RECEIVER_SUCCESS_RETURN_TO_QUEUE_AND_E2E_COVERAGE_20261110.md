@@ -179,3 +179,23 @@ It does **not** contain `20261110222000`; the newer timestamped migration source
 - SMART ERP final counts remain receiving=1, receiving_details=2, inventory_log=78, stock_branches=58, stock_vouchers=0, supplier_ledger=3, journal_entries=21, buyer_goods_custody_events=0. Existing PO-20260928 evidence remains 15 received, 15 PurchaseIn, one balanced 700/700 journal, and one supplier credit 700. No test fixture or business mutation was created.
 
 **Updated closure status:** `FIX APPLIED — SOURCE PARITY AND STATIC GUARDS PASS — PLAYWRIGHT / CLOUDFLARE / AUTHENTICATED BROWSER E2E NOT VERIFIED — NOT CLOSED`.
+
+
+## 12. Cross-check against ERP receiving patterns (official documentation)
+
+The implementation was checked against primary vendor documentation as an architecture comparison, not as a reason to copy another product's workflow or change RAWAEA's accounting contract:
+
+- **SAP S/4HANA:** a Goods Receipt references its purchase order so the warehouse can check what physically arrived against what was ordered. The SAP learning material describes posting a material document and accounting document on goods receipt, and the retail flow supports searching a source document and recording goods receipt in two steps where needed.  
+  References: [SAP — Goods Receipts for Purchase Orders](https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/91b21005dded4984bcccf4a69ae1300c/a363bd534f22b44ce10000000a174cb4.html), [SAP Learning — Processing a Goods Receipt for a Purchase Order](https://learning.sap.com/courses/executing-basic-erp-processes-with-sap-s-4hana/processing-a-goods-receipt-for-a-purchase-order), [SAP Retail — Goods Receipt](https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/9905622a5c1f49ba84e9076fc83a9c2c/7ecbc4530b29b44ce10000000a174cb4.html).
+- **Microsoft Dynamics 365 Supply Chain Management:** distinguishes preregistration / registration at the warehouse from the later Product Receipt posting step. The registered inbound quantity can be inspected and then posted to inventory/ledger; the receipt posting includes a vendor packing-slip/product-receipt reference and line-specific receive quantities.  
+  References: [Microsoft — Product receipt against purchase orders](https://learn.microsoft.com/en-us/dynamics365/supply-chain/procurement/product-receipt-against-purchase-orders), [Microsoft — Inbound load handling](https://learn.microsoft.com/en-us/dynamics365/supply-chain/warehousing/inbound-load-handling), [Microsoft — Record the receipt of goods on the purchase order](https://learn.microsoft.com/en-us/dynamics365/supply-chain/procurement/tasks/record-receipt-goods-purchase-order).
+- **Odoo Inventory:** makes receipts discoverable both from the purchase order and the Inventory receipts worklist; the operator records the Done quantity against the demand, and a partial quantity can result in a backorder. Odoo's multi-step configuration also separates the initial receipt from later quality/internal transfers.  
+  References: [Odoo — Three-step receipt](https://www.odoo.com/documentation/master/applications/inventory_and_mrp/inventory/shipping_receiving/daily_operations/receipts_three_steps.html), [Odoo — Control product received entirely and partially](https://www.odoo.com/documentation/13.0/applications/inventory_and_mrp/purchase/purchases/rfq/reception.html), [Odoo — Stock movement valuation](https://www.odoo.com/documentation/19.0/applications/inventory_and_mrp/inventory/inventory_valuation/operations_valuation.html).
+
+### RAWAEA adaptation
+
+The existing RAWAEA Receiver already has the relevant core controls: PO / Quick Market source identity, line-level sent versus accepted quantities, remaining eligible quantity, discrepancy reason, an operation UUID and fingerprint for safe retry, actual receipt history, and a server-side posting boundary. The full-rejection path is especially important: it records the physical delivery discrepancy without creating a stock movement when accepted quantity is zero.
+
+The Quick Market route must remain distinct from PO receiving because its physical inventory event moves goods out of Buyer custody and does not create supplier AP / GL. This is a RAWAEA business contract, not a gap to be “standardized” into the PO posting route.
+
+No new design claim above authorizes a Production RPC, Edge, journal, inventory valuation or migration change; the present work stays within the Receiver user-state defect and synthetic E2E coverage.
