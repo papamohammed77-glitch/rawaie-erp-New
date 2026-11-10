@@ -1090,3 +1090,47 @@ The exact Edge ChangeSet was committed and deployed without first presenting it 
 **Detailed report:** doc/Draft/Reprots/Report696_UNIFIED_WAREHOUSE_HEAD_92FC447_AND_TRANSFER_RECEIVER_MIGRATION_DRIFT_20261110.md  
 **Report commit:** e776a73dceea51be7e481413b469c066c28b44c4  
 **Previous checkpoint:** LVE-2026-11-10-695
+
+---
+
+# CURRENT STATE UPDATE — LVE-2026-11-10-697
+**Recorded:** 2026-11-10
+**Workstream:** Unified Warehouse current HEAD / standard-transfer receiver fallback source reconciliation
+
+## Current operational state
+- Operational repo papamohammed77-glitch/erp-frontend main HEAD 76a80dfa1437f5a51a8f076f963c9328d8b1aa29.
+- Current warehouse.html blob 31c4f1ae903b389269a4b90afdf310784f77f194 and picker.html blob a94e18f1c7b2de5dad912011bb32999611976b8e remain unchanged.
+- HEAD advanced two commits after 92fc447; latest commit changes only the Warehouse E2E workflow to assert the full-role designated standard-transfer receiver action.
+- Latest Warehouse run 42906160386 / job 130144570312 was in_progress at checkpoint time. Static source contract passed; browser E2E stage was still pending. Do not call latest run a pass until final conclusion is verified.
+- Previous Warehouse E2E run 42905190791 on 92fc447 completed success; tests remain mocked Supabase/auth.
+- Latest tracked cancel-loading and reopen-loading Edge wrappers use requireWarehouseRole + assertWarehouseMainBranch and validate exact loader assignment/status.
+
+## Corrected standard-transfer migration reconciliation
+- SMART ERP applied migration entries include 20261110212138 standard_transfer_requires_designated_branch_receiver_20261110 and 20261110213226 standard_transfer_unified_warehouse_receiver_fallback.
+- The active public.stock_vouchers.trg_transfer_responsibility_contract is enabled.
+- Live pg_get_functiondef for public.enforce_transfer_responsibility_contract matches the function block in Git migration 20261110213226_standard_transfer_unified_warehouse_receiver_fallback.sql; normalized difference is only the terminal semicolon emitted by the migration file, omitted by pg_get_functiondef.
+- The live function prioritizes exact أذونات home-branch receivers and falls back to eligible scoped مخزن شامل only when no eligible أذونات receiver exists. The Git source contains this same candidate-priority logic.
+- Git also contains a later timestamped file 20261110222000_standard_transfer_requires_designated_branch_receiver.sql that is not an applied migration version and has the narrower earlier function (no full-role fallback). Do not apply it as-is; it could overwrite the correct live fallback. Reconcile/retire it in a reviewed migration source change before future push.
+
+## Remaining unified warehouse release blockers
+- Picker cancel/reopen: Edge reopen-picking v9 and cancel-picking v5 still require exact تحضير role, while embedded Picker allows مخزن شامل. Preserve SQL RPC status/assignment/reservation guards; align only Edge role + main-branch gate.
+- Returns cancel: cancel-return v4 still requires exact مرتجعات role; preserve its same-company, assigned-handler, Returning, and not-completed guards while allowing المخزن الشامل as defined.
+- Completed-return reopen v1 performs raw stock_branches.qty decrement without inventory_log or reversal of posted journal/customer/POS/credit-note effects. Do not invoke; fail closed pending a full atomic reversal contract.
+- Dormant legacy reopen-receiving v1 performs raw stock decrement without movement log or purchase/AP reversal; current receiver.html uses receive-purchase v18, not this endpoint. Contain the legacy endpoint before future use.
+- Cloudflare deployment of current HEAD 76a80d remains UNVERIFIED.
+
+## Execution / safety
+- No operational warehouse or picker source change, no Edge/RPC/ACL/RLS deployment, no SQL migration, no production data mutation, no role update, no stock/finance posting or QA fixture was performed.
+- No Supabase branch or additional paid test environment was created.
+- Master CTO Governance §77.2/§77.3 exact operational change approval gate remains in force.
+
+## Next actions
+1. Verify final result of Warehouse Actions run 42906160386 on HEAD 76a80d.
+2. Reconcile/retire pending narrower migration 20261110222000 without overwriting the already applied 20261110213226 behavior.
+3. Obtain exact approval for Picker cancel/reopen and Returns cancel role/branch edge guard diffs; leave SQL RPC behavior unchanged.
+4. Fail closed completed-return and legacy receiving reopen until a complete safe reversal contract exists.
+5. Verify Cloudflare SHA and perform authenticated E2E only with an existing open assignment or proven reversible fixture, asserting every relevant stock and financial ledger.
+
+**Detailed report:** doc/Draft/Reprots/Report697_UNIFIED_WAREHOUSE_LATEST_HEAD_AND_APPLIED_RECEIVER_FALLBACK_PARITY_20261110.md  
+**Report commit:** 6bd68ca87fa5c68ecffa637207193d0a0a19e55f  
+**Previous checkpoint:** LVE-2026-11-10-696
