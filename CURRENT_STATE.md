@@ -1,3 +1,75 @@
+# CURRENT STATE UPDATE — LVE-2026-11-10-693
+
+**Recorded:** 2026-11-10 (Africa/Cairo)  
+**Workstream:** Unified Warehouse — linked employee login assignment, Arabic job-title aliases, tab responsiveness and native module boot feedback
+
+## Last verified operational source state
+- Operational repository: `papamohammed77-glitch/erp-frontend` / `main`.
+- Current HEAD: `a98625c51fc8f152e626752a4a5b8fb5494a3863`.
+- `companies/company-1/warehouse/warehouse.html` contains the standalone four-tab host and seven native workspaces. No iframe, child-app navigation, separate stock engine or parent-menu integration.
+- Frontend commits in this continuation:
+  - `6c82f8fafde22d0bf17e68d100dc98f3a6d21510` — repair malformed static CI regex checks.
+  - `91f3e5aeb2b1f844c45a09cb4f7d41dd25089c1b` — 15-second initial snapshot timeout and 20-second native module boot watchdog with visible failure state.
+  - `c8205d175dde7075e7e811ed6fb7692220a6619e` — normalize warehouse job-title aliases.
+  - `7e6befa721d7d8a23ffd9fea3fe257e6cb764809` — repeated tab and job-title alias E2E coverage.
+  - `a98625c51fc8f152e626752a4a5b8fb5494a3863` — add exact SQL migration source to `supabase/migrations`.
+- No changes to Parent `main.html`, Supervisor UI, shared `core.js`, or the seven original warehouse applications.
+
+## Linked warehouse employee — current verified state
+- Existing account: `storekeeper@rawaea.com`, primary role `أمين مخزن`, status Active.
+- Assigned `active_warehouse_role='مخزن شامل'`.
+- Added only user-level `warehouse` permission.
+- Existing branch list `["BR-01"]` preserved; canonical `app_private.user_can_access_warehouse_branch` check returned true for the active Main Branch.
+- No default branch was invented and no other user was modified.
+- This is an access-role assignment only; it does not create stock, supplier, cash, treasury or accounting movements.
+
+## Supervisor role assignment compatibility
+- SMART ERP migration `20261110181631 warehouse_supervisor_accept_amin_makhzan_alias_20261110` applied.
+- Only `public.set_active_warehouse_role(uuid,text)` changed: accepted target primary-role values now include `مخزني`, `أمين مخزن`, and `امين مخزن`.
+- Function signature, SECURITY DEFINER, supervisor authorization, company/branch scope checks, allowed active warehouse roles and existing grants preserved.
+- Verified privileges: anon EXECUTE=false; authenticated EXECUTE=true.
+- Exact migration source tracked at `supabase/migrations/20261110181631_warehouse_supervisor_accept_amin_makhzan_alias_20261110.sql`.
+
+## E2E verification
+- Standalone warehouse workflow run `42873621326`, job `130031012788`, conclusion SUCCESS on tested source commit `7e6befa721d7d8a23ffd9fea3fe257e6cb764809`.
+- Verified repeated switching across Today / Operations / Vouchers / Account.
+- Verified all six operation workspaces mount and become ready.
+- Verified all five manual-voucher actions and SupplierReturn contract UI.
+- Verified logout/relogin cleanup, active-role rejection, main-vs-scoped-branch restrictions, and all three Arabic primary job-title variants when active role is `مخزن شامل`.
+- The prior workflow failure at `021f47a` was caused by an over-escaped regular expression in the workflow static test; the test was corrected and the full Playwright job passed.
+- E2E uses synthetic auth/RPC; it is not proof of an actual employee credential login.
+
+## SMART ERP production data integrity
+Post-change read-only counts:
+- `inventory_log=78`
+- `stock_branches=58`
+- `stock_vouchers=0`
+- `stock_voucher_details=0`
+- `purchase_invoices=5`
+- `supplier_ledger=3`
+- `journal_entries=21`
+- `inventory_counts=0`
+- `inventory_count_details=0`
+
+No stock, supplier, cash, treasury or GL business record was created or modified. No Edge Function or posting RPC was changed.
+
+## Open verification boundaries
+1. Real browser login using the linked employee's actual credentials remains unverified; browser connector could not access the selected tab and no security bypass was attempted.
+2. Cloudflare deployment of the latest operational HEAD `a98625c` remains to be confirmed.
+3. Real writer E2E remains intentionally blocked until a reversible QA fixture and complete cleanup proof exist.
+4. Visual QA on the deployed artifact (desktop/mobile, modal bounds, scrolling and CSS interactions) remains open.
+
+**Detailed report:** `doc/Draft/Reprots/Report693_WAREHOUSE_LOGIN_ROLE_AND_TAB_RESPONSIVENESS_REPAIR_20261110.md`.  
+**Report commit:** `d38b6c502dec07f440f5b1013852f969eb51b441`.
+
+**Last verified event:** linked warehouse employee assigned `مخزن شامل` + `warehouse` permission; supervisor RPC accepts the three requested job-title spellings; full synthetic browser E2E passed repeated four-tab navigation and all seven native workspaces; production business-row counts unchanged.
+
+**Status:** `ROLE ASSIGNMENT APPLIED + ROLE ALIASES SUPPORTED + TAB/NATIVE WORKSPACE E2E PASS + BUSINESS DATA UNCHANGED / REAL EMPLOYEE LOGIN AND LATEST DEPLOYMENT OPEN`.
+
+**Next exact action:** verify Cloudflare Production deployment for the current operational HEAD, then run a real read-only login using the linked employee account. Do not execute stock, supplier, treasury or GL posting tests without reversible fixtures and cleanup proof.
+
+---
+
 # CURRENT STATE UPDATE — LVE-2026-11-10-692
 
 **Recorded:** 2026-11-10 (Africa/Cairo)  
