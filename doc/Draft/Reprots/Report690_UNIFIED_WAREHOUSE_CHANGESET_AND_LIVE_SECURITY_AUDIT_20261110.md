@@ -309,3 +309,20 @@ The next work is not another general analysis:
 - Business-data writes: NONE.
 - Operational code changes: NONE.
 - Final status: ROOT CAUSES CONFIRMED — OWNER CHANGESET APPLY GATE OPEN.
+
+
+## 8. Industry benchmark and design implications
+
+The benchmark supports a unified task-navigation layer, but not duplicated warehouse business logic:
+
+- Odoo Inventory/Barcode exposes receipts, delivery orders, internal transfers and picking as operation-specific work entry points. Its barcode workflow opens outstanding receipt operations, supports scanning and quantity confirmation, and validates the transfer only at the operational completion point. This supports RAWAEA's design of one hub with clear task cards that launch the existing operation apps, while each app retains its native document and validation flow. Sources: https://www.odoo.com/documentation/master/applications/inventory_and_mrp/barcode/setup/operation_types.html and https://www.odoo.com/documentation/master/applications/inventory_and_mrp/barcode/operations/receipts_deliveries.html
+- Microsoft Dynamics 365 Warehouse Management separates activity/inquiry menus, creation of work, and processing of existing work. It uses work classes to control which roles can process work, and supports user-directed or system-directed work selection. This supports keeping role/branch authorization separate from visual navigation and preserving assignment/status guards at the server boundary. Source: https://learn.microsoft.com/en-us/dynamics365/supply-chain/warehousing/configure-mobile-devices-warehouse
+- SAP EWM's RF framework separates business logic from device presentation, supports personalized menus and screens, and includes picking, putaway, loading, unloading and physical inventory as standard work execution transactions. This supports using warehouse.html as a presentation/navigation shell while leaving transaction logic in the established apps and atomic services. Source: https://help.sap.com/docs/SAP_SUPPLY_CHAIN_MANAGEMENT/57574d15fa1d414792d74047b66c3e41/4d4fa477c9c20c7ae10000000a42189c.html
+
+Design decisions derived from these references:
+1. Keep one prominent operation menu with task-specific launch cards, optimized for touch.
+2. Keep each operation's own workflow, confirmations, exceptions and server transaction contract.
+3. Separate read-only inquiry/monitoring from work execution and from stock/finance posting.
+4. Enforce work classes as role + branch + assignment + document status at the server boundary; a hub menu is never an authorization control.
+5. Do not create a new generic "warehouse transaction" engine or merge all operation-specific business rules into the hub.
+
