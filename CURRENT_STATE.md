@@ -1219,3 +1219,69 @@ Read-only post-migration counts:
 **Detailed report:** doc/Draft/Reprots/Report699_UNIFIED_WAREHOUSE_VOUCHER_PARITY_AND_ACCOUNTING_IMPACT_20261110.md  
 **Report commit:** 35f290dd92894fb7bda629ccc1e2b2737a87f30c  
 **Previous checkpoint:** LVE-2026-11-10-698
+
+
+---
+
+# CURRENT STATE UPDATE — LVE-2026-11-10-700
+**Recorded:** 2026-11-10 (Africa/Cairo)  
+**Workstream:** Unified Warehouse / Receiver success state, PO + Quick Market E2E coverage, and migration-source reconciliation
+
+## Last verified operational source
+- Operational repository: `papamohammed77-glitch/erp-frontend` / `main`.
+- Latest verified HEAD at this checkpoint: `f19fcfe95fe7587697ce1a801dffd11fec2f17d2`.
+- `companies/company-1/warehouse/receiver.html` blob: `f2bd1e427b902924a50531f886ba22bb61912b91`.
+- `companies/company-1/warehouse/warehouse.html` blob: `b617dc7a040df60f20f5d84321500d3dd8c11e31`.
+- `.github/workflows/warehouse_hub_browser_e2e_20261110.yml` blob: `85c639b47f93cd7b1a8d0986b29bfe8c0247e2f3`.
+- Parent `companies/company-1/main.html` was not changed; its existing `openWarehouseHub` action already exposes `warehouse/warehouse.html` under the `warehouse` permission.
+- No `core.js`, Parent, standalone sibling module, Edge, RPC, RLS/ACL, or production schema change was made in this workstream.
+
+## Receiver fix applied
+- Root cause: the successful receiving callback cleared `activeDocumentIndex` and called `loadPurchaseOrders()`, but list rendering was conditional on a changed queue signature. A full rejection (sent > 0, accepted = 0) creates receiving evidence without changing inventory, received quantity, or document status; therefore the signature could remain unchanged while the DOM still showed the closed document workspace.
+- Surgical correction in standalone `receiver.html` and its native embedded bundle in `warehouse.html`: render the cached pending list immediately, then run a quiet reconciliation:
+  `self.renderList(); self.loadPurchaseOrders({silent:true});`
+- Both scripts parse successfully. The same success-return body is present in the standalone and embedded Receiver sources.
+- Nineteen core Receiver methods were compared between standalone and embedded sources after normalizing module DOM scope references; 19/19 key methods matched, including `submitReceiving`, queue loading, document opening, Realtime scheduling, and completed-operation history.
+
+## Latest E2E workflow changes
+- Playwright coverage added for synthetic PO and Quick Market queue display, source filters, PO workspace, accepted > sent rejection, mandatory discrepancy reason, PO UUID/source payload, QMP full rejection with accepted=0, unique operation IDs, completed history and operation detail.
+- Regression coverage now asserts the UI returns to the pending list after success even when the source document remains in the queue with unchanged data.
+- Follow-up commit `8f998a25edb8abb31ba86891ff58d47db306fa40` made the test verify preservation of the selected source filter after receipt.
+- Latest workflow correction `f19fcfe95fe7587697ce1a801dffd11fec2f17d2` explicitly activates PO filter before opening PO and QMP filter before opening Quick Market; assertions require the corresponding filter to remain active after each success.
+- Static source guards for both standalone and embedded return-to-list behavior are present.
+- These tests use synthetic local Supabase/auth mocks and intercept `RW_API.call('receive-purchase')`; they do not call production receipt writers.
+
+## Current SMART ERP / Production evidence
+- Supabase project: `fiilmooggumokxanwiyx`.
+- `receive-purchase` Edge is ACTIVE v18, `verify_jwt=true`; deployed source hash previously verified as `e2e35f338861f6b5e96320509ab7c8bd8dfd1854766b68ecdd8cc5bce7c19bb8`, byte-matched to Git.
+- Live PO and Quick Market receive RPCs remain service_role-only; the authenticated Quick Market queue RPC remains guarded and callable under its existing authenticated contract.
+- Production counts at final read-only check: receiving=1; receiving_details=2; inventory_log=78; stock_branches=58; stock_vouchers=0; supplier_ledger=3; journal_entries=21; buyer_goods_custody_events=0.
+- Existing PO-20260928 operation remains unchanged: two receiving details, sent=15, accepted=15, difference=0; two PurchaseIn movements total 15; one balanced Posted journal totaling debit 700 / credit 700; one supplier ledger credit 700.
+- No Production record, inventory quantity, supplier balance, journal, cash/Treasury, buyer custody event, role, or branch was changed. No QA fixture was created.
+
+## Transfer receiver fallback migration-source reconciliation
+- Production migration history includes `20261110212138 standard_transfer_requires_designated_branch_receiver_20261110` and `20261110213226 standard_transfer_unified_warehouse_receiver_fallback`.
+- Git commit `4d5d06c5429cc7263aa94a104866038abc72f8eb` updated the later source file `20261110222000_standard_transfer_requires_designated_branch_receiver.sql` so it no longer overwrites the applied unified fallback with the narrower designated-role-only logic.
+- Workflow commit `9994b4b826ce0e6d1e50e3da1a50456b49324462` adds a regression guard requiring the later source migration to match the full-role fallback contract.
+- Live `pg_get_functiondef(public.enforce_transfer_responsibility_contract())` was read-only checked and contains the dedicated `أذونات` candidates, the `مخزن شامل` fallback, priority via `NOT EXISTS`, and unique-candidate assignment.
+- Migration `20261110222000` is **not** listed as applied in Production. No migration was pushed or applied in this task.
+
+## Deployment and test status — open
+- Current GitHub combined status for HEAD `f19fcfe95fe7587697ce1a801dffd11fec2f17d2` returned an empty status list. Do not claim that the latest Playwright workflow passed until the run result/log is inspected.
+- Direct published Cloudflare asset retrieval was inaccessible; the open Cloudflare dashboard view was stale. Production deployment pointer and byte parity for the new Receiver/Warehouse blobs remain **UNVERIFIED**.
+- Authenticated Receiver browser E2E was not run; the connected ERP browser integration in this session is read-only.
+- A live physical receipt was not used as a test. Do not use existing PO/PINV business documents as fixtures. Any committed QA transaction requires a unique synthetic fixture and a proven complete cleanup/reversal path.
+
+## Detailed report and continuation
+- Detailed execution report: `doc/Draft/Reprots/Report700_UNIFIED_WAREHOUSE_RECEIVER_SUCCESS_RETURN_TO_QUEUE_AND_E2E_COVERAGE_20261110.md`.
+- Report update commit: `4698f1d318147769988f749ba78bca2618a0f30f`.
+- Operational compare from pre-task HEAD `76a80dfa1437f5a51a8f076f963c9328d8b1aa29` to current HEAD `f19fcfe95fe7587697ce1a801dffd11fec2f17d2`: six commits ahead, zero behind; changed only the Receiver, embedded Warehouse host, warehouse E2E workflow, and the transfer receiver migration source.
+
+**Final status:** `FIX APPLIED — SOURCE PARITY / STATIC GUARDS PASS — PLAYWRIGHT RUN / CLOUDFLARE / AUTHENTICATED BROWSER E2E NOT VERIFIED — NOT CLOSED`.
+
+**Next exact actions:**
+1. Retrieve the GitHub Actions run for workflow `warehouse_hub_browser_e2e_20261110.yml` on `f19fcfe95fe7587697ce1a801dffd11fec2f17d2`; inspect Playwright logs and fix any failed scenario.
+2. Verify Cloudflare Pages Production pointer and compare served Receiver `f2bd1e427b902924a50531f886ba22bb61912b91` / Warehouse `b617dc7a040df60f20f5d84321500d3dd8c11e31` bytes.
+3. In an authenticated Receiver session, perform non-posting UI E2E for queue/filter/workspace/validation/history, including full-rejection view reset.
+4. Only then assess a committed synthetic Production receipt test if a full cleanup/reversal path can be proven; otherwise keep live posting E2E open and preserve current balances.
+5. Continue the remaining unified warehouse module and cross-application closure audit without touching unsafe reversal paths.
