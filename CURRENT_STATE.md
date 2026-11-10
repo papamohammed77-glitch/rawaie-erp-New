@@ -1422,3 +1422,51 @@ The latest Report700 blob is `cd87149f3581bc5f4e65f2984ba77b4b62726abc`; latest 
 **Detailed report:** `doc/Draft/Reprots/Report702_UNIFIED_WAREHOUSE_COLLABORATOR_DELTA_AND_PRODUCTION_EDGE_PARITY_20261111.md`  
 **Report commit:** `051ef5ae6ccb9c5fe6b3dc4bfbd83c8c9f1b9248`  
 **Previous checkpoint:** LVE-2026-11-10-701.
+
+
+---
+
+# CURRENT STATE UPDATE — LVE-2026-11-11-702
+**Recorded:** 2026-11-11 (Africa/Cairo)  
+**Workstream:** Owner-approved unified warehouse guarded ChangeSet CS-WH-701-A/B/C/D  
+**This section supersedes the LVE-701 "awaiting owner approval" state below.** Approval has now been given and the approved source changes were applied.
+
+## Current operational source
+- Operational repository: `papamohammed77-glitch/erp-frontend` / `main`.
+- Latest verified HEAD: `98ef3dbcf493a933be752ce053f73f706e94534d` (`fix(warehouse): keep returns discrepancy contract byte-aligned`).
+- Current key blobs: Picker cancel Edge `d425ce8d19babc2c96591386993bec54b499a61f`; Picker reopen Edge `a19a118095e81ea57f312717a658f31b28a15a6b`; Return cancel Edge `a0e6a5e48c615815c6e946e6bcd724504699e452`; Return reopen Edge `16129e14be65ce4320b380a6ec6ee7e467d94650`; legacy receiving reopen Edge `45796345e1725abda8dc7eabbe998733ac6eb415`; shared warehouse helper `cbeb79f5d5ba1bdd2f733db69c17f8e09808ed7a`; standalone Returns `2d725fede124a19c4cb4587eb97040ca2e2a1869`; embedded Warehouse `987dbf4d24e2424e27a3e35e168ec4596007c1a7`; E2E workflow `136cc684c210c837fba44592d3990d08e7e26c10`.
+
+## Production Edge state — verified read-back
+| Endpoint | Current version | State | JWT |
+|---|---:|---|---|
+| `cancel-picking` | v6 | ACTIVE | true |
+| `reopen-picking` | v10 | ACTIVE | true |
+| `cancel-return` | v6 | ACTIVE | true |
+| `reopen-return` | v2 | ACTIVE / fail-closed HTTP 409 | true |
+| `reopen-receiving` | v2 | ACTIVE / fail-closed HTTP 409 | true |
+
+- A: Picker cancel/reopen call shared `requireWarehouseRole(..., "تحضير")` and `assertWarehouseMainBranch`. Only `تحضير` or `مخزن شامل` passes role gate; existing company/identity validations and central RPCs/arguments remain unchanged.
+- B: Return cancellation v6 calls shared `requireWarehouseRole(..., "مرتجعات")` and main-branch scope check. The v5 role allowance for `مخزن شامل` was preserved. Same-handler, same-company, Returning status and `return_end IS NULL` conditions remain; path is non-posting.
+- C: live Return reopen was already v2 fail-closed before this run; it was retained. Both standalone and embedded completed-return controls are disabled; their methods only show a warning and do not call the endpoint, read status, or reload data.
+- D: legacy purchase-receiving reopen v2 is fail-closed and has zero Supabase client/table/RPC code. JWT verification remains true. Current `receive-purchase v18` was untouched.
+- All five deployed Edge sources match current Git files byte-for-byte; shared helper bundles in A/B match the tracked helper file.
+
+## SMART ERP post-deploy read-only state
+Fresh counts after Edge deployments exactly match Report701 baseline: receiving=1, receiving_details=2, inventory_log=78, stock_branches=58, stock_vouchers=0, stock_voucher_details=0, supplier_ledger=3, journal_entries=21, buyer_goods_custody_events=0. Read-only RPC privilege check confirms `cancel_runsheet_picking` and `reopen_runsheet_picking` have EXECUTE only for `service_role`; no authenticated/anon grant was added. No SQL/DDL/migration/RPC/ACL/RLS update or business data mutation was performed.
+
+## Release / verification boundaries
+- Confirmed: three new guarded Edge deployments (A/B and D), C retained in already-safe v2, all functions ACTIVE and JWT protected, Git/Edge byte parity, UI source parity, no active completed-return reopen API call, unchanged row counts and RPC grants.
+- Not yet confirmed: Cloudflare Pages Production pointer and served asset parity for latest UI HEAD `98ef3db`. The latest directly read dashboard snapshot showed `83c0f39`; automatic deployment is enabled, but latest deployment was not independently confirmed.
+- Not yet confirmed: a passing GitHub Actions E2E run for the latest UI/workflow commits. Combined status arrays for commits `475759b` and `98ef3db` were empty. Prior run `42909714464` passed on older HEAD `9a6ac1f` and must not be represented as post-change validation.
+- Authenticated invocation of HTTP 409 endpoints and real role/main-branch negative runtime tests remain unverified; current Supabase tool surface has no direct Edge invoke action. Production stock/finance transaction tests were intentionally not run.
+
+## Immediate next steps
+1. Verify Cloudflare Production now serves standalone Returns and embedded Warehouse at HEAD `98ef3db`; do not call this release live until confirmed.
+2. Verify final GitHub Actions Playwright run and inspect logs for all PASS markers.
+3. Run isolated mocked guard tests for valid/invalid role, main-branch scope, company, active-user, assignment and no-RPC-on-denial cases; invoke fail-closed endpoints with valid JWT and assert 409/zero DB calls when a supported harness is available.
+4. Do not reactivate historical raw-stock-decrement versions of `reopen-return` or `reopen-receiving`. A/B rollback, if necessary, may revert only to the pre-guard live versions; never alter SQL RPC bodies/grants or business ledgers for testing.
+
+**Detailed execution report:** `doc/Draft/Reprots/Report702_WAREHOUSE_GUARDED_CHANGES_DEPLOYED_20261111.md`.  
+**Report702 blob:** `c5773f8f99698433293a8cfbc26c4f44ef87647a`.  
+**Report702 governance commit:** `d0ac1da9c89fb9e944728ef827374841238d2f92`.  
+**Previous checkpoint:** LVE-2026-11-10-701.
