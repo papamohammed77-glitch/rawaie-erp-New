@@ -1,6 +1,60 @@
 # CURRENT STATE UPDATE — LVE-2026-11-10-690
 
 **Recorded:** 2026-11-10 (Africa/Cairo)  
+**Workstream:** Unified Warehouse hub implementation, role integration, backend guards, E2E and Cloudflare deployment
+
+## Last verified operational source state
+- Operational repository: \`papamohammed77-glitch/erp-frontend\` / \`main\`.
+- Current HEAD: \`2221eea98a8edcdcb9c582ddde07e4f45edeef2e\`.
+- Dedicated hub: \`companies/company-1/warehouse/warehouse.html\`; no longer a Returns copy.
+- Parent entry point added in \`companies/company-1/main.html\`.
+- Supervisor role list includes \`مخزن شامل\`.
+- Frontend role gates updated in Receiver, Picker, Loader, Returns, Unloader, Counter and Vouchers.
+- Latest main commit's Cloudflare Pages \`rawaea-erp\` check: SUCCESS. Preview: \`https://a4deebdc.rawaea-erp.pages.dev\`.
+
+## Last verified SMART ERP state
+Project \`fiilmooggumokxanwiyx\`.
+- \`20261110003307 unified_warehouse_hub_snapshot\`: applied.
+- \`20261110004233 unified_warehouse_role_guards\`: applied.
+- Prior \`20261109233602 unified_warehouse_role_and_scoped_inventory_counts\`: already applied; not reapplied.
+- \`get_warehouse_hub_snapshot()\`: read-only, SECURITY DEFINER, pinned search_path, authenticated-only execute; branch scope verified. Anonymous execute denied.
+- Server-side unified-role parity applied to receiving and manual-voucher RPC guards. Existing branch scope, supplier-return creator restriction, supplier contract, transfer receiver binding, and posting semantics preserved.
+- No active user currently has role \`مخزن شامل\`; do not infer operational role E2E from UI role options alone.
+
+## Edge Functions deployed
+- \`start-picking\` v36
+- \`complete-picking\` v19
+- \`start-loading\` v7
+- \`complete-loading\` v12 (checks assigned \`loader_id\`)
+- \`unload-runsheet\` v7
+- \`start-return\` v6
+- \`complete-return\` v28 (runsheet guard only; POS/order return path preserved)
+- \`receive-purchase\` v18
+
+All use the existing functions; no new Edge Function. Shared warehouse authorization helper enforces the unified role, warehouse permission and main-branch access where required.
+
+## Verified tests
+- JavaScript parse for Parent, hub and seven modified warehouse apps: PASS.
+- Unified Warehouse Hub browser E2E (mocked auth/RPC): PASS.
+- Vouchers browser boot E2E: PASS (HTTP 200; core.js 200; sw.js 200; login controls present; no browser errors).
+- Mother browser E2E and Mother inventory forensic E2E: PASS.
+- Authenticated read-only snapshot RPC and unauthorized rejection: PASS.
+- Security advisor: no anon execute exposure; performance advisor has no new hub-specific finding.
+- Post-change counts: inventory_log=78, stock_branches=58, journal_entries=21, supplier_ledger=3, stock_vouchers=0, purchase_invoices=5. No business write or QA fixture was created.
+
+## Release limits and next step
+- Cloudflare main \`rawaea-erp\` deployment is successful; other separate Pages projects retain pre-existing build failures, not introduced by this change.
+- Actual authenticated browser session for a user assigned \`مخزن شامل\` was not available. Hub E2E uses synthetic mocked auth/RPC; the real RPC was independently tested with an existing authenticated warehouse user.
+- No stock/finance writer E2E was executed. Do not create production stock, supplier, treasury, cash or journal movements until each test has a complete synthetic fixture, rollback/cleanup plan, and before/after verification.
+- Next: assign the role through Supervisor to an authorized warehouse employee; run authenticated read-only navigation across all original apps; then run reversible QA writer tests one workflow at a time and prove full cleanup.
+
+**Closure:** \`FIX APPLIED — E2E PARTIALLY VERIFIED\`. See \`doc/Draft/Reprots/Report690_UNIFIED_WAREHOUSE_IMPLEMENTATION_AND_VERIFICATION_20261110.md\`.
+
+---
+
+# CURRENT STATE UPDATE — LVE-2026-11-10-690
+
+**Recorded:** 2026-11-10 (Africa/Cairo)  
 **Workstream:** Unified Warehouse — live security audit and executable ChangeSet preparation
 
 ## Last verified source state
