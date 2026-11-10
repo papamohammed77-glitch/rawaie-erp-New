@@ -55,7 +55,7 @@ Owner clarified that the unified app is not a link launcher. It must provide nat
 
 ## Verification limits
 - Latest commit `fd45a7d` combined status returned no entries; workflow-run connector returned no runs. This is UNVERIFIED, not a pass or a failure.
-- Report690 deployment success applies to `2221eea`. Production deployment parity after `fd45a7d` is UNVERIFIED.
+- Report690's recorded deployment success applies to `2221eea`. A read-only Cloudflare dashboard check now confirms Production points to `fd45a7d` with deployment URL `https://c0ae9072.rawaea-erp.pages.dev/`; the status badge text and served asset byte parity remain UNVERIFIED.
 - No real authenticated browser session was available to test same-origin embedded app workflows or cross-app document coherence.
 - No business-write or financial/inventory QA test was performed.
 
