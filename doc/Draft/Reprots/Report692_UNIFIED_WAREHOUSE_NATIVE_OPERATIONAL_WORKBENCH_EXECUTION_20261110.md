@@ -14,7 +14,7 @@
 **Synthetic browser E2E:** PASS.  
 **Supabase authorization migration:** APPLIED.  
 **Business data mutation:** NONE.  
-**Cloudflare deployment parity:** UNVERIFIED.  
+**Cloudflare Production deployment:** CONFIRMED for current main HEAD; **live route runtime:** NOT YET BROWSER-VERIFIED.  
 **Authenticated E2E using a real employee assigned `مخزن شامل`:** OPEN; no active user currently has that role.  
 **Real stock/supplier/GL posting E2E:** NOT RUN by design; no production movement was created.
 
@@ -99,7 +99,7 @@ Real production stock, supplier, treasury or GL posting was intentionally not ex
 
 ### Phase 5 — Remaining release verification
 
-The latest Cloudflare dashboard snapshot available in the connected tab was stale: it still showed a Production pointer at commit `da5c8e1`, while current Git HEAD is `66b3d7f`. The snapshot was last opened before the final native-root correction; the public Pages asset could not be fetched through the available read-only web path. Therefore deployment and published-asset parity are **UNVERIFIED**.
+A later Cloudflare dashboard snapshot refreshed and showed a new **Production** deployment for current main HEAD `66b3d7f616f1aef70fbc45bab7d20e5339e76bb8`, with deployment ID `101c663c-5df2-487e-b7da-75be6eea4744` and preview URL `https://101c663c.rawaea-erp.pages.dev/` (dashboard timestamp: approximately 3 minutes before verification). This confirms that Cloudflare has a Production deployment entry for the current source commit. The deployed route itself has not yet been exercised in an authenticated browser session; public web retrieval of the Pages route was inaccessible, so live runtime parity remains **NOT YET VERIFIED**.
 
 A real active user with `active_warehouse_role='مخزن شامل'` is also not present in the current Production role distribution. No role was assigned or changed in this execution. The Supervisor role list already includes `مخزن شامل`, and the existing guarded `set_active_warehouse_role` RPC remains the correct assignment path.
 
@@ -227,7 +227,7 @@ The existing Supervisor role assignment path must be used when an authorized emp
 
 ## 6. Open blockers and exact next actions
 
-1. **Cloudflare deployment parity — UNVERIFIED.** Refresh/inspect the current `rawaea-erp` Pages deployment and confirm that the served `warehouse.html` contains blob `1de65df6...` or the exact current commit artifact. The last visible dashboard snapshot is stale and not evidence of the latest deployment.
+1. **Cloudflare Production deployment — CONFIRMED; live runtime check OPEN.** The dashboard now lists Production commit `66b3d7f` with deployment ID `101c663c-5df2-487e-b7da-75be6eea4744` and preview URL `https://101c663c.rawaea-erp.pages.dev/`. Next verify the warehouse route in a real authenticated browser session.
 2. **Real unified-role user — NOT PRESENT.** Use the existing Supervisor UI and `set_active_warehouse_role` RPC to assign an authorized warehouse employee with correct branch scope. Do not write the role column directly.
 3. **Authenticated no-write browser E2E — OPEN.** Once the latest deployment and real role session exist, verify all seven workspaces in the actual session, branch scope, logout propagation and cross-app read visibility.
 4. **Business writer E2E — NOT RUN.** Only run reversible QA fixtures after explicit safe fixture design, before/after baseline, exact cleanup and proof that no inventory/supplier/treasury/GL residual remains. Do not use real production transactions as test data.
@@ -248,6 +248,6 @@ The existing Supervisor role assignment path must be used when an authorized emp
 | Cloudflare | No deployment action verified |
 
 **Last verified event:** native workspace E2E passed; Supabase SupplierReturn/branch authorization migration `20261110172124` applied and verified; production row counts unchanged.  
-**Status:** `SOURCE IMPLEMENTED + SYNTHETIC E2E PASS + RPC AUTH ALIGNMENT APPLIED / DEPLOYMENT AND REAL-USER E2E OPEN`.
+**Status:** `SOURCE IMPLEMENTED + SYNTHETIC E2E PASS + RPC AUTH ALIGNMENT APPLIED + CLOUDFLARE PRODUCTION DEPLOYMENT PRESENT / REAL-USER RUNTIME E2E OPEN`.
 
-**Next exact action:** verify the current Cloudflare Pages deployment for the latest main artifact, then run authenticated read-only E2E using an employee assigned `مخزن شامل`. Do not run a stock or financial posting test until a reversible QA fixture and cleanup proof exist.
+**Next exact action:** open the current Cloudflare Production deployment and run authenticated read-only E2E using an employee assigned `مخزن شامل`. Do not run a stock or financial posting test until a reversible QA fixture and cleanup proof exist.
