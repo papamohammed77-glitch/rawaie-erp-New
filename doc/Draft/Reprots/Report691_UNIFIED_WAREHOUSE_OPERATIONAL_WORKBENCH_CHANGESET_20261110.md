@@ -605,3 +605,56 @@ Append to the existing `<style>` block:
 - A child app must not have its login/header hidden until `#mainApp` is visibly authenticated. The status timeout is fail-closed.
 - The same-origin, child-session, permissions, responsive fit, service-worker and Realtime conditions in §4.2 are release gates. Passing JavaScript parsing alone is not release evidence.
 - This implementation keeps the original child app's native work queues. A separate cross-table aggregator or cloned action form is intentionally not introduced.
+
+
+### A.7 Required preservation fixes to the existing `load()` lifecycle
+
+The current `load()` implementation writes loading/error markup directly to `#tabContent.innerHTML`. Once §5.2 splits that section into `#warehouseDashboard` and `#warehouseWorkspaceDeck`, leaving those assignments unchanged would delete the persistent workspace deck and any previously mounted frames.
+
+Therefore Phase 1 must also make the following focused changes inside the existing `load()` method:
+
+- Initial loading: write the loading indicator into `#warehouseDashboard` only.
+- Snapshot authorization failure: keep `#warehouseWorkspaceDeck` in the DOM, hide it, and write the error into `#warehouseDashboard`.
+- RPC/network catch: likewise update only `#warehouseDashboard`; do not replace `#tabContent`.
+- On refresh, preserve already mounted child frames; refreshing the read-only snapshot must not recreate child applications or discard their local state.
+
+Use these exact target patterns for the replacement statements:
+
+```javascript
+var dashboard = document.getElementById('warehouseDashboard');
+if (dashboard) dashboard.innerHTML = '<div class="empty">جاري تحديث المؤشرات...</div>';
+```
+
+For the snapshot-denied branch:
+
+```javascript
+var dashboard = document.getElementById('warehouseDashboard');
+var deck = document.getElementById('warehouseWorkspaceDeck');
+if (deck) deck.classList.add('hidden');
+if (dashboard) dashboard.innerHTML =
+  '<div class="empty">تعذر فتح مركز المخزن: ' +
+  s.esc(r.error && r.error.message || 'استجابة غير صالحة') +
+  '</div>';
+```
+
+For the network catch, use the same container-preserving pattern with the existing escaped error text. Do not assign `tabContent.innerHTML` after the containers are created.
+
+### A.8 Access-denied and logout preservation
+
+The A.1 sample's access-denied branch must not use `deck.innerHTML = ...`, because doing so would remove previously mounted workspaces while leaving stale references in `workspaceFrames`. Instead, append one dedicated `#warehouseWorkspaceAccessMessage` node, toggle its visibility, and hide the existing panes without deleting them.
+
+The logout operation must also clear the workspace deck after blanking child frame URLs. The corrected cleanup tail is:
+
+```javascript
+Object.keys(this.workspaceFrames).forEach(function(key) {
+  var frame = self.workspaceFrames[key];
+  if (frame) frame.src = 'about:blank';
+});
+this.workspaceFrames = {};
+var deck = document.getElementById('warehouseWorkspaceDeck');
+if (deck) deck.innerHTML = '';
+```
+
+This prevents duplicate iframe IDs and stale, previously authenticated child documents after the next login.
+
+These A.7–A.8 constraints are mandatory corrections to the sample-level details in Appendix A; they do not expand Phase 1 beyond the single `warehouse.html` file.
