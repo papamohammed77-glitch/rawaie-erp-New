@@ -140,3 +140,42 @@
 5. أعد تدقيق بقية وحدات Warehouse والتكامل مع Parent بعد إغلاق Receiver، مع الحفاظ على حدود المخزون والحسابات.
 
 **التقييم النهائي:** `FIX APPLIED — SOURCE PARITY PASS — RECEIVER STATIC/E2E COVERAGE ADDED — PRODUCTION DATA UNCHANGED — PLAYWRIGHT CI / CLOUDFLARE / AUTHENTICATED E2E NOT VERIFIED — NOT CLOSED`.
+
+
+## 11. Reconciliation after Report700 — later main commits
+
+After the initial Report700 commit, operational `main` advanced through five additional commits:
+- `8f998a25edb8abb31ba86891ff58d47db306fa40` — adjusted the Receiver Playwright assertions to verify that the currently active source filter is preserved after receipt.
+- `4d5d06c5429cc7263aa94a104866038abc72f8eb` — aligned the later source migration `20261110222000_standard_transfer_requires_designated_branch_receiver.sql` with the already-applied unified receiver fallback contract, preventing a future migration push from overwriting the fallback with the narrower earlier implementation.
+- `9994b4b826ce0e6d1e50e3da1a50456b49324462` — added a static workflow guard requiring the later migration source to match the applied unified-fallback source contract.
+- `f19fcfe95fe7587697ce1a801dffd11fec2f17d2` — corrected the Receiver E2E setup so PO is opened with the PO source filter active and QMP is opened with the Quick Market filter active; runtime assertions now verify that each selected filter remains active after the operation.
+
+**Latest operational HEAD:** `f19fcfe95fe7587697ce1a801dffd11fec2f17d2`.
+
+**Current relevant blobs:**
+- Receiver standalone: `f2bd1e427b902924a50531f886ba22bb61912b91` (unchanged since the success-return fix).
+- Embedded warehouse host: `b617dc7a040df60f20f5d84321500d3dd8c11e31` (unchanged since the success-return fix).
+- Warehouse E2E workflow: `85c639b47f93cd7b1a8d0986b29bfe8c0247e2f3` (includes PO/QMP success, active-filter preservation, and regression guards).
+
+The compare from the pre-task HEAD `76a80dfa1437f5a51a8f076f963c9328d8b1aa29` to `f19fcfe95fe7587697ce1a801dffd11fec2f17d2` is six commits ahead and zero behind. The changed paths are limited to the three warehouse files above plus the one transfer migration source file.
+
+### Transfer receiver migration source versus Production
+
+Production migration history still contains:
+- `20261110212138 standard_transfer_requires_designated_branch_receiver_20261110`
+- `20261110213226 standard_transfer_unified_warehouse_receiver_fallback`
+
+It does **not** contain `20261110222000`; the newer timestamped migration source remains unapplied. Read-only `pg_get_functiondef` inspection of the live `public.enforce_transfer_responsibility_contract()` confirms the already-applied fallback structure: `eligible_voucher_role_receivers`, `eligible_full_role_receivers`, dedicated-role priority using `NOT EXISTS`, unique candidate validation, and receiver assignment from the single candidate. No migration was applied by this task.
+
+### Final verification refresh
+
+- Current `main` HEAD independently re-fetched as `f19fcfe95fe7587697ce1a801dffd11fec2f17d2`.
+- Both Receiver source and embedded bundle still contain the explicit cached `renderList()` followed by silent reconciliation.
+- Host and standalone Receiver JavaScript parse: PASS.
+- Workflow contains source-filter-before-open and after-success-preservation guards for both PO and QMP: PASS.
+- GitHub combined status still returned an empty status list. Actual Playwright run result is therefore **NOT VERIFIED**.
+- Direct public retrieval of the served Pages assets was inaccessible in this session; the previously open Cloudflare dashboard snapshot is stale and does not certify the new deployment. Published-byte parity remains **NOT VERIFIED**.
+- Authenticated Receiver browser E2E remains **NOT RUN**.
+- SMART ERP final counts remain receiving=1, receiving_details=2, inventory_log=78, stock_branches=58, stock_vouchers=0, supplier_ledger=3, journal_entries=21, buyer_goods_custody_events=0. Existing PO-20260928 evidence remains 15 received, 15 PurchaseIn, one balanced 700/700 journal, and one supplier credit 700. No test fixture or business mutation was created.
+
+**Updated closure status:** `FIX APPLIED — SOURCE PARITY AND STATIC GUARDS PASS — PLAYWRIGHT / CLOUDFLARE / AUTHENTICATED BROWSER E2E NOT VERIFIED — NOT CLOSED`.
