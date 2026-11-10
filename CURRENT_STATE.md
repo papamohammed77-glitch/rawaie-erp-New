@@ -1,3 +1,51 @@
+# CURRENT STATE UPDATE — LVE-2026-11-10-694
+
+**Recorded:** 2026-11-10 (Africa/Cairo)
+**Workstream:** Standalone Unified Warehouse — preparation profile contract, module data-read failures, connectivity verification
+
+## Last verified operational source state
+- Operational repository: papamohammed77-glitch/erp-frontend / main.
+- Latest operational HEAD: 172120584039fcdbdd4cda866d26870c9ac34a4c.
+- Application source: companies/company-1/warehouse/warehouse.html, blob SHA 1d04db1f8ae6e79dc9997fbfe58a51c38f067458.
+- Regression workflow: .github/workflows/warehouse_hub_browser_e2e_20261110.yml, blob SHA 444576c74fe7945a51f29c5331fe7cfa1de0e86f.
+- No rebuild, iframe, child-app routing or independent Supabase client was introduced. The standalone host and seven native workspaces remain intact.
+
+## Root cause and source repair
+- RW_Auth shared identity exposes currentUser.name/email, not currentUser.user_metadata. Picker/Preparation used the latter after switching to shared auth. Its runsheet queries returned HTTP 200, then the rendering callback threw a TypeError and the broad catch displayed a false network-failure message.
+- Fixed Picker pending list and account rendering to use the shared normalized profile; removed all active currentUser.user_metadata.name dereferences.
+- Added explicit Supabase result.error checks and diagnostics to Loader pending, Unloader pending/completed, Returns completed, and Counter completed inventory history.
+- SupplierReturn contract reference loading now fails closed when purchase-order/invoice references fail, and existing supplier-return contract RPC failures propagate instead of silently falling through.
+- Picker/Returns failed read/render promises now log the actual error for diagnostics.
+
+## Commits
+- f7ff4d74ae5b7f9f7a2ceae96a101a6aa5858503 — main Picker/Loader/Unloader/Counter fixes.
+- ad40d8bfcca9863113b39a5614efc7898f97977d — Returns and SupplierReturn reference-read fixes.
+- 42124a40b28131b8c1c82591b340aacd591961ab — preparation/loader/unloader browser rendering coverage.
+- 172120584039fcdbdd4cda866d26870c9ac34a4c — returns/supplier reference static regression assertions.
+
+## Connection and verification
+- Live account-scoped get_warehouse_hub_snapshot requests returned HTTP 200 at 18:29:49.978Z and 18:29:57.054Z.
+- Live runsheets queries for Picker returned HTTP 200 at 18:29:52.971Z; Loader reads at 18:25:10.220Z/18:25:10.221Z; Unloader at 18:22:48.842Z; Returns at 18:23:19.324Z/18:23:19.384Z.
+- These requests predate deployment of the UI fix; they prove the actual account/session can reach Supabase and read data, and support the conclusion that the Preparation error was a post-response rendering failure.
+- All seven native module JavaScript scripts parse. Workflow static and browser-test blocks parse. Patch-specific source assertions passed.
+- Regression workflow contains Playwright assertions for Picker/Preparation profile/data rendering and pending data rendering in Loader, Unloader and Returns, plus existing hub/role/branch/voucher tests.
+- Actual GitHub Actions run result was not retrievable: combined status entries were empty and the available connector has no push-run listing/dispatch method. Do not mark Playwright E2E as PASS until the run result is read.
+
+## Production data safety
+- Latest read-only counts: inventory_log=78; stock_branches=58; stock_vouchers=0; stock_voucher_details=0; purchase_invoices=5; supplier_ledger=3; journal_entries=21; inventory_counts=0; inventory_count_details=0.
+- No operational stock, invoice, supplier/AP, cash, treasury, inventory-count or GL business records were written. No DB migration/DDL, RLS, Edge Function or posting logic changed.
+
+## Open release gates
+- Cloudflare dashboard snapshot last opened at 18:29:39Z still showed Production/main at a98625c, before the later app/workflow commits. Automatic deployments were enabled, but the latest production deployment is NOT VERIFIED.
+- Public Production HTML could not be fetched through the available web/container paths; the browser integration in this chat is read-only.
+- Actual browser-level employee verification against the updated deployment remains NOT RUN. Supabase logs do confirm the linked employee can authenticate and read its scoped runsheet data.
+- Do not close deployment/E2E gates by inference. First verify Cloudflare Production/main contains 172120584039fcdbdd4cda866d26870c9ac34a4c, then retrieve passing E2E run and check live Picker/Preparation, Loader, Unloader and Returns render states.
+
+**Detailed report:** doc/Draft/Reprots/Report694_WAREHOUSE_MODULE_DATA_READ_FAILURES_AND_CONNECTION_VERIFICATION_20261110.md
+**Previous checkpoint:** LVE-2026-11-10-693.
+**Current status:** SOURCE FIX COMMITTED + SUPABASE CONNECTIVITY CONFIRMED + SYNTAX/SOURCE ASSERTIONS PASS + PRODUCTION DATA UNCHANGED / CI RESULT AND CLOUDFLARE RELEASE UNVERIFIED.
+
+---
 # CURRENT STATE UPDATE — LVE-2026-11-10-693
 
 **Recorded:** 2026-11-10 (Africa/Cairo)  
