@@ -1,67 +1,79 @@
-# CURRENT STATE UPDATE — LVE-2026-11-10-691
+# CURRENT STATE UPDATE — LVE-2026-11-10-692
 
 **Recorded:** 2026-11-10 (Africa/Cairo)  
-**Workstream:** Unified Warehouse — correction from launcher/navigation hub to single operational workbench
+**Workstream:** Standalone Unified Warehouse — native operational workspaces, shared identity, voucher security alignment and E2E
 
 ## Last verified operational source state
-- Repository: `papamohammed77-glitch/erp-frontend` / `main`.
-- Latest verified commit from recent commit search: `fd45a7dd8a3dae92afcc66e485e74a133cb345ae`.
-- `companies/company-1/warehouse/warehouse.html` blob: `ead58ab7c5ad354b5b93a9a20781bfe81db7a245`.
-- Current file still exposes only four shell tabs: today, operations, vouchers, account. `operations()` and `vouchers()` create links to the seven original apps; no operation workspaces or in-tab native queues exist.
-- Commit `fd45a7d` is a one-commit follow-up after `2221eea`; its diff changes the warehouse browser E2E workflow and a branch-scoped card-access predicate only. It does not resolve the operational-workbench requirement.
-- Original app blobs re-fetched:
-  - Receiver `7766f6d9b3959de1b6a22bb7bcd2aee05c053bde`
-  - Picker `a94e18f1c7b2de5dad912011bb32999611976b8e`
-  - Loader `89aea6635771f1a3328e82a456f3ecfe9ee02acd`
-  - Returns `56868aa5c0300d22de2774e3643562cc23045d31`
-  - Unloader `c0a5ac89012e9e612b37dbcfd4e9334adf5c16b9`
-  - Counter `64f92fb9ef8127bd6ebe3c3ef21c1a86ad671ad4`
-  - Vouchers `bbbcd3bd577dfddf1a0ccb0f1e23b6060431b2fd`
+- Operational repository: `papamohammed77-glitch/erp-frontend` / `main`.
+- Current main HEAD: `66b3d7f616f1aef70fbc45bab7d20e5339e76bb8`.
+- `companies/company-1/warehouse/warehouse.html` blob: `1de65df6b61f96066eb9e08526d66161d0fc9d99`; 626,747 bytes / 97 source lines.
+- The current file is a standalone application with four outer tabs: Today, Operations, Vouchers, Account.
+- Operations contains six native operation workspaces; Vouchers contains the five original manual-voucher actions.
+- The seven original application HTML/JS experiences are bundled and mounted inside the standalone page through persistent, per-module roots. The current source has seven corrected root bootstraps and an explicit operation-to-native-module key map.
+- Source inspection confirms: no iframe, no direct navigation/link to the original app files, no duplicate results tab and no separate stock engine.
+- `companies/company-1/main.html`, `companies/company-1/core.js`, and the seven original warehouse app files were not changed. The application is not added to the Parent menu.
+- The original apps continue to exist as independent standalone applications.
 
-## Requirement correction / root cause
-Owner clarified that the unified app is not a link launcher. It must provide natural operation tabs for Receiving, Picking, Loading, Returns, Unloading, Counting and Manual Stock Vouchers, plus Today and My Account. Each tab must display the existing shared business records and execute through the existing operation workflow; a record must appear in its natural operation tab whether initiated from the unified shell or its original app. There must be no source-specific “my results” tab and no duplicate documents.
-- Root cause: previous design aggregated application links, not operational workspaces.
-- Current app is therefore functionally incomplete against the owner requirement, despite the navigation/role work in Report690.
+## Owner requirement and superseded designs
+- Owner clarified the final contract: one employee with active warehouse role `مخزن شامل` performs all warehouse tasks from one standalone page; the four outer tabs remain `today / operations / vouchers / account`.
+- A native operation started from the unified page uses the same underlying records and operation contracts as its original app. No duplicated document or source-specific result list is created.
+- Report689's earlier Parent-integration/role-gate plan and Report691's iframe workbench proposal are historical and superseded by the owner's latest instruction. No iframe and no Parent integration were implemented.
+- Human actor fields remain the authenticated employee; the application name is not substituted into `created_by`, `completed_by`, `picker_id`, `loader_id`, `return_handler_id` or `responsible`.
 
-## Forensic evidence gathered
-- Existing app read/write contracts mapped:
-  - Receiver: purchase orders/invoices, receiving/receiving_details, quick-market queue RPC, receive-purchase Edge.
-  - Picker: runsheets/run_sheet_details and start/complete picking.
-  - Loader: runsheets/run_sheet_details/vehicles and existing loading Edge paths.
-  - Returns: runsheets/run_sheet_details/return_reasons/stock_discrepancies and existing return Edge paths.
-  - Unloader: runsheets/run_sheet_details and completed `stock_vouchers.type='Unloading'`; unload-runsheet Edge.
-  - Counter: inventory_counts/inventory_count_details and save-inventory-count Edge.
-  - Vouchers: stock_vouchers/stock_voucher_details and inventory_voucher_report, existing voucher Edge/RPC lifecycle.
-- The native apps have assignment/status semantics that must remain intact; do not replace them with company-wide duplicate queries.
-- Current table columns preserve distinct human actor fields (e.g. runsheets picker_id/loader_id/return_handler_id; inventory_counts.created_by; stock_vouchers.created_by/completed_by; receiving.responsible). There is no common `source_app` field across these operation tables and no common source_app function contract found. Do not fake an app source by overwriting a human actor.
-- The lower-risk Phase 1 direction is a single warehouse shell with nine natural top-level tabs and lazily mounted, persistent same-origin embedded native operation workspaces. The shell should hide duplicate child headers/account controls only after child authentication succeeds, while preserving each app's native pending/completed controls and operation screens. This keeps existing business logic and posting engines as the source of truth.
-- Same-origin framing, CSP/X-Frame-Options, auth sharing, service-worker behavior, realtime footprint, logout propagation and iframe state preservation remain runtime acceptance checks; not yet verified in a real authenticated browser.
+## Root causes corrected in warehouse.html
+- Operation keys (`receiving`, `picking`, `loading`, etc.) did not map to the original native module keys (`receiver`, `picker`, `loader`, etc.). A fixed map now resolves bundle lookup, root IDs, readiness/error events and logout cleanup.
+- The module wrappers declared a local `document` proxy before the first root lookup. JavaScript `var` hoisting made that local undefined at the first lookup. All seven wrappers now use `window.document.getElementById` before proxy assignment.
+- Logout now clears module services and reloads after shared sign-out, removing module-level document/window listeners before a new user session.
+- Picker uses the shared `RW_Auth` and `RW_SHARED_SUPABASE` session/client; no second Supabase client or separate login is introduced.
 
-## Role and Production state
-- SMART ERP project `fiilmooggumokxanwiyx`.
-- Warehouse role migrations remain present: `20261109233602`, `20261110003307`, `20261110004233`. Do not reapply.
-- Current Edge inventory matches Report690: start-picking v36, complete-picking v19, start-loading v7, complete-loading v12, unload-runsheet v7, start-return v6, complete-return v28, receive-purchase v18; all ACTIVE and JWT verified.
-- Active user `أمين مخزن عام` has primary `users.role='أمين مخزن'`, branch scope BR-01, active status, and `active_warehouse_role` currently NULL. The existing `set_active_warehouse_role` allows `مخزن شامل` for `أمين مخزن`/ `مخزني` and enforces supervisor authority and branch intersection. No role assignment was performed.
-- Current user must be assigned through Supervisor / the existing RPC; do not update the column directly.
+## Key operational source commits
+- `abeda6f4fae847ccae0ef2a6c27b1031e92bbfad` — build standalone native warehouse workspaces.
+- `6f5bc3baea14e82041fa049b354b746aac52ed50` — expose native module instances and preserve shared ERP context.
+- `da5c8e1788088383730d51c11d06e5f759b792fe` — map outer operation keys to native module keys.
+- `6c2c08f0dd4c64a112acc571baf48d5484db2d87` — reload after logout to clear native module listeners.
+- `b5699dcb52e7cf66487a2a1fe0a3c9bebbd5a5f5` — initialize native roots before the document proxy.
 
-## Governance and changes made in this checkpoint
-- Read the permanent constitution: SHA `3a6b1e220af8509e314e94df76563bbc6f84910d`; Master CTO Governance: SHA `1a0c81c2984103b5a7f3b40db41607d74051b310`.
-- Constitution §6.2 and §7.a plus Master Governance §77.2–77.3 require a specific reviewed ChangeSet and explicit owner approval before operational app source changes. Owner applies operational app files; do not directly commit `warehouse.html`.
-- Created the substantive change report:
-  `doc/Draft/Reprots/Report691_UNIFIED_WAREHOUSE_OPERATIONAL_WORKBENCH_CHANGESET_20261110.md`
-  Governance report initial commit: `1c68600df099c55b8e838b97f143aaab361740e2`; latest source-level ChangeSet append/correction commit: `a14ba29310a434a8d14cc10da2d3b5389bdd40ca`; latest report update commit: `3846137ef18078b60897617f7005462e3ef3b654`; latest report blob: `761f1f9e1eef5144fb536b68d8a9e75a65294d25`.
-- Report691 contains the exact target file/base blob, the nine-tab functional contract, data/workflow mapping, Phase 1 embedded-workspace design, actor/role/branch semantics, exclusions, tests and rollback. Appendix A adds the concrete frame registry/activation, tab dispatch, dashboard routing, logout cleanup, child-auth gating, and the required container-preserving `load()` corrections. Appendix A.9 records the fresh Cloudflare Production source-pointer evidence (fd45a7d → c0ae9072).
-- No operational source, Parent/Core, Supabase schema/data, Edge deployment, role assignment or Cloudflare deployment was modified in this checkpoint. All Production queries were read-only.
+## E2E and CI verification
+- Standalone warehouse browser E2E run: `42863832009`, conclusion `success`; test workflow commit `ac858f375b0b7322ba285fd54e2274e3989373f0`.
+- Verified markers include four-tab contract, no iframe/child navigation, seven native bundles, shared core session, Picker auth alignment, six ready operation workspaces, five manual-voucher actions, specialized SupplierReturn contract, logout/relogin cleanup, active-role gate and main-vs-scoped-branch gate.
+- Current main HEAD `66b3d7f` also passed Mother Assembly Guard, Mother Inventory Forensic E2E, CTO Helper Files Forensic and current Mother extract workflows.
+- E2E uses synthetic auth/RPC and a synthetic branch UUID. It proves browser/module readiness and role/branch UI gating; it does not perform a real stock or financial posting.
 
-## Verification limits
-- Latest commit `fd45a7d` combined status returned no entries; workflow-run connector returned no runs. This is UNVERIFIED, not a pass or a failure.
-- Report690's recorded deployment success applies to `2221eea`. A read-only Cloudflare dashboard check now confirms Production points to `fd45a7d` with deployment URL `https://c0ae9072.rawaea-erp.pages.dev/`; the status badge text and served asset byte parity remain UNVERIFIED.
-- No real authenticated browser session was available to test same-origin embedded app workflows or cross-app document coherence.
-- No business-write or financial/inventory QA test was performed.
+## SMART ERP — Supabase Production
+- Project: `fiilmooggumokxanwiyx`.
+- Applied migration: `20261110172124 unified_warehouse_supplier_return_scope`.
+- Source: `supabase/migrations/20261110172124_unified_warehouse_supplier_return_scope.sql`; blob `098a7c121e5704388d61605713e87518942b5212`.
+- The migration changes three existing function definitions only:
+  1. `get_supplier_return_contract(uuid,text)`: unified role may read a Manual SupplierReturn only when created by the same employee and within that employee's authorized source branch (unless existing wildcard permission applies).
+  2. `save_supplier_return_contract(uuid,text,jsonb,text)`: same creator/branch guard and existing Manual + Draft-only conditions.
+  3. `delete_manual_stock_voucher_atomic(uuid,text,text)`: adds canonical branch-scope enforcement for the unified role, closing the empty-branch-list bypass for that role while preserving the existing no-movement-before-delete and other-role checks.
+- Existing send/complete SupplierReturn posting guards and their creator restrictions remain unchanged. No posting RPC was rewritten.
+- All three functions remain SECURITY DEFINER with existing grants: get/save authenticated and service_role only; delete service_role only; anon EXECUTE remains false.
+- No new table, RPC, Edge Function, trigger, RLS policy or grant was added.
+- A first migration attempt failed on an incomplete replacement anchor and rolled back transactionally. Read-only checks confirmed no partial function change or migration record. The corrected source was applied successfully as `20261110172124`.
 
-**Last verified event:** the launcher-vs-operational-workbench mismatch is confirmed and Report691 ChangeSet is committed to the governance repo.  
-**Status:** ROOT CAUSE CONFIRMED — OPERATIONAL WORKBENCH CHANGESET READY — OWNER APPROVAL REQUIRED.  
-**Next step:** obtain approval of the exact Phase 1 `warehouse.html` ChangeSet in Report691 §11, then apply only that UI change and run the specified authenticated no-write E2E. Do not label the unified operational app complete before tab/workflow/coherence tests pass.
+## Production data and role baseline — unchanged
+- Post-migration read-only counts: `inventory_log=78`, `stock_branches=58`, `stock_vouchers=0`, `stock_voucher_details=0`, `purchase_invoices=5`, `supplier_ledger=3`, `journal_entries=21`, `inventory_counts=0`, `inventory_count_details=0`.
+- The same counts were recorded immediately before the migration. No test voucher, receipt, inventory count, supplier return, stock movement, cash movement or journal entry was created.
+- Active warehouse-role counts: NULL=26, أذونات=2, استلام=1, تحضير=1, تحميل=1, مرتجعات=1, مخزن شامل=0.
+- Supervisor's existing role roster includes `مخزن شامل`; the existing guarded `set_active_warehouse_role` RPC is the assignment path. No user role was changed or assigned.
+
+## Deployment and runtime limits
+- Cloudflare deployment parity is **UNVERIFIED**. The connected dashboard snapshot last visible in this session showed a Production pointer at `da5c8e1`, older than the final native-root correction; the dashboard tab was not refreshed after the latest source commit. The public Pages asset fetch was inaccessible through the available read-only path.
+- An earlier open ERP browser snapshot showed the general-owner session, not an employee assigned `مخزن شامل`; it is not evidence of a real warehouse-worker session.
+- Authenticated no-write E2E with a real unified-role employee remains open. Real stock/supplier/treasury/GL posting E2E was intentionally not run.
+- Visual QA on the latest deployed artifact remains open, including modal boundaries, mobile/desktop layout, scrolling and potential cross-module CSS selector interactions.
+
+## Governance / execution record
+- Reviewed Report545, Report689, Report691, the complete operational prompt, the permanent constitution and relevant Master CTO Governance sections.
+- Report689's Returns-copy finding and Report691's iframe proposal are historical; the current source was independently fetched and verified after later commits.
+- Owner's explicit execution instruction was applied only to the requested standalone warehouse task. No unrelated Parent or original-app changes were made.
+- Detailed execution report: `doc/Draft/Reprots/Report692_UNIFIED_WAREHOUSE_NATIVE_OPERATIONAL_WORKBENCH_EXECUTION_20261110.md`.
+- Report692 governance commit: `7d6e03333dda3fbe8ebac0322bd0c608082c314d`.
+
+**Last verified event:** native workspace E2E passed; SupplierReturn/branch authorization migration `20261110172124` applied and verified; production business-row counts unchanged.  
+**Status:** `SOURCE IMPLEMENTED + SYNTHETIC E2E PASS + SUPABASE AUTH ALIGNMENT APPLIED / CLOUDFLARE DEPLOYMENT AND REAL-USER E2E OPEN`.  
+**Next exact action:** verify the current Cloudflare Pages deployment against warehouse blob `1de65df6...`; then run authenticated read-only E2E with a real employee assigned `مخزن شامل`. Do not run a business posting test until a reversible QA fixture and cleanup proof exist.
 
 ---
 
