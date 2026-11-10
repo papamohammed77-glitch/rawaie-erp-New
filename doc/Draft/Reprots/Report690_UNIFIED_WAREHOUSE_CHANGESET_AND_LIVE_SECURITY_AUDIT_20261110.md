@@ -399,3 +399,51 @@ Important distinctions:
 
 These details correct any interpretation that every app needs a newly invented assignment model: use the existing picker_id, loader_id and return_handler_id contracts where they exist; unloading has no per-worker assignment field.
 
+
+
+### 8.4 Exact Parent main.html integration patch — source retrieval now resolved
+
+The complete Parent blob was retrieved through GitHub fetch_blob (1,906,820 characters), blob SHA be58fb0e54a8e4c09ce081b15ebf5420e072bdfd. Its single inline JavaScript block compile-checks PASS. The source insertion points are confirmed:
+
+**A. Warehouse operations menu — source line 1530**
+
+Current block:
+    { label: 'العمليات المخزنية', icon: 'fa-timeline', submenu: [
+        { view: 'receiving', label: 'الاستلام' },
+        { view: 'picking', label: 'التحضير' },
+        { view: 'loading', label: 'التحميل' },
+        { view: 'delivery', label: 'التوصيل' },
+        { view: 'return', label: 'المرتجعات' },
+        { view: 'unloading', label: 'التفريغ' }
+    ] },
+
+Surgical replacement:
+    { label: 'العمليات المخزنية', icon: 'fa-timeline', submenu: [
+        { action: 'openWarehouseHub', label: 'المخزن الشامل', icon: 'fa-warehouse', perm: 'warehouse' },
+        { view: 'receiving', label: 'الاستلام' },
+        { view: 'picking', label: 'التحضير' },
+        { view: 'loading', label: 'التحميل' },
+        { view: 'delivery', label: 'التوصيل' },
+        { view: 'return', label: 'المرتجعات' },
+        { view: 'unloading', label: 'التفريغ' }
+    ] },
+
+**B. Navigation action handler — source line 2367**
+
+Current block:
+    _handleAction(action, arg) {
+        if (action === 'openDataEntry') {
+            window.open('warehouse/data.html', '_blank', 'noopener,noreferrer');
+            return;
+        }
+
+Insert immediately after the openDataEntry block:
+    if (action === 'openWarehouseHub') {
+        window.open('warehouse/warehouse.html', '_blank', 'noopener,noreferrer');
+        return;
+    }
+
+Permission is already implemented by RW_Navigation._hasPermission(item): it calls RW_Permissions_check(item.perm). The existing permission key warehouse is already declared in Parent app permissions. Do not add a new permission, do not modify _hasPermission, and do not remove the legacy operation entries.
+
+Relative URL is correct from companies/company-1/main.html: warehouse/warehouse.html resolves to companies/company-1/warehouse/warehouse.html.
+
