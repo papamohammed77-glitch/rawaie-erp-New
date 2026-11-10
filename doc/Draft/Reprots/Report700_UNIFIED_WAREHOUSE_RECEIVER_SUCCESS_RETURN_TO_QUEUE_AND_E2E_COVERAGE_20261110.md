@@ -219,3 +219,21 @@ Final syntax checks:
 GitHub combined status for `8f1c3a0e0bd2806f43ea9242a1eb4233a776ea7c` still returned an empty statuses array; no workflow run conclusion or Playwright log was available. Actual CI execution therefore remains **UNVERIFIED**. Cloudflare asset parity and authenticated browser E2E also remain **UNVERIFIED**.
 
 Final read-only Production counts remain unchanged: receiving=1, receiving_details=2, inventory_log=78, stock_branches=58, stock_vouchers=0, supplier_ledger=3, journal_entries=21, buyer_goods_custody_events=0.
+
+
+## 14. Final cross-module E2E harness corrections after counter diagnostics
+
+The latest warehouse workflow changes were reviewed because the Receiver fixtures share the same browser test run with Picker/Loader/Returns/Unloader/Counter/Vouchers.
+
+- `501254987c0451c2e97858ea1f7138905b2fd1eb` added detailed Counter vehicle-tab diagnostics.
+- `5a961869a68e511fd1f5f2a4c8a1da6e0d0bc8b7` isolated the Counter E2E into named stages (tabs, vehicle scope, general-count denial, branch scope, count session creation, save).
+- `0a0904eae250fcd6934ce49755908c1aa49efeef` preserved the original mock reference dataset through `__qaBaseRows`, then overlaid the PO/QMP fixtures. This is important because the Counter and other native modules still need the base branches, vehicles and supplier fixtures; replacing the table mock without fallback would have starved those tests.
+- `5dfc69fe4db13ef48a12ea313e0cf7943e7c385f` removed an extra closing brace that had moved the native-workspace Back action outside the `for (const key of operations)` loop. The Back action and `nativeKey` / `key` assertions are again inside each module iteration.
+
+**Latest operational HEAD:** `5dfc69fe4db13ef48a12ea313e0cf7943e7c385f`.  
+**Latest workflow blob:** `cfab16b3a67316fc015ab1b2b793abcd4c0bc93b`.  
+Receiver and Warehouse source blobs remain unchanged: `f2bd1e427b902924a50531f886ba22bb61912b91` and `b617dc7a040df60f20f5d84321500d3dd8c11e31`.
+
+Final workflow Node test block syntax: **PASS**. The standalone Receiver and Warehouse host JavaScript syntax remain **PASS**. The cross-module loop structure was checked in source and the previous extra brace is absent.
+
+These are changes to synthetic E2E fixtures/diagnostics only. No user module, database function, Production migration or business data was changed by these commits. The actual push-triggered GitHub Actions run result remains unavailable; syntax PASS is not a Playwright execution PASS.
