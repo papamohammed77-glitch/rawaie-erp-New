@@ -374,3 +374,28 @@ This local predicate is used for DirectReturn receiving and must continue to be 
 
 Receiver's duplicate initialization/restored-session checks must both be updated. Do not edit RW_Auth.hasWarehouseRole globally; the seven app predicates are the narrow consumers.
 
+
+
+### 8.3 Loading / picking / return assignment details verified against live RPCs
+
+Live deployed Edge source hashes:
+- start-picking v35: fca0377fce2d02d52a17bdbbdd98cfe9cc449d052533df0a3b021be11c79914a
+- complete-picking v18: 14b4d650253e73abc7c7a1b1f25a8674849c11e32d21ae9928701f19705b0537
+- start-loading v6: b0e1736ac7606c1c0b81dfdccd75cc90dbad955651961a24019b6e3c4a1988e1
+- complete-loading v11: c0ca692a29d14d64ec3729ae4bd12b9b84268e826ffc1c6993a48617b552b286
+- unload-runsheet v6: 34323971351b98b8cd7d7bd83fa25a80f135329cd2b2e09b80c3416a0c6f10e0
+- start-return v5: 47e92999e1585956bf9f25fcf6ec80921ceef71316a59a7b5a1c2b1d6290d493
+- complete-return v27: 3b4d7ff8053ca35813ad24639093549e7aec622d784a3d18bbfa9ef3d54f9da1
+
+Important distinctions:
+- start-picking directly transitions an Open/Confirmed runsheet to Picking and self-assigns picker_id. It must receive role + main-branch authorization before that update. Its existing concurrent-start/retry behavior must remain unchanged.
+- complete_runsheet_picking checks the authenticated business user's picker_id against the runsheet before reserving stock and completing the pick. Preserve this existing assignment check and its reservation semantics; the function explicitly returns inventory_log_written=false.
+- start_runsheet_loading assigns loader_id and starts the loading cycle. Preserve its existing RPC.
+- complete_runsheet_loading checks status=Loading, vehicle, loader_start and loading_cycle_id, but the live function does NOT verify runsheets.loader_id against the actor. The complete-loading Edge Function must add this check before invoking the service-role RPC. It must also verify the actor's main-warehouse branch. Do not modify the RPC's TASK-028 idempotency or stock posting logic.
+- complete_runsheet_unloading checks Loaded state and loading_cycle_id, then posts Unloading stock movements from the VAN branch back to app_settings.main_branch_id and clears the loading cycle. There is no unloader_id field or per-unloader assignment contract. Add role and main-warehouse branch checks at the Edge boundary; do not invent an assignment column.
+- start-return self-assigns return_handler_id after validating Delivered state and pending return quantities. Preserve that self-assignment and pending-quantity logic.
+- complete-return verifies Returning state and return_handler_id equals the current user before calling complete_sales_return_credit_note_atomic. Keep this gate limited to runsheet returns; do not broaden the separate POS/order return contract.
+- runsheets has only the trg_audit_runsheets audit trigger among non-internal triggers. The start-picking direct status/assignment update therefore creates an audit event, but it is not itself a stock movement. The actual pick reservation occurs in complete_runsheet_picking.
+
+These details correct any interpretation that every app needs a newly invented assignment model: use the existing picker_id, loader_id and return_handler_id contracts where they exist; unloading has no per-worker assignment field.
+
