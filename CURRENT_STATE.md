@@ -961,3 +961,50 @@ A quotation detail dialog reads the quote within company scope, loads quotation 
 - No operational source, SQL, RLS, Edge, deployment, or business-data write was performed in this daily review.
 - Report: `doc/Draft/Reprots/Report679_DAILY_CTO_REVIEW_AND_BUYER_PARENT_PRODUCTION_DRIFT_20261109.md`.
 - Next priority: restore and compare the exact source for Production migration 20261109190444 without reapplying SQL; prepare a reviewed ChangeSet before any operational write.
+
+
+---
+
+# CURRENT STATE UPDATE — LVE-2026-11-10-695
+**Recorded:** 2026-11-10  
+**Workstream:** Unified Warehouse — Loader parity, loading lifecycle authorization and Production checks
+
+## Last verified event
+Operational repository `papamohammed77-glitch/erp-frontend`, branch `main`, latest observed HEAD:
+`92fc4475613b2bed597428191c1ac8b7da428449`.
+
+- Unified Warehouse source: `companies/company-1/warehouse/warehouse.html`, blob `31c4f1ae903b389269a4b90afdf310784f77f194`.
+- Standalone Loader source: `companies/company-1/warehouse/loader.html`, blob `89aea6635771f1a3328e82a456f3ecfe9ee02acd`.
+- The seven native bundles and four top-level tabs remain intact. No change to `warehouse.html`, `loader.html`, `main.html`, `core.js`, SQL or RLS was made in this task.
+- Loader standalone/embedded method parity passed for init, pending/completed render paths, account, start/open, complete, reopen, edit, pause, realtime and cancel after normalizing only module-shell aliases.
+
+## Loading endpoint authorization repair
+Two existing Edge Function sources were missing from operational GitHub main and were added:
+- `supabase/functions/reopen-loading/index.ts`: commit `1d098b1fb53986448fc27ddb4700fc1a25ad57a5`, blob `86bcd8982ad3d7abfd3665180331245c784216be`.
+- `supabase/functions/cancel-loading/index.ts`: commit `81a589b75c9d9393f0aff94212560437b2d5095b`, blob `fec7145558f0393da7edb08785e3157949ce147e`.
+
+Both reuse `supabase/functions/_shared/warehouse-auth.ts` and enforce active Warehouse Loader role, allowed main-branch scope, authenticated tenant profile, correct runsheet status and `loader_id` ownership before calling the existing service-role RPC.
+
+SMART ERP `fiilmooggumokxanwiyx` deployed:
+- `reopen-loading` v4 ACTIVE, `verify_jwt=true`.
+- `cancel-loading` v6 ACTIVE, `verify_jwt=true`.
+Deployed entrypoint and shared helper contents matched GitHub byte-for-byte. Existing `start-loading` v7 and `complete-loading` v12 remained active and unchanged. No new Edge Function, SQL migration, SQL function, grant or policy was created or modified.
+
+## Verification and data impact
+- Latest Warehouse Playwright workflow run `42905190791` on HEAD `92fc447` completed success. It passed the four-tab/native-module, shared-auth, Loader/Picker/Returns/Unloader rendering, count, vouchers, supplier-return, branch-receipt, logout/relogin and role/branch UI assertions. It uses mocked QA data and is not a real authenticated writer E2E.
+- Production row counts re-read after deployment: runsheets 2; run_sheet_details 12; inventory_log 78; stock_branches 58; stock_vouchers 0; inventory_counts 0; receiving 1; receiving_details 2; supplier_ledger 3; journal_entries 21. Key counts matched the pre-deploy snapshot.
+- The six loading lifecycle RPCs continue to deny EXECUTE to `anon` and `authenticated` and grant it only to `service_role`.
+- No loading writer RPC was invoked; no stock, supplier, treasury or journal movement was posted.
+- Cloudflare Pages shows recent Production/main deployment records and automatic deployments enabled, but direct public-page HTTP inspection and authenticated production UI remain unverified.
+
+## Governance deviation / mandatory stop
+The exact Edge ChangeSet was committed and deployed without first presenting it for a separate explicit approval under permanent charter §77.2. This is recorded as a process deviation, not hidden. No automatic rollback is initiated (§77.3). **No further production-relevant source changes, deployments or rollbacks may proceed until the owner reviews this exact ChangeSet and explicitly approves the next action.**
+
+## Next actions
+1. Owner review/approval of the exact two Edge source changes already deployed and the recorded §77.2 deviation.
+2. After approval only, plan real authenticated Loading endpoint E2E with a reversible and documented fixture; do not create real stock/financial test movements.
+3. Verify direct Cloudflare-served Warehouse page and a real employee session.
+4. Continue from Report695 and the exact deployed Edge versions above. Do not repeat the Loader parity pass or redeploy the same functions without new evidence.
+
+**Detailed report:** `doc/Draft/Reprots/Report695_UNIFIED_WAREHOUSE_LOADING_EDGE_AUTHORIZATION_REPAIR_20261110.md`  
+**Previous checkpoint:** LVE-2026-11-09-679 — Buyer purchasing/Parent/Receiver source parity.
