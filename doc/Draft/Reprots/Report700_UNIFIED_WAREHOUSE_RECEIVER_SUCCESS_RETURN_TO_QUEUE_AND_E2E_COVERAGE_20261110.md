@@ -199,3 +199,23 @@ The existing RAWAEA Receiver already has the relevant core controls: PO / Quick 
 The Quick Market route must remain distinct from PO receiving because its physical inventory event moves goods out of Buyer custody and does not create supplier AP / GL. This is a RAWAEA business contract, not a gap to be “standardized” into the PO posting route.
 
 No new design claim above authorizes a Production RPC, Edge, journal, inventory valuation or migration change; the present work stays within the Receiver user-state defect and synthetic E2E coverage.
+
+
+## 13. Final workflow diagnostic commit
+
+A further operational commit `8f1c3a0e0bd2806f43ea9242a1eb4233a776ea7c` changed only the warehouse E2E workflow. It adds a detailed diagnostic payload if the initial Receiver PO + Quick Market queue does not render within the test timeout: module readiness, current user/company/branch scope, loaded queue rows, queue signature, sequence and captured browser errors. This does not alter the application or Production behavior.
+
+Latest operational HEAD at this final refresh: `8f1c3a0e0bd2806f43ea9242a1eb4233a776ea7c`.
+
+Latest workflow blob: `7633d758ba57329068cb8e2314dbe46dfab06aa8`. Receiver and Warehouse blobs remain unchanged at `f2bd1e427b902924a50531f886ba22bb61912b91` and `b617dc7a040df60f20f5d84321500d3dd8c11e31`.
+
+Final syntax checks:
+- Standalone Receiver JavaScript: PASS.
+- Warehouse host JavaScript: PASS.
+- Playwright Node test block after removing its module import for parse validation: PASS.
+- Static guards for source/embedded return-to-list and active PO/QMP filter preservation: PASS.
+- Workflow diagnostic marker: PASS.
+
+GitHub combined status for `8f1c3a0e0bd2806f43ea9242a1eb4233a776ea7c` still returned an empty statuses array; no workflow run conclusion or Playwright log was available. Actual CI execution therefore remains **UNVERIFIED**. Cloudflare asset parity and authenticated browser E2E also remain **UNVERIFIED**.
+
+Final read-only Production counts remain unchanged: receiving=1, receiving_details=2, inventory_log=78, stock_branches=58, stock_vouchers=0, supplier_ledger=3, journal_entries=21, buyer_goods_custody_events=0.
