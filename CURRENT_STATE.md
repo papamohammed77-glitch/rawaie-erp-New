@@ -1486,3 +1486,76 @@ This addendum supersedes the LVE-702 line above that named `98ef3db` as the late
 **Updated detailed report:** `doc/Draft/Reprots/Report702_WAREHOUSE_GUARDED_CHANGES_DEPLOYED_20261111.md`.  
 **Current Report702 blob:** `7eb8fce971150cc2279377765df7823a87e41a92`.  
 **Report702 update commit:** `8219b8ae563b12f54b94dfbd03d1e14c39adac55`.  
+
+
+---
+
+# CURRENT STATE UPDATE — LVE-2026-11-11-703
+
+**Recorded:** 2026-11-11 (Africa/Cairo)  
+**Workstream:** Unified Warehouse full browser E2E / Returns draft isolation / discrepancy tenant security / server-side return-completion gate
+
+## Verified operational source
+- Operational repository: `papamohammed77-glitch/erp-frontend` / `main`.
+- HEAD: `4f018bfe42ebfd3aeb668513a8bcb4cb3a29f8fb`.
+- `warehouse.html` blob: `b41b870d4a5df940043453563ed200e2e295d77c`.
+- `returns.html` blob: `3c4a35784f633f1c17d9bf1b3076040151d6f167`.
+- Warehouse E2E workflow blob: `9efdf8c65c81258d3be712b85af318de1298163b`.
+- Tracked `report-discrepancy/index.ts` blob: `e1ef1c3f465a842ddbd3a71c423fcce63f877664`.
+
+## Latest Warehouse E2E
+- Run `42918104973`, job `130185659855`, completed SUCCESS on current HEAD.
+- Browser test marker `WAREHOUSE_RETURNS_SESSION_SCOPED_LOCAL_DRAFT_AND_ZERO_VALUE=PASS`.
+- Receiver PO/quick-market physical receipt guards, full zero-accepted rejection, history, Picker/Loader/Returns/Unloader, completed-return reopen fail-closed, discrepancy form item/expected quantity, count modes/session save, six native workspaces, five voucher actions, SupplierReturn, branch receipt and role/branch gates all pass.
+- This remains a local Playwright test with mocked Supabase/auth and a stateful in-memory Dexie fixture, not a real production employee posting transaction.
+
+## Discrepancy Edge / RLS / privileges
+- `report-discrepancy v4` ACTIVE, JWT required; live source is byte-identical to Git.
+- v4 validates auth_id, Active status, company, warehouse permission and Returns/unified active role; verifies main-branch scope, same-company Returning runsheet and assigned handler, derives expected qty from runsheet item details, and writes company/reporter identity from the actor.
+- Migrations `20261110221847 secure_stock_discrepancies_tenant_access_20261111` and `20261110222752 restrict_stock_discrepancy_supervisor_update_columns_20261111` are applied.
+- SELECT RLS is restricted to same-company reporter, assigned Returns handler, or supervisor/owner. UPDATE is supervisor/owner same-company only.
+- Live privilege test: anon SELECT/INSERT false; authenticated INSERT/DELETE false; authenticated table-wide UPDATE false; only `status` and `notes` column updates allowed; `company_id` and `runsheet_id` updates denied; service_role INSERT true.
+- Reporter Edge currently treats audit_log insert failure as warning and still succeeds. Include atomic audit insertion in the pending server-side writer change.
+
+## CRITICAL — pending-discrepancy gate remains client-only
+- Standalone and embedded `completeReturn()` check `stock_discrepancies.status='pending'` before confirmation. The UI fails closed on read error and blocks when a pending discrepancy exists.
+- Live Edge `complete-return v28`, SQL `complete_return_atomic`, and `complete_sales_return_credit_note_atomic` do not reference `stock_discrepancies`. Read-only scan found no public SQL function or trigger enforcing this gate.
+- Therefore a direct valid call to `complete-return` can bypass the UI and execute the stock and financial return lifecycle while a discrepancy is still pending.
+- `complete_return_atomic` can change order/run-sheet detail quantities, post SalesReturn inventory movement/inventory_log, post inventory/COGS journal, customer ledger or POS cash refund, driver liability, order totals and run-sheet Returned state. `complete_sales_return_credit_note_atomic` additionally posts a credit note.
+- Do not release Returns as Gold/Diamond until this server-side bypass is closed.
+
+## Proposed ChangeSet — CS-WH-703-A (NOT APPROVED / NOT APPLIED)
+1. Add one transactional SECURITY DEFINER writer for `stock_discrepancies`. It must lock the same runsheet `FOR UPDATE`, revalidate company/status/assigned handler/item/expected quantity, insert the pending discrepancy and audit_log atomically, and be executable only by service_role. Edge v4 remains the JWT/role boundary.
+2. Add pending-discrepancy `EXISTS` check inside `complete_return_atomic` immediately after the existing company-scoped runsheet lock and Returning-state check. Raise before any stock/GL/ledger/order changes. Credit-note wrapper inherits the guard through this core.
+3. Use the same runsheet row lock in reporter and completion paths to serialize report-vs-complete concurrency. If reporter commits first, completion sees pending and blocks; if completion commits first, reporter sees non-Returning and rejects.
+4. Add partial index on `stock_discrepancies(company_id,runsheet_id) WHERE status='pending'`; current table has only its primary-key index.
+5. Preserve existing RLS, column grants, idempotency, stock/GL/AP/AR/customer/POS/driver/credit-note behavior. Do not create a new Edge Function, Supabase branch, paid environment or production fixture.
+6. Add tests for assigned success, wrong company/handler/role/item rejection, pending block-before-write, resolved-discrepancy success, report-vs-complete concurrency, atomic audit failure rollback, and before/after stock+financial snapshots.
+7. Approval status: **await explicit owner approval for this exact ChangeSet under Master CTO Governance §§77.2–77.3. No implementation or production deploy has been performed.**
+
+## Cloudflare Pages
+- Latest dashboard snapshot still shows Production/main SHA `83c0f395c34a5562752bc715a64361e675e2b20d`, deployment `https://e0ea2007.rawaea-erp.pages.dev/`.
+- Operational Git HEAD `4f018bfe...` is not shown as Production. Pages parity is NOT VERIFIED. The currently published artifact includes the earlier completed-return reopen disablement but does not prove the new local-draft/discrepancy improvements are live.
+
+## SMART ERP production integrity snapshot
+Read-only counts: receiving=1; receiving_details=2; inventory_log=78; stock_branches=58; stock_vouchers=0; supplier_ledger=3; journal_entries=21; buyer_goods_custody_events=0; stock_discrepancies=0.
+No test receipt, voucher, return completion, stock movement, reservation, ledger, journal, cash/treasury or discrepancy row was written by this continuation.
+
+## Release status
+- CONFIRMED: full mocked Warehouse Browser E2E PASS on current HEAD.
+- CONFIRMED: report-discrepancy v4 source parity and tenant/role/assignment checks; RLS and restricted column privileges applied.
+- CONFIRMED: unsafe completed-return and legacy receiving reopen endpoints remain fail-closed; Picker and Returns role/branch guards deployed as captured in LVE-702.
+- BLOCKER: no server-side pending-discrepancy gate inside the authoritative return completion SQL/Edge; direct endpoint bypass remains possible.
+- UNVERIFIED: Cloudflare Pages Production does not match current Git HEAD.
+- NOT PERFORMED: real authenticated employee posting E2E or any production business-data write.
+
+## Next actions
+1. Obtain explicit owner approval for exact ChangeSet `CS-WH-703-A`.
+2. After approval, implement atomic reporter + server-side completion gate + partial index; preserve posting semantics and deploy through reviewed migration/Edge process.
+3. Run concurrency/rollback tests and compare every relevant stock/financial ledger before and after.
+4. Verify Cloudflare Pages Production advances to the reviewed operational HEAD.
+5. Continue real employee read-only session checks; no live QA business posting without a proven reversible fixture and approval.
+
+**Detailed report:** `doc/Draft/Reprots/Report703_UNIFIED_WAREHOUSE_E2E_PASS_DISCREPANCY_TENANT_SECURITY_AND_SERVER_GATE_20261111.md`  
+**Report commit:** `babfe4fe9d0c1678c3be611c856b2d16afb787b2`  
+**Previous checkpoint:** LVE-2026-11-11-702.
