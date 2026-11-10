@@ -202,3 +202,20 @@ Remaining release closure:
 **Closure:** `APPROVED SOURCE CHANGES COMMITTED — EDGE A/B/C/D SAFE STATE VERIFIED — PRODUCTION DATA AND RPC ACLs UNCHANGED — LATEST PAGES / CI / AUTHENTICATED GUARD E2E STILL UNVERIFIED — NOT GOLD/DIAMOND CLOSED`.
 
 **Previous report:** `doc/Draft/Reprots/Report701_UNIFIED_WAREHOUSE_E2E_PASS_AND_PRODUCTION_GUARDED_CHANGESET_20261110.md`.
+
+
+---
+
+## 11. Operational HEAD and E2E harness addendum — 2026-11-11
+
+After the initial Report702 capture, the operational main branch advanced by one additional workflow-only commit:
+
+- Latest operational HEAD: `f3343fe8d158f16848c8fa20697192f41ef64157` — `test(returns): verify discrepancy form derives a real runsheet item`.
+- Latest Warehouse E2E workflow blob: `472e0c52d3a8d0836a703983f1b6cfa6ecda9398`.
+- This commit changes only `.github/workflows/warehouse_hub_browser_e2e_20261110.yml`, adding a mocked UI contract test that seeds an in-memory runsheet session and verifies the discrepancy form derives the real session item, expected quantity, actual quantity and shortage type. It does not change application source or production data.
+- The preceding `475759b` workflow update adds static fail-closed checks: no active `reopen-return` API call, warning method present, disabled UI text present, local draft save contract retained, discrepancy check fail-closed, and the discrepancy form contract markers present.
+- Combined commit status for `f3343fe` currently returns an empty status array. No latest Playwright runtime pass is asserted. Prior `42909714464` remains a PASS on `9a6ac1f` only.
+- Current application blobs remain standalone Returns `2d725fede124a19c4cb4587eb97040ca2e2a1869` and embedded Warehouse `987dbf4d24e2424e27a3e35e168ec4596007c1a7`; the new commit is workflow-only.
+- The Cloudflare dashboard snapshot read during this task still showed Production `83c0f39`, prior to the latest Returns UI commits. Cloudflare auto deployment is enabled, but the current UI release remains unconfirmed.
+
+All deployed Edge version, source parity, JWT, zero-DB fail-closed and read-only Production baseline statements in §§3–8 remain unchanged. This addendum supersedes the earlier Report702 sentence identifying `98ef3db` as the absolute latest main HEAD.
