@@ -1602,3 +1602,15 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - Buyer CSS blob `c09c5fbd0268bb295d931d3329016861c837f7fa` lacks `.bg-amber-700` and `.hover\\:bg-amber-800` used by the new return action. Parent quotation loader is capped at 300 rows without pagination; Buyer invoice eligibility read is capped at 500.
 - Cloudflare deployment and authenticated E2E remain unverified. No test records or business effects created.
 - Governance: permanent constitution SHA `3a6b1e220af8509e314e94df76563bbc6f84910d`; Master CTO Governance SHA `1a0c81c2984103b5a7f3b40db41607d74051b310`; §77.2 approval gate remains mandatory for operational changes.
+
+
+## LVE704 — Inventory Control transfer / Returns integrity revalidation — 2026-11-11
+- Report704: `doc/Draft/Reprots/Report704_DAILY_CTO_REVIEW_INVENTORY_TRANSFER_AND_RETURNS_GATE_20261111.md` (report commit `be58fe6268317f25c35493f1ad9bf1ec4802a760`).
+- Current operational main HEAD is `c03a47ee69f60956dc327953e027c7172fba4c71`, seven commits beyond the LVE703 recorded HEAD. The old LVE703 state did not capture inventory migration `20261110225700`; Production also now has returns gate migration `20261110233152`.
+- Both migrations are applied and their stored SQL matches Git. Inventory APIs exist for snapshot, movements, replenishment, stock requests and costed count finalization. Warehouse Hub still lacks a native Inventory Control Center UI for snapshot/movement/replenishment/request lifecycle; the full Parent Inventory tab transfer remains open.
+- Critical Production gap: authenticated users can directly INSERT/UPDATE/DELETE inventory_stock_requests and inventory_stock_request_details through company-only ALL policies, bypassing the role-gated service-role engine. No request rows currently exist. Also no unique (company_id, operation_id) constraint; engine duplicate check precedes advisory lock.
+- Permission contract gap: inventory_control wrapper blocks COUNT CREATE/POPULATE for branch-count/vehicle-count-only users, while inventory_count_engine accepts those permissions. One active finance-manager user has branch-count/vehicle-count without warehouse. COUNT LIST is exposed by wrapper but unsupported by engine.
+- Current branch count session is InProgress with 35 uncounted lines, no adjustment/ledger/journal effects. Its count_date is UTC 2026-11-10 while UI reference is Cairo 2026-11-11; Counter uses toISOString(). Treat as live business data, not QA.
+- Returns gate now has enabled DB triggers preventing runsheet close while pending/investigating discrepancies exist. No active Returning runsheet or discrepancy rows were present, so runtime trigger behavior remains untested. report-discrepancy v4 audit_log failure is still non-atomic.
+- CI Warehouse E2E and Mother Inventory Forensic runs passed with mocks/stubs; no Production E2E. Cloudflare deployment, authenticated browser runtime and Staging remain UNKNOWN.
+- No operational source/DB/Edge/deployment writes were made in this review. Governance approval remains required for the security fixes and new Warehouse Hub Inventory Control UI. Readiness: READY WITH LIMITATIONS.
