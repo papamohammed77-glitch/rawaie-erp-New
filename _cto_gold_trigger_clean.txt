@@ -1,0 +1,1 @@
+Trigger-only change. The base branch contains the single Gold/Diamond executor.
