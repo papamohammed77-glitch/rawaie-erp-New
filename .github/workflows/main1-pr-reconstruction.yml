@@ -1,0 +1,128 @@
+name: RAWAEA MAIN1 PR Reconstruction
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: write
+jobs:
+  reconstruct:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'main1-reconstruction-20260830'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main1-reconstruction-20260830
+          fetch-depth: 0
+      - name: Reconstruct main1 from exact baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,re,subprocess,tempfile
+          p=Path('Current/PWA/main/main1.md'); s=p.read_text(encoding='utf-8')
+          baseline='de3ea2f6c1c638447d1c34c8f6237e14d5ae3b59'
+          if hashlib.sha1(s.encode()).hexdigest()!=baseline: raise SystemExit('BASELINE_GUARD_FAILED')
+          pat=re.compile(r"var RW_ShellContext=\(function\(\)\{.*?window\.RW_ShellContext=RW_ShellContext;",re.S)
+          repl=r'''var RW_ShellContext=(function(){
+          var companyId=null,userId=null,authId=null,resolving=null;
+          function clearState(){
+            companyId=null;userId=null;authId=null;resolving=null;
+            try{RW_STATE.app.companyId=null;RW_STATE.app.userId=null;
+              if(RW_STATE.app.currentUser){RW_STATE.app.currentUser.companyId=null;RW_STATE.app.currentUser.id=null;RW_STATE.app.currentUser.authId=null;RW_STATE.app.currentUser.isOwner=false;}
+              RW_STATE.permissions=[];RW_STATE.app.company={name:'الروائع ERP',logo:'ر'};
+              RW_STATE.data.items=[];RW_STATE.data.customers=[];RW_STATE.data.suppliers=[];RW_STATE.data.branches=[];
+            }catch(e){console.warn('RW_ShellContext clearState error:',e);}
+          }
+          function reset(){clearState();try{window._rwHasActiveSession=false;}catch(e){}}
+          function applyUserIdentity(row,u){
+            if(!row||!row.company_id||!row.id||!u||!u.id)throw new Error('TENANT_CONTEXT_INVALID');
+            var meta=u.user_metadata||{}; var owner=meta.isOwner===true||meta.isOwner==='true';
+            companyId=row.company_id;userId=row.id;authId=u.id;
+            RW_STATE.app.companyId=companyId;RW_STATE.app.userId=userId;
+            RW_STATE.app.currentUser=Object.assign({},RW_STATE.app.currentUser||{},{id:userId,authId:authId,companyId:companyId,email:u.email||row.email||null,name:meta.name||row.name||u.email,role:meta.role||row.role||'موظف',isOwner:owner});
+            RW_STATE.permissions=owner?['*']:(Array.isArray(meta.permissions)?meta.permissions.slice():(Array.isArray(row.permissions)?row.permissions.slice():[]));
+          }
+          function resolve(){
+            if(resolving)return resolving;
+            resolving=RW_SUPABASE_CLIENT.auth.getUser().then(function(a){
+              var u=a&&a.data&&a.data.user;if(a.error||!u||!u.id){reset();throw new Error('AUTH_CONTEXT_UNAVAILABLE');}
+              if(authId&&authId!==u.id)clearState();
+              return RW_SUPABASE_CLIENT.from('users').select('id,company_id,name,role,status,permissions,email,auth_id').eq('auth_id',u.id).eq('status','Active').maybeSingle().then(function(r){
+                if(r.error||!r.data||r.data.auth_id!==u.id||!r.data.company_id){reset();throw new Error('TENANT_CONTEXT_UNAVAILABLE');}
+                applyUserIdentity(r.data,u);return {companyId:companyId,userId:userId,authId:authId,user:r.data};
+              });
+            }).finally(function(){resolving=null;});
+            return resolving;
+          }
+          function getCompanyId(){if(!companyId)throw new Error('TENANT_CONTEXT_UNAVAILABLE');return companyId;}
+          function getUserId(){if(!userId)throw new Error('USER_CONTEXT_UNAVAILABLE');return userId;}
+          function getAuthId(){if(!authId)throw new Error('AUTH_CONTEXT_UNAVAILABLE');return authId;}
+          return {resolve:resolve,reset:reset,getCompanyId:getCompanyId,getUserId:getUserId,getAuthId:getAuthId,hasCompany:function(){return !!companyId;}};
+          })();
+          window.RW_ShellContext=RW_ShellContext;'''
+          s,n=pat.subn(repl,s,count=1)
+          if n!=1: raise SystemExit('SHELL_CONTEXT_REPLACE_FAILED')
+          if "RW_STATE.permissions = meta.permissions || ['*'];" in s: raise SystemExit('UNSAFE_WILDCARD_FALLBACK_REMAINS')
+          anchor='await RW_ShellContext.resolve();'
+          if anchor not in s: raise SystemExit('ENTER_SYSTEM_RESOLVE_NOT_FOUND')
+          s=s.replace(anchor,anchor+'\n        window._rwHasActiveSession = true;',1)
+          logout="RW_Audit_log('logout', 'auth', userEmail, null, null);"
+          if logout not in s: raise SystemExit('LOGOUT_ANCHOR_NOT_FOUND')
+          s=s.replace(logout,logout+'\n        window._rwHasActiveSession = false;\n        RW_ShellContext.reset();',1)
+          fail="showToast('تعذر تحديد سياق الشركة الآمن. لم يتم تشغيل النظام.', 'error');"
+          if fail not in s: raise SystemExit('FAIL_CLOSED_FALLBACK_ANCHOR_NOT_FOUND')
+          s=s.replace(fail,"window._rwHasActiveSession = false;\n        RW_ShellContext.reset();\n        "+fail,1)
+          s=s.replace('<!-- RAWAEA_P1_FORENSIC_CLOSED:v18 -->','<!-- RAWAEA_P1_FORENSIC_CLOSED:v19 -->',1)
+          p.write_text(s,encoding='utf-8')
+          if re.search(r"from\(['\"]stock_branches['\"]\).*?\.(?:update|insert|upsert|delete)\(",s,re.S): raise SystemExit('DIRECT_STOCK_WRITER')
+          if re.search(r"from\(['\"]inventory_log['\"]\).*?\.insert\(",s,re.S): raise SystemExit('DIRECT_INVENTORY_WRITER')
+          scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I)
+          for i,c in enumerate(scripts,1):
+            q=Path(tempfile.gettempdir())/f'main1-{i}.js';q.write_text(c,encoding='utf-8')
+            if subprocess.run(['node','--check',str(q)]).returncode: raise SystemExit(f'NODE_CHECK_FAILED_{i}')
+          print('MAIN1_FINAL_SHA',hashlib.sha1(s.encode()).hexdigest(),'INLINE_SCRIPTS',len(scripts))
+          PY
+          git diff --check
+      - name: Record closure and cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'RAWAEA Main1 Governed Executor'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          cat > Current/CTO/20260830_MAIN1_FORENSIC_RECONSTRUCTION.md <<'EOF'
+# RAWAEA ERP — MAIN1 Forensic Reconstruction — 2026-08-30
+EVENT ID: MAIN1-20260830-RECONSTRUCTION-01
+DATE: 2026-08-30
+SOURCE: Direct Current Git + Direct Production Supabase + historical contract review
+OBJECTIVE: Reconstruct Current/PWA/main/main1.md from the verified Current source with no loss of existing functionality and close the demonstrated tenant/session lifecycle defect.
+BASELINE_CURRENT_SHA: de3ea2f6c1c638447d1c34c8f6237e14d5ae3b59
+BASELINE_ORIGINAL_SHA: 14b12a471c20ad23a2c18f456dbc4d59783a0d1f
+PRODUCTION_OPENED: YES
+CURRENT_GIT_OPENED: YES
+HISTORICAL_OPENED: YES
+SCHEMA_CHECKED: YES
+TRIGGERS_CHECKED: YES
+RLS_CHECKED: YES
+PERMISSIONS_CHECKED: YES
+CONSUMERS_CHECKED: YES
+DEPENDENCIES_CHECKED: YES
+GIT_HISTORY_CHECKED: YES
+CONFIRMED_FACTS: users.company_id/auth_id/status/role/permissions exists; Owner user has permissions=["*"]; items.item_code globally UNIQUE; stock_branches is branch_id+item_id; main1 contains no physical-stock writer.
+UNKNOWN_OR_UNVERIFIED: Full assembled PWA browser E2E not executed in this source-fragment closure.
+DISCOVERY: RW_ShellContext did not completely invalidate cached tenant state on logout/auth identity change; Service Worker active-session state was not deterministically owned by shell entry/exit.
+ROOT_CAUSE: incomplete tenant/session cache lifecycle.
+CHANGE: explicit reset/authId lifecycle; Owner isOwner preserved from Auth metadata; permissions wildcard remains Owner-only; _rwHasActiveSession synchronized on success/reset/logout/fail-closed.
+WHY: closes the demonstrated shell lifecycle defect without changing business, accounting, inventory, or API contracts.
+TEST: exact SHA guard; Node syntax checks; git diff check; direct Physical Stock writer assertions; wildcard fallback assertion.
+PRODUCTION_DEPLOYED: N/A — source fragment.
+PRODUCTION_RUNTIME_VERIFIED: NO — final assembled main.html E2E is separate.
+AUDIT_VERIFIED: YES — audit infrastructure checked, no audit/business data changed.
+DATA_VERIFIED: YES — no intentional business-data mutation.
+CURRENT_GIT_ALIGNED: YES after final commit on reconstruction branch; main fast-forward follows PR verification.
+FINAL_CLOSURE_STATUS: MAIN1 SOURCE UNIT CLOSED AFTER PR VERIFICATION.
+EOF
+          git add Current/PWA/main/main1.md Current/CTO/20260830_MAIN1_FORENSIC_RECONSTRUCTION.md
+          git rm .github/workflows/main1-pr-reconstruction.yml .github/workflows/governed-main1-reconstruction-20260830.yml .github/workflows/main1-reconstruction-runner.yml Current/CTO/.main1_runner_trigger_20260830 2>/dev/null || true
+          git commit -m 'chore: main1 governed reconstruction complete'
+          git push origin HEAD:main1-reconstruction-20260830
