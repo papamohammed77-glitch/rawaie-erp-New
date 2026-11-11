@@ -1,0 +1,64 @@
+name: RAWAEA PWA fragment reconstruction v2
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  reconstruct:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'forensic-reconstruct-20260830'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: forensic-reconstruct-20260830
+          fetch-depth: 0
+      - name: Reconstruct exact fragments from canonical integrated main
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, re, json
+          cur=Path('Current/PWA/main.html').read_bytes()
+          orig=Path('Original/PWA/main.html').read_bytes()
+          def norm(b:bytes)->bytes:
+              return re.sub(rb'^(<!DOCTYPE html>\n<!--)[^>]*(-->\n)', rb'\1__BUILD_MARKER__\2', b, count=1, flags=re.I)
+          if hashlib.sha256(norm(cur)).hexdigest()!=hashlib.sha256(norm(orig)).hexdigest():
+              raise SystemExit('BLOCKING_UNKNOWN: current integrated main is not functionally byte-equivalent to Original beyond the documented build marker')
+          sizes=[63126,100436,76707,63334,68592,26717,101985,67029,89270,18851]
+          total=sum(sizes)
+          if total>len(cur): raise SystemExit(f'BOUNDARY_OVERFLOW {total}>{len(cur)}')
+          sizes.append(len(cur)-total)
+          off=0; rows=[]
+          for i,size in enumerate(sizes,1):
+              b=cur[off:off+size]; p=Path(f'Current/PWA/main/main{i}.md'); p.write_bytes(b)
+              ob=Path(f'Original/PWA/main/main{i}.md').read_bytes()
+              rows.append({'part':i,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest(),'original_bytes':len(ob),'original_sha256':hashlib.sha256(ob).hexdigest(),'raw_exact':b==ob,'normalized_exact':norm(b)==norm(ob)})
+              off+=size
+          joined=b''.join(Path(f'Current/PWA/main/main{i}.md').read_bytes() for i in range(1,12))
+          report={'canonical_current_sha256':hashlib.sha256(cur).hexdigest(),'canonical_original_sha256':hashlib.sha256(orig).hexdigest(),'canonical_normalized_sha256':hashlib.sha256(norm(cur)).hexdigest(),'canonical_original_normalized_sha256':hashlib.sha256(norm(orig)).hexdigest(),'canonical_normalized_equivalent':norm(cur)==norm(orig),'fragments':rows,'concat_sha256':hashlib.sha256(joined).hexdigest(),'concat_equals_current_main':joined==cur}
+          Path('Current/CTO').mkdir(parents=True,exist_ok=True)
+          Path('Current/CTO/PWA_FRAGMENT_RECONSTRUCTION_REPORT.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+          print(json.dumps(report,ensure_ascii=False,indent=2))
+          if joined!=cur or not all(r['normalized_exact'] for r in rows): raise SystemExit('RECONSTRUCTION_VALIDATION_FAILED')
+          PY
+      - name: Structural validation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=b''.join(Path(f'Current/PWA/main/main{i}.md').read_bytes() for i in range(1,12)).decode('utf-8')
+          checks={'doctype':bool(re.search(r'<!DOCTYPE html>',s,re.I)),'html_close':bool(re.search(r'</html>\s*$',s,re.I)),'script_balanced':len(re.findall(r'<script\b',s,re.I))==len(re.findall(r'</script>',s,re.I)),'style_balanced':len(re.findall(r'<style\b',s,re.I))==len(re.findall(r'</style>',s,re.I)),'brace_balance':s.count('{')-s.count('}')==0}
+          Path('Current/CTO/PWA_FRAGMENT_RUNTIME_STRUCTURE.json').write_text(__import__('json').dumps(checks,indent=2),encoding='utf-8')
+          print(checks)
+          assert all(checks.values())
+          PY
+      - name: Commit only reconstructed fragments and evidence
+        run: |
+          git config user.name 'RAWAEA CTO Reconstruction'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Current/PWA/main Current/CTO/PWA_FRAGMENT_RECONSTRUCTION_REPORT.json Current/CTO/PWA_FRAGMENT_RUNTIME_STRUCTURE.json
+          git diff --cached --quiet || git commit -m 'fix(pwa): restore complete main1-main11 from verified integrated main'
+          git push origin HEAD:forensic-reconstruct-20260830
