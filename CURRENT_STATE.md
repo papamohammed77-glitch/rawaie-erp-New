@@ -1,3 +1,41 @@
+# CURRENT STATE UPDATE — LVE-2026-11-12-707
+
+**Recorded:** 2026-11-12 (Africa/Cairo)  
+**Workstream:** Receiver / Unified Warehouse — production stock, accounting, supplier-ledger and buyer-custody impact reconciliation
+
+## Live Production reconciliation
+- SMART ERP Supabase project: `fiilmooggumokxanwiyx`; all checks in this audit were read-only.
+- Both standalone Receiver and the Receiver bundled in `warehouse.html` call the same `receive-purchase` Edge Function (active Version 18); the backend routes PO receipts to `receive_purchase_atomic` and Quick Market invoices to `receive_quick_market_purchase_atomic`.
+- Current receiving records: 4 headers / 7 details. The four completed receipt operations are PO-20260928 (2026-11-09), PINV-1002 partial (2026-11-11), PINV-1003 (2026-11-11), and PINV-1002 final (2026-11-12).
+- Matched PurchaseIn movements: 7 lines / 44 units across the recorded units of measure. No duplicate idempotency key or repeated item movement was found for the referenced documents.
+- PINV-1002 is 20/20 received, value EGP 1,000; PINV-1003 is 9/9, value EGP 430. PO-20260928 is 15/15, value EGP 700.
+- BR-01 on-hand balances for the five affected items were read and have allocated_qty=0 and available_qty=qty. Item ITM-20260931 is qty 15, comprising PO 5 + PINV-1003 5 + PINV-1002 5.
+
+## Accounting and supplier impact
+- PO-20260928 posted balanced journal JE-RCV-aaa9a71bd0b9412ea4831157cd8c46cf: debit inventory EGP 700 / credit supplier AP EGP 700; matching supplier_ledger credit EGP 700.
+- Quick Market receiving intentionally posts stock and buyer-goods-custody transfer events, not a journal or supplier liability. The active SQL RPC explicitly returns journal_posted=false and supplier_balance_changed=false.
+- Suppliers.accounts_payable matched supplier_ledger net totals: Khamees Meshait EGP 700; Hussein Abu Al-Ala EGP 3,970. Quick Market invoices are tied to employee cash custody, not supplier credit.
+- PINV-1002 and PINV-1003 total EGP 1,430 and are fully physically received, but remain Draft / RECEIVED / UNSETTLED / paid_amount=0 pending buyer-custody purchase-expense submission and finance review.
+- Buyer custody BC-20261108-28F7B364 has an acknowledged initial EGP 5,000 advance with posted treasury-to-employee-custody journal JE-0A1D811168F34B18AD7D; current status UnderReview. No purchase-invoice expense is linked to the two QMP invoices. Two operational expenses totaling EGP 250 (fuel/transport) remain Submitted and unreviewed. No cash returns or final settlement rows found.
+- Approved QMP custody expense review is designed to debit inventory and credit employee custody accounts (codes 124/127), update invoice paid/settlement status, and not create supplier AP or a second treasury movement. Do not manually post a supplier payable or re-run receipt.
+
+## Current table counts
+- receiving=4; receiving_details=7; inventory_log=83; stock_branches=60; journal_entries=21; journal_lines=38; supplier_ledger=3; stock_vouchers=0; buyer_goods_custody_events=5; buyer_custody_expenses=2.
+- Compared with Report706, +1 receiving header, +1 detail, +1 inventory_log row matches the final PINV-1002 receipt on 2026-11-12; it is not the mock-only CI run.
+
+## Open items / limits
+- Buyer must submit invoice and warehouse-receipt evidence for PINV-1002/PINV-1003, then Finance review; review/settlement is still open.
+- items.cost_price is 0.00 for the five inspected items despite supplier invoice line prices 45/50/55. Whether this field drives valuation is not yet verified; investigate the official cost/valuation source before changing it.
+- Database records do not distinguish standalone from embedded Receiver as the source UI; both use the same backend contract.
+- Cloudflare Production SHA parity and an authenticated live browser session were not re-verified during this audit.
+- No DB write, RPC/Edge Function invocation, DDL, RLS, GRANT, Frontend change, or financial/inventory posting was made by this audit.
+
+**Detailed report:** `doc/Draft/Reprots/Report707_RECEIVING_IMPACT_STOCK_GL_SUPPLIER_RECONCILIATION_20261112.md`  
+**Previous checkpoint:** LVE-2026-11-12-706.  
+**Current status:** `RECEIPT STOCK POSTINGS RECONCILED + PO GL/SUPPLIER POSTING VERIFIED + QUICK-MARKET CUSTODY FLOW IDENTIFIED + BUYER CUSTODY SETTLEMENT OPEN / UI PROVENANCE AND COST-VALUATION SOURCE UNVERIFIED`.
+
+---
+
 # CURRENT STATE UPDATE — LVE-2026-11-10-694
 
 **Recorded:** 2026-11-10 (Africa/Cairo)
