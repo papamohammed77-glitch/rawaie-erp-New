@@ -12,6 +12,7 @@
 - **CONFIRMED LIMITATION:** بيانات Production الحالية فيها `start_time=end_time` لكل الاستلامات الأربع؛ لأن RPC الحالي يكتب `now(),now()` في نفس معاملة الاستلام. الواجهة تعرض الحقلين الموجودين دون اختلاق مدة. تصحيح وقت البداية الحقيقي يتطلب تغيير عقد RPC/عملية الاستلام، ولم يُجر أي تعديل SQL أو DB ضمن هذا الإصلاح.
 - **UNRESOLVED / SEPARATE:** تحذير Tailwind CDN تحذير بناء/نشر منفصل عن فشل الشبكة. لا يزال CDN موجودًا في Parent وReceiver وWarehouse. لم يُحذف لأن الصفحات تعتمد على Tailwind utility classes، وحذفه قبل توفير CSS إنتاجي بديل قد يكسر التخطيط. يحتاج مشروع CSS build مستقل واختبار تغطية قبل إزالته.
 - **CI:** أضيفت اختبارات static contract إلى Workflow الحالي وربط تشغيله بتغييرات `main.html` و`sw.js`. لم تتوفر قراءة مؤكدة لنتيجة تشغيل Workflow بعد هذا التعديل في وقت تسجيل التقرير.
+- **Cloudflare Production: CONFIRMED DEPLOYED** — لوحة Cloudflare تعرض Production/main عند commit `254545bca42c63da98bedf130c80bfc4725978d9` ورابط النشر `https://eb133a93.rawaea-erp.pages.dev/`. مقارنة GitHub تؤكد أن commit النشر يقع بعد إصلاح SW `e5a7064` ويحتوي عليه. صفحة النظام المفتوحة في المتصفح ما زالت تعرض DOM قديمًا بجدول رقم العملية، لذلك يلزم إعادة تحميل الصفحة/تحديث Service Worker قبل الحكم على العرض الحي.
 
 ## 2. تشخيص دورة الطلب
 
@@ -97,7 +98,7 @@ Commits: `da9834c9cf2535995f117274a6c131ac192d1f5a` و`45824b79023cd97dd1303d365
 - لم يتم تعديل SQL function أو schema أو RLS أو GRANT.
 - لم يتم تغيير منطق اعتماد الاستلام أو الكميات أو ترحيل المخزون.
 - لم يتم حذف Tailwind CDN.
-- لم يتم إثبات نشر Cloudflare بعد هذه commits؛ GitHub source ليس وحده إثباتًا أن Production Pages يخدم هذه النسخة.
+- تم التحقق من لوحة Cloudflare أن Production/main نشر commit `254545bca42c63da98bedf130c80bfc4725978d9` على `https://eb133a93.rawaea-erp.pages.dev/`، وهو يتضمن إصلاح SW وتعديلات جدول الاستلام. لم يتم إجراء تفاعل متصفح حي بعد النشر؛ التبويب المفتوح ما زال يعرض محتوى قديمًا قبل التحديث.
 
 ## 9. الخطوات التالية
 
@@ -106,4 +107,4 @@ Commits: `da9834c9cf2535995f117274a6c131ac192d1f5a` و`45824b79023cd97dd1303d365
 3. اعتماد تغيير backend مستقل لقياس وقت بدء الاستلام الفعلي، بعد تصميم دورة start/finish لا تؤثر في atomic stock posting أو idempotency.
 4. إعداد CSS build إنتاجي واختبار Parent وReceiver وWarehouse قبل إزالة Tailwind CDN.
 
-**الحالة:** `SERVICE-WORKER API REJECTION HANDLED + PARENT RECEIVING LOG UPDATED + TRUE RECEIVING DURATION NOT YET RECORDED + TAILWIND CDN WARNING DEFERRED`.
+**الحالة:** `SERVICE-WORKER API REJECTION HANDLED + PARENT RECEIVING LOG DEPLOYED TO CLOUDFLARE + TRUE RECEIVING DURATION NOT YET RECORDED + TAILWIND CDN WARNING DEFERRED + E2E RESULT UNVERIFIED`.
