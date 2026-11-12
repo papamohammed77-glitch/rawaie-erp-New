@@ -1617,3 +1617,38 @@ No test receipt, voucher, return completion, stock movement, reservation, ledger
 - Next: verify Pages Production SHA parity and conduct a read-only authenticated Receiver session; separately audit the fully received PO with no receipt header. Do not create/alter Production movements to repair the history gap.
 
 **Previous checkpoint:** LVE-2026-11-11-704.
+
+---
+
+# LVE-2026-11-12-706 — Receiver completed-history invalid purchase-invoice supplier column
+
+**Recorded:** 2026-11-12 (Africa/Cairo)  
+**Report:** `doc/Draft/Reprots/Report706_RECEIVER_COMPLETED_HISTORY_PURCHASE_INVOICE_SUPPLIER_JOIN_20261112.md`  
+**Report commit:** `e89233d6f64139df79f2091a8c011d8f1aa5d6b8`
+
+## Verified source and cause
+- Operational repository: `papamohammed77-glitch/erp-frontend`, `main`.
+- Console error: PostgREST 400 / PostgreSQL `42703`: `purchase_invoices.supplier_name` does not exist.
+- Verified Production schema: invoice stores `supplier_id`, not `supplier_name`; FK `purchase_invoices_supplier_id_fkey` points to `suppliers.id`.
+- Actual SQL join resolves QMP suppliers `PINV-1002` / `PINV-1003` correctly.
+
+## Fix committed
+- Standalone `receiver.html` now selects `supplier:suppliers!purchase_invoices_supplier_id_fkey(name)` instead of invalid `supplier_name`.
+- Embedded Receiver in `warehouse.html` carries the identical correction.
+- Mapping reads `invoice.supplier.name`; missing/hidden supplier relation falls back to `—` while retaining the parent receipt record.
+- Existing PO query and its valid `purchase_orders.supplier_name` field remain unchanged.
+- No RLS, GRANT, schema, RPC, Edge Function, inventory, financial, treasury, supplier-ledger or production-row changes.
+
+## Security boundary
+- `authenticated` has table SELECT privileges, but `suppliers_select_company` RLS only exposes supplier rows with effective `suppliers`/`purchases` permission or active `أذونات` role.
+- Current Receiver and unified warehouse accounts have `warehouse` only. The supplier embed is therefore treated as optional; no permission widening was made.
+- CI includes a hidden/null supplier relation test proving that completed receipt history remains visible.
+
+## Verification
+- Warehouse workflow Run `43243311887`: **COMPLETED SUCCESS** on HEAD `c3397ea3b1334dac9573435626c5d6d344987eba`.
+- URL: https://github.com/papamohammed77-glitch/erp-frontend/actions/runs/43243311887
+- New markers: `WAREHOUSE_RECEIVER_QUICK_MARKET_SUPPLIER_FK_SELECT=PASS`; `WAREHOUSE_RECEIVER_HISTORY_SURVIVES_HIDDEN_SUPPLIER_RELATION=PASS`; existing completed-history, history-reentry, standalone Receiver and seven-workspace tests also passed.
+- Production counts remained unchanged after tests: receiving 3; receiving_details 6; inventory_log 82; stock_branches 60; journal_entries 21; supplier_ledger 3; stock_vouchers 0. All DB access read-only.
+- Cloudflare Pages parity: **UNVERIFIED** at report time; Dashboard snapshot still displayed deployment `8a9a111...`, not the new HEAD. Recheck after automatic deployment completes; do not claim this fix is live until its SHA is confirmed.
+
+**Previous checkpoint:** LVE-2026-11-12-705.
