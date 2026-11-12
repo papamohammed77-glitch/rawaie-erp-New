@@ -1626,3 +1626,19 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - No Production DML/DDL/RPC/Edge invocation or financial/stock movement was performed. Cloudflare last observed deployment was de158d3; deployment of 09dd0a and direct production runtime remain unverified.
 - The direct-edit exception was scoped to these two Picker code surfaces; do not generalize it to parent/core/backend or unrelated apps.
 - Next: verify 09dd0a deployment and read-only blocked-path runtime behavior on RS-3/RS-4; never complete the picking operation or synthesize stock rows for this validation.
+
+
+---
+
+## LVE-2026-11-12-710 — Unified Warehouse image/cache and embedded module parity (2026-11-12)
+
+- Current operational repo HEAD verified: papamohammed77-glitch/erp-frontend main = 903a1fe22c3ec2f8f4f7a3ffeb45d1d8025e306d.
+- Confirmed root cause for missing Picker images in warehouse.html: the embedded shared-auth init overrides the standalone init, bypassing the standalone ITEMS_IMAGE_CACHE query. Fixed by adding company-scoped image loading to the embedded shared-auth bootstrap, clearing previous company cache, rejecting stale-company responses, and refreshing visible image DOM. Commit 903a1fe.
+- Confirmed embedded Returns root had a transformed CSS rule forcing position:fixed/overflow:hidden/width:100%, escaping the workspace. Removed that rule from the embedded Returns bundle only. Commit 4803cdf.
+- Loader/Returns standalone and embedded method surfaces and API/table contracts match; critical start/complete/cancel/reopen methods were compared after wrapper normalization. Production Edge versions active and source/shared warehouse-auth files match: start-loading v7, complete-loading v12, cancel-loading v6, reopen-loading v4, start-return v6, complete-return v28, cancel-return v6, report-discrepancy v4, complete-picking v19.
+- No global keyboard listeners found in embedded Loader/Returns. moduleDocument still falls back to document-wide selectors when a module-local selector is absent; currently needed for SweetAlert2 but remains a DOM coupling risk to review separately.
+- E2E run 43276131519 SUCCESS on commit 903a1fe. Picker actual cache rendering, Loader/Returns image success/fallback, Returns bounded scroll, parity checks, and stock preflight no-Edge-on-shortage all passed using local QA mocks.
+- Production SMART ERP read-only evidence: RS-3/RS-4 contain 7 detail lines across 6 distinct item codes; all 7 have image_url (5 Googleusercontent, 2 Supabase Storage). product-images bucket is public and two sampled objects exist. Google URL HTTP reachability in authenticated browser remains unverified.
+- Current stock read: if full ordered quantities are picked, RS-3 item 1010 has 1 available vs 2 ordered; RS-3 ITM-20260939 and RS-4 ITM-20260938 have no stock_branches row. Picker preflight compares entered pickedQty and treats missing row as zero; no balances or allocations were changed.
+- Cloudflare Production/main deployment now references 903a1fe; artifact byte-for-byte fetch and authenticated production browser E2E remain unverified because the connected app tab is logged out.
+- No Production DML/DDL/RPC/Edge invocation or QA records were created. Next action: authenticated reload/runtime verification of real image URLs and Picker shortage warning without completing any stock transaction.

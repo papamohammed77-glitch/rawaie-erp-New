@@ -1728,3 +1728,26 @@ No test receipt, voucher, return completion, stock movement, reservation, ledger
 - Cloudflare Pages parity: **UNVERIFIED** at report time; Dashboard snapshot still displayed deployment `8a9a111...`, not the new HEAD. Recheck after automatic deployment completes; do not claim this fix is live until its SHA is confirmed.
 
 **Previous checkpoint:** LVE-2026-11-12-705.
+
+
+---
+
+## LVE-2026-11-12-710 — Unified Warehouse image cache + Loader/Returns parity
+
+- **الحالة:** READY WITH LIMITATIONS.
+- **نقطة الحالة السابقة:** CURRENT_STATE كان ينتهي عند LVE-2026-11-12-706؛ تقارير 707–709 كانت موجودة ولم تكن مدمجة في CURRENT_STATE. Report709 سجل LVE-709؛ هذا الإدخال يصالح التسلسل ويثبت LVE-710.
+- **المستودع التشغيلي:** papamohammed77-glitch/erp-frontend، main HEAD 903a1fe22c3ec2f8f4f7a3ffeb45d1d8025e306d.
+- **Commits:** 4803cdf2e6eb875eb904f62e6d4d81c2feb7fc58 (Returns embedded CSS + E2E)، 26ba0894fe67ec962c921f229a86e5b44b19fa9e (CI syntax correction)، 903a1fe22c3ec2f8f4f7a3ffeb45d1d8025e306d (Picker shared-auth image cache root cause fix).
+- **الملفات التشغيلية المتغيرة فقط:** companies/company-1/warehouse/warehouse.html و.github/workflows/warehouse_hub_browser_e2e_20261110.yml. لا تغيير في picker.html/loader.html/returns.html/main.html/core.js/SQL/RLS/RPC/Edge.
+- **سبب صور Picker:** shared-auth wrapper كان يستبدل init الأصلية ويتجاوز استعلام ITEMS_IMAGE_CACHE. أضيف تحميل صور الشركة إلى wrapper مع مسح Cache السابق وتجاهل الاستجابة القديمة وتحديث DOM بعد وصول الصور.
+- **Returns CSS:** إزالة position:fixed/overflow:hidden/width:100% الخاطئة من جذر Returns المضمّن فقط؛ مساحة العمل تستخدم حدود .rw-native-module والتمرير الداخلي.
+- **Loader/Returns:** method surface وAPI/table contracts متطابقة مع الأصل؛ critical start/complete/cancel/reopen methods فُحصت بعد التطبيع؛ لا global keyboard listeners. moduleDocument fallback إلى DOM العام ما زال اقترانًا يحتاج مراجعة لاحقة.
+- **SMART ERP:** جميع الاستعلامات كانت SELECT فقط. RS-3/RS-4 لديهما 7 سطور و6 أصناف متميزة، جميعها image_url؛ 5 Googleusercontent و2 Supabase Storage. bucket product-images public=true وعينتان من objects موجودتان.
+- **Stock preflight:** RS-3 item 1010 available=1 مقابل ordered=2 إذا اختيرت الكمية كاملة؛ RS-3 item ITM-20260939 وRS-4 item ITM-20260938 بلا stock_branches rows. preflight يقارن pickedQty الفعلية ولا ينشئ رصيدًا. لم يتغير أي qty/allocated_qty.
+- **Edge:** complete-picking v19؛ start-loading v7؛ complete-loading v12؛ cancel-loading v6؛ reopen-loading v4؛ start-return v6؛ complete-return v28؛ cancel-return v6؛ report-discrepancy v4. ملفات المصدر وwarehouse-auth المشتركة مطابقة للمنشور.
+- **Triggers:** trg_audit_runsheets، trg_runsheets_unresolved_discrepancy_close_guard، trg_stock_discrepancies_integrity موجودة.
+- **E2E:** Run 43276131519 SUCCESS على commit 903a1fe؛ اختبارات الصور الحقيقية في cache mock، fallback، Returns bounded scroll، Loader/Returns method surface، stock preflight/no Edge call، وReturns fail-closed.
+- **Deployment:** Cloudflare Production/main يعرض commit 903a1fe، Automatic deployments enabled؛ preview d7b70c9e.rawaea-erp.pages.dev. Artifact bytes لم تُقارن مباشرة.
+- **Runtime:** المتصفح المتصل غير مصادق؛ تحميل روابط Googleusercontent الفعلية وسلوك المستخدم النهائي UNVERIFIED. يلزم reload/login واختبار عرض فقط.
+- **حماية Production:** لا DML/DDL/RPC/Edge calls ولا بيانات QA على Production؛ لا أثر مخزني أو مالي من هذه المهمة.
+- **الخطوة التالية:** تحقق Production مصادق عليه بعد reload، بصور RS-3/RS-4 ورسائل نقص Picker، دون إنهاء أي عملية.
