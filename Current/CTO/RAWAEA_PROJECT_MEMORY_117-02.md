@@ -1642,3 +1642,18 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - Current stock read: if full ordered quantities are picked, RS-3 item 1010 has 1 available vs 2 ordered; RS-3 ITM-20260939 and RS-4 ITM-20260938 have no stock_branches row. Picker preflight compares entered pickedQty and treats missing row as zero; no balances or allocations were changed.
 - Cloudflare Production/main deployment now references 903a1fe; artifact byte-for-byte fetch and authenticated production browser E2E remain unverified because the connected app tab is logged out.
 - No Production DML/DDL/RPC/Edge invocation or QA records were created. Next action: authenticated reload/runtime verification of real image URLs and Picker shortage warning without completing any stock transaction.
+
+
+---
+
+## LVE-2026-11-12-711 — Unified Warehouse runtime/image checkpoint
+- استئناف من LVE-710؛ Report711: doc/Draft/Reprots/Report711_UNIFIED_WAREHOUSE_RUNTIME_IMAGE_LOADER_RETURNS_REVIEW_20261112.md (commit 45d22847f682367e73f64edf34b2c89f78fb7fc8).
+- Operational HEAD ما زال 903a1fe22c3ec2f8f4f7a3ffeb45d1d8025e306d؛ CI run 43276131519 ناجح، لكن Production Artifact/Browser لم يُعاد إثباته.
+- Loader/Returns parity مؤكدة على method surfaces وAPI/table contracts وlifecycle/image helpers بعد تطبيع wrapper names؛ Returns fixed-root CSS القديم أزيل، والتمرير bounded. حساب الوحدة مدمج في Hub account، والخروج في Header.
+- Picker image cache المضمّن scoped بـcompany_id ويعيد رسم الصور بعد fetch؛ RLS الحالية كافية. 35 صنفًا، 34 صورة؛ 16 Googleusercontent و18 Supabase Storage. كل Storage objects موجودة؛ صورتا RS-3/RS-4 من Storage سجلتا GET 200. RS-1/RS-2 الفعليتان تستخدمان Googleusercontent فقط؛ الوصول الفعلي للروابط لم يختبر بعد.
+- Production QMP receiving/Custody reconciliation: PINV-1002 20/20 وPINV-1003 9/9؛ PurchaseIn يساوي الاستلام وخروج عهدة البضاعة يساويه؛ الفواتير Draft/UNSETTLED ولا journal_entries أو supplier_ledger لها. هذه سجلات أعمال غير معلّمة QA ولا تُمس.
+- Production current counts: receiving 4، receiving_details 7، inventory_log 83، stock_branches 60، buyer_goods_custody_events 5، stock_discrepancies 0.
+- RS-3/RS-4 Open؛ سجل stock_branches مفقود للصنفين ITM-20260939 وITM-20260938، وitem 1010 available=1 مقابل طلب 2. ست محاولات complete-picking v19 أعادت 400 قبل 903a1fe؛ start/cancel نجحت وعادت الحالات Open؛ لا inventory_log/operation_registry أثر بين 16:00–17:10 UTC.
+- Loader يشترك في runsheets فقط مع reconciliation 60s؛ Picker وReturns لا يظهر بهما Realtime/polling. Publication تشمل الجداول الأربعة. Tailwind CDN مستمر، وmain في المستودعين غير محمي ولا Rulesets.
+- توجيه المالك الحالي §19 يمنع QA writes على Production ويعلو على سياسة QA الأقدم في §6.4؛ لم تُنشأ بيانات اختبار. الحالة READY WITH LIMITATIONS؛ الخطوة التالية Browser Runtime read-only بعد Forced Reload، دون أي عمليات أعمال.
+
