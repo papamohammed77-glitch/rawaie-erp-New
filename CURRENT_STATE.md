@@ -1,3 +1,27 @@
+# CURRENT STATE UPDATE — LVE-2026-11-12-708
+
+**Recorded:** 2026-11-12  
+**Workstream:** Receiver network reliability / Parent receiving audit log presentation
+
+## Completed source changes
+- `companies/company-1/sw.js` API fetch failures now resolve to explicit HTTP 503 JSON (`NETWORK_ERROR`, no-store) rather than leaving a rejected FetchEvent Promise unhandled. Build marker `RAWAEA_SW_P157_API_NETWORK_FAILURE_RESPONSE_20261112`; blob `f6b9372559f323c8e2512ca94662b2c619ec0d4f`; commit `e5a70642f1c33b61f430b6b87793c61eae89fcfb`.
+- `companies/company-1/main.html` Parent Receiving table now displays document/invoice reference, date, responsible, receiving start/end times, item count, status and details. Operation ID remains internal for detail lookup; filter uses document reference. Blob `525eb0eda6d498e186a8f887912a0b3c5dae4d67`; commits `da9834c9cf2535995f117274a6c131ac192d1f5a`, `45824b79023cd97dd1303d365f462f15194136c2`.
+- `.github/workflows/warehouse_hub_browser_e2e_20261110.yml` now triggers on Parent main.html and sw.js and checks the new receiving log + 503 failure contract. Blob `926e74eead7efd0c58c2fa26e782c15441fea83e`; commit `655224be1f87c463ecd2210e54bc06e09d170927`.
+
+## Verified findings / limitations
+- Repeated branches fetches originate from Receiver Realtime periodic reconciliation (30s), through requestQueueRefresh -> loadPurchaseOrders/loadReceivingHistory -> resolveBranchScope.
+- SW 503 handling does not fabricate a successful response or cache business data; actual network outage remains an explicit service failure.
+- Production `receiving.start_time` and `end_time` are equal in all four current records because both active atomic RPCs insert `now(),now()`. UI fields are visible, but actual receiving duration requires a separately approved backend lifecycle/RPC change. No SQL/RPC/schema/stock/accounting changes were made.
+- Tailwind CDN warning remains independent; CDN references remain in Parent, Receiver and Warehouse. Do not remove the CDN until compiled production CSS replaces the utility classes.
+- Static source assertions were added to the workflow, but Actions result and Cloudflare Production SHA parity remain UNVERIFIED at this checkpoint.
+- No Production data writes, inventory movements, journal entries, supplier ledger changes, migrations, RLS or GRANT changes.
+
+**Detailed report:** `doc/Draft/Reprots/Report708_RECEIVER_NETWORK_FAILURE_AND_PARENT_RECEIVING_LOG_20261112.md`  
+**Previous checkpoint:** LVE-2026-11-12-707.  
+**Current status:** `SW NETWORK REJECTION HANDLED IN SOURCE + PARENT RECEIVING LOG UPDATED + TRUE START/END TIMING BACKEND GAP OPEN + TAILWIND BUILD DEFERRED + CI/DEPLOYMENT UNVERIFIED`.
+
+---
+
 # CURRENT STATE UPDATE — LVE-2026-11-12-707
 
 **Recorded:** 2026-11-12 (Africa/Cairo)  
