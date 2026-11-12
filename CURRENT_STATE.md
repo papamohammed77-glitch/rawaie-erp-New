@@ -1751,3 +1751,48 @@ No test receipt, voucher, return completion, stock movement, reservation, ledger
 - **Runtime:** المتصفح المتصل غير مصادق؛ تحميل روابط Googleusercontent الفعلية وسلوك المستخدم النهائي UNVERIFIED. يلزم reload/login واختبار عرض فقط.
 - **حماية Production:** لا DML/DDL/RPC/Edge calls ولا بيانات QA على Production؛ لا أثر مخزني أو مالي من هذه المهمة.
 - **الخطوة التالية:** تحقق Production مصادق عليه بعد reload، بصور RS-3/RS-4 ورسائل نقص Picker، دون إنهاء أي عملية.
+
+
+---
+
+## LAST VERIFIED EVENT — LVE-2026-11-12-711
+**التاريخ:** 2026-11-12 — مراجعة مسائية بتوقيت القاهرة  
+**التقرير:** doc/Draft/Reprots/Report711_UNIFIED_WAREHOUSE_RUNTIME_IMAGE_LOADER_RETURNS_REVIEW_20261112.md  
+**Report commit:** 45d22847f682367e73f64edf34b2c89f78fb7fc8
+
+### نقطة الاستئناف
+- تم الاستئناف من LVE-2026-11-12-710 دون إعادة بناء المشروع من الصفر.
+- Operational repo: papamohammed77-glitch/erp-frontend / main / HEAD 903a1fe22c3ec2f8f4f7a3ffeb45d1d8025e306d؛ لا Commit أحدث.
+- Governance repo كان HEAD 7ddd192cd3e4f6d2b5702cf4fbbb574fde582035 قبل إنشاء Report711.
+- CURRENT_STATE والدستور الدائم قُرئا كاملين؛ الدستور Blob 3a6b1e220af8509e314e94df76563bbc6f84910d.
+- Report710 Blob ffb31eceb4483549e4210aaa5b1539497ceb07be وReport709 Blob df54cd4df8fce4eb32794cf739b4b6e707e1ab19.
+
+### الحالة المؤكدة
+- Picker image cache المضمّن في warehouse.html scoped بـcompany_id، ويعيد رسم الصور بعد اكتمال القراءة؛ لا حاجة إلى توسيع RLS.
+- Loader وReturns متكافئان مع الأصل على method surfaces وRW_API/table contracts ودوال lifecycle ومساعدات الصور بعد تطبيع wrapper names.
+- Returns fixed-root CSS القديم غير موجود؛ الحاوية الحالية bounded وscrollable. لا global keydown/keyup listeners في الوحدتين.
+- CI run 43276131519 على HEAD 903a1fe ناجح؛ هذا لا يثبت Production Runtime.
+- Production: 35 items / 34 image_url (16 Googleusercontent / 18 Supabase Storage)؛ كل 18 Storage objects موجودة. صورتا Storage المستخدمتان في RS-3/RS-4 لهما GET 200 في Storage logs.
+- RS-1 Delivered وRS-2 Returned يستخدمان Googleusercontent في كل أسطرهما؛ تحقق المتصفح من تلك الروابط ما زال UNVERIFIED.
+- RLS الحالية تسمح بالقراءة للمخزن الفعلي ضمن الشركة؛ لا تغيير صلاحيات.
+- Edge Functions ذات الصلة نشطة وverify_jwt=true؛ complete-return v28 وreport-discrepancy v4؛ reopen-return v2 fail-closed HTTP 409.
+- أحدث Migration مطبق 20261110233152؛ لا Migration أحدث.
+- QMP receiving: PINV-1002 استلمت 20/20 وPINV-1003 استلمت 9/9؛ PurchaseIn يساوي الكمية المستلمة، وBUYER_TO_WAREHOUSE_ACCEPTED يساوي خروج عهدة البضاعة؛ لا فروق. الفاتورتان Draft/UNSETTLED/paid_amount=0 ولا journal_entries أو supplier_ledger مرتبط بهما. هذه سجلات أعمال قائمة وليست بيانات QA معلّمة، ولم تُلمس.
+- أعداد Production الحالية: receiving=4، receiving_details=7، inventory_log=83، stock_branches=60، buyer_goods_custody_events=5، stock_discrepancies=0، stock_vouchers=0، journal_entries=21، supplier_ledger=3، runsheets=4.
+- RS-3/RS-4 ما زالتا Open؛ ITM-20260939 وITM-20260938 بلا stock_branches row، وitem 1010 متاح منه 1 مقابل طلب 2. ست محاولات complete-picking POST 400 حدثت قبل Commit 903a1fe؛ start/cancel نجحت وعادت الرانشيتات إلى Open. لا inventory_log أو erp_operation_registry rows بين 16:00 و17:10 UTC.
+- Loader يشترك في runsheets فقط مع reconcile كل 60 ثانية؛ Picker وReturns لا يظهر بهما Realtime/polling تشغيلي. Supabase publication يشمل items وrun_sheet_details وrunsheets وstock_discrepancies.
+- main في مستودعي GitHub غير محمي ولا توجد Rulesets؛ Tailwind CDN ما زال موجودًا في Hub/Picker/Loader/Returns.
+
+### UNKNOWN / UNVERIFIED
+- لم تتوفر جلسة Browser مصادق عليها أو قراءة bytes للـArtifact المنشور في هذا التشغيل؛ آخر دليل Cloudflare في Report710 فقط.
+- Googleusercontent HTTP/browser reachability وظهور الصور في Production غير مثبتين.
+- وصول أحداث Realtime في Runtime غير مثبت.
+- لا توجد Staging منفصلة مثبتة؛ Supabase branch listing أعاد main فقط مع with_data=false.
+
+### تعارض حوكمي
+- §19 من توجيه المالك الحالي يمنع QA writes على Production ويطلب Staging/بيئة معزولة؛ §6.4 من الدستور الحالي يصف سياسة QA تاريخية مختلفة. تم اتباع توجيه المالك الأحدث والأكثر حماية: لا QA writes على Production، وأي استثناء يحتاج موافقة منفصلة.
+
+### الحكم والخطوة التالية
+**READY WITH LIMITATIONS.** يمكن مواصلة التحليل والاختبارات الثابتة والقراءة فقط. لا تعديل تشغيلي ولا كتابة Production.
+الخطوة التالية: Browser Runtime read-only بعد Forced Reload، إثبات Artifact commit، ثم فحص صور Picker/Loader/Returns وNetwork/naturalWidth والتمرير دون بدء أو إكمال أي عملية. إذا فشلت روابط Google، يُعرض Change Set منفصل لنقل الصور إلى Supabase Storage قبل أي تغيير.
+
