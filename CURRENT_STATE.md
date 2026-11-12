@@ -5,8 +5,8 @@
 
 ## Completed source changes
 - `companies/company-1/sw.js` API fetch failures now resolve to explicit HTTP 503 JSON (`NETWORK_ERROR`, no-store) rather than leaving a rejected FetchEvent Promise unhandled. Build marker `RAWAEA_SW_P157_API_NETWORK_FAILURE_RESPONSE_20261112`; blob `f6b9372559f323c8e2512ca94662b2c619ec0d4f`; commit `e5a70642f1c33b61f430b6b87793c61eae89fcfb`.
-- `companies/company-1/main.html` Parent Receiving table now displays document/invoice reference, date, responsible, receiving start/end times, item count, status and details. Operation ID remains internal for detail lookup; filter uses document reference. Blob `525eb0eda6d498e186a8f887912a0b3c5dae4d67`; commits `da9834c9cf2535995f117274a6c131ac192d1f5a`, `45824b79023cd97dd1303d365f462f15194136c2`.
-- `.github/workflows/warehouse_hub_browser_e2e_20261110.yml` now triggers on Parent main.html and sw.js and checks the new receiving log + 503 failure contract. Blob `926e74eead7efd0c58c2fa26e782c15441fea83e`; commit `655224be1f87c463ecd2210e54bc06e09d170927`.
+- `companies/company-1/main.html` Parent Receiving table now displays document/invoice reference, date, responsible, receiving start/end times, item count, status, and notes aggregated from non-empty `receiving_details.reason`; Operation ID remains internal for detail lookup; filter uses document reference. Blob `caf3af2cb3bf8f482d696dacfa2045d322ddd6b0`; commits `da9834c9cf2535995f117274a6c131ac192d1f5a`, `45824b79023cd97dd1303d365f462f15194136c2`, `254545bca42c63da98bedf130c80bfc4725978d9`.
+- `.github/workflows/warehouse_hub_browser_e2e_20261110.yml` now triggers on Parent main.html and sw.js and checks the new receiving log columns including discrepancy notes sourced from `receiving_details.reason`, plus the 503 failure contract. Blob `8a1d26b97dadf8d8594447d946c4e6d5af981961`; commits `655224be1f87c463ecd2210e54bc06e09d170927`, `7192d8f9cbd286199aba0f2ef226d6a837356087`.
 
 ## Verified findings / limitations
 - Repeated branches fetches originate from Receiver Realtime periodic reconciliation (30s), through requestQueueRefresh -> loadPurchaseOrders/loadReceivingHistory -> resolveBranchScope.
