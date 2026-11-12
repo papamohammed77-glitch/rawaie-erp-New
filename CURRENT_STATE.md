@@ -13,12 +13,12 @@
 - SW 503 handling does not fabricate a successful response or cache business data; actual network outage remains an explicit service failure.
 - Production `receiving.start_time` and `end_time` are equal in all four current records because both active atomic RPCs insert `now(),now()`. UI fields are visible, but actual receiving duration requires a separately approved backend lifecycle/RPC change. No SQL/RPC/schema/stock/accounting changes were made.
 - Tailwind CDN warning remains independent; CDN references remain in Parent, Receiver and Warehouse. Do not remove the CDN until compiled production CSS replaces the utility classes.
-- Static source assertions were added to the workflow, but Actions result and Cloudflare Production SHA parity remain UNVERIFIED at this checkpoint.
+- Static source assertions were added to the workflow; Actions result remains UNVERIFIED. Cloudflare dashboard now confirms Production/main deployed commit `254545bca42c63da98bedf130c80bfc4725978d9` at `https://eb133a93.rawaea-erp.pages.dev/`; GitHub compare confirms it includes SW fix `e5a70642f1c33b61f430b6b87793c61eae89fcfb`. The already-open live tab still showed old DOM with operation ID column and must be refreshed before live UI acceptance.
 - No Production data writes, inventory movements, journal entries, supplier ledger changes, migrations, RLS or GRANT changes.
 
 **Detailed report:** `doc/Draft/Reprots/Report708_RECEIVER_NETWORK_FAILURE_AND_PARENT_RECEIVING_LOG_20261112.md`  
 **Previous checkpoint:** LVE-2026-11-12-707.  
-**Current status:** `SW NETWORK REJECTION HANDLED IN SOURCE + PARENT RECEIVING LOG UPDATED + TRUE START/END TIMING BACKEND GAP OPEN + TAILWIND BUILD DEFERRED + CI/DEPLOYMENT UNVERIFIED`.
+**Current status:** `SW NETWORK REJECTION HANDLED IN SOURCE + PARENT RECEIVING LOG UPDATED + TRUE START/END TIMING BACKEND GAP OPEN + TAILWIND BUILD DEFERRED + CI UNVERIFIED / CLOUDFLARE DEPLOYMENT CONFIRMED / LIVE TAB RELOAD REQUIRED`.
 
 ---
 
