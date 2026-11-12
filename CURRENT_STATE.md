@@ -1,5 +1,19 @@
 # CURRENT STATE UPDATE — LVE-2026-11-12-708
 
+## LVE-2026-11-12-709 — Picker Image Refresh + Stock Preflight
+- **LAST VERIFIED EVENT:** LVE-2026-11-12-709; previous checkpoint LVE-2026-11-12-708.
+- **Report:** doc/Draft/Reprots/Report709_WAREHOUSE_PICKER_IMAGE_REFRESH_AND_STOCK_PREFLIGHT_20261112.md
+- **Operational repo:** papamohammed77-glitch/erp-frontend, main HEAD 09dd0a738a2378abaee7f61ec86cd60ca11f7a4f.
+- **Source changes:** de158d30ad90ae648351ef5514921017e31600ae (Picker standalone + embedded Picker image refresh, shortage preflight, CI coverage); 09dd0a738a2378abaee7f61ec86cd60ca11f7a4f (numeric(12,4) integer-unit precision guard and fractional tests).
+- **Files:** companies/company-1/warehouse/picker.html; companies/company-1/warehouse/warehouse.html (Picker bundle only; other modules unchanged); .github/workflows/warehouse_hub_browser_e2e_20261110.yml.
+- **CI:** final Browser E2E run 43269334660 SUCCESS; standalone Picker and unified Picker image refresh/fallback, shortage warning/no Edge request, and four-decimal comparison all passed with in-memory mocks.
+- **Supabase SMART ERP:** read-only audit. complete-picking version 19 matches GitHub source. Current RS-3 item ITM-20260939 and RS-4 item ITM-20260938 have no stock_branches row for main branch; reserve_stock raises stock balance not found when row is absent. No rows were created and no stock/financial writes occurred.
+- **Data safety:** this task performed no Production DML/DDL/RPC/Edge call. Snapshot counts remained consistent with LVE708.
+- **Deployment:** last accessible Cloudflare dashboard snapshot shows Production/main commit de158d3 with preview URL https://41e4cf76.rawaea-erp.pages.dev/; deployment of 09dd0a and direct served-artifact/runtime verification remain UNKNOWN/UNVERIFIED.
+- **Owner exception:** direct edits were limited to the explicitly requested Picker standalone file and embedded Picker bundle. No main.html/core.js/backend/schema/permissions edits.
+- **Next action:** verify Cloudflare deployment of 09dd0a and run read-only/blocked-path browser checks for RS-3/RS-4; do not complete picking or create stock rows.
+
+
 **Recorded:** 2026-11-12  
 **Workstream:** Receiver network reliability / Parent receiving audit log presentation
 

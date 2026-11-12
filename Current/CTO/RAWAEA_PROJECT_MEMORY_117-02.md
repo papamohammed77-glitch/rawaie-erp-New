@@ -1614,3 +1614,15 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - Returns gate now has enabled DB triggers preventing runsheet close while pending/investigating discrepancies exist. No active Returning runsheet or discrepancy rows were present, so runtime trigger behavior remains untested. report-discrepancy v4 audit_log failure is still non-atomic.
 - CI Warehouse E2E and Mother Inventory Forensic runs passed with mocks/stubs; no Production E2E. Cloudflare deployment, authenticated browser runtime and Staging remain UNKNOWN.
 - No operational source/DB/Edge/deployment writes were made in this review. Governance approval remains required for the security fixes and new Warehouse Hub Inventory Control UI. Readiness: READY WITH LIMITATIONS.
+
+## LVE-2026-11-12-709 — Warehouse Picker Image Refresh and Stock Preflight
+- Task scope was explicitly limited by the owner to companies/company-1/warehouse/picker.html and the embedded Picker bundle in warehouse.html.
+- Operational repo main HEAD: 09dd0a738a2378abaee7f61ec86cd60ca11f7a4f. Initial surgical app fix commit: de158d30ad90ae648351ef5514921017e31600ae. Precision follow-up: 09dd0a738a2378abaee7f61ec86cd60ca11f7a4f.
+- Picker image fix: after ITEMS_IMAGE_CACHE resolves, refresh already-rendered mainContent/Swal DOM; _img now uses a stable data-rw-picker-image-code wrapper, safe http(s) URLs, and an explicit fallback on missing/broken image. Detail/editor views reuse the same renderer.
+- Stock fix: before confirmation/Edge invocation, read app_settings.main_branch_id, items, and stock_branches; aggregate picked quantities by item_code; compute available = qty - allocated_qty; show every shortage with item name/code/requested/available and distinguish missing stock row. Query failure fails closed. Backend Edge/RPC remains authoritative and unchanged.
+- Precision: numeric columns are numeric(12,4); quantities are converted to integer units at scale 10,000 before aggregation/comparison to avoid JS 0.1+0.2 false shortages.
+- Production finding: RS-3 includes ITM-20260939 and RS-4 includes ITM-20260938 without a stock_branches row for main branch. Both have item image_url. reserve_stock raises stock balance not found when row is absent. Do not create zero rows to hide the defect; only a real approved stock event can establish stock.
+- CI Browser E2E run 43269334660 SUCCESS; tests run with mocks only, including standalone and unified Picker, image refresh/fallback, all-shortages warning/no Edge call, and four-decimal equality/shortage behavior.
+- No Production DML/DDL/RPC/Edge invocation or financial/stock movement was performed. Cloudflare last observed deployment was de158d3; deployment of 09dd0a and direct production runtime remain unverified.
+- The direct-edit exception was scoped to these two Picker code surfaces; do not generalize it to parent/core/backend or unrelated apps.
+- Next: verify 09dd0a deployment and read-only blocked-path runtime behavior on RS-3/RS-4; never complete the picking operation or synthesize stock rows for this validation.
