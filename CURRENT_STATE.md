@@ -1869,3 +1869,10 @@ No test receipt, voucher, return completion, stock movement, reservation, ledger
 - Next step: authenticated browser verification of deployed artifact, parent-tab integration, and actual image loading in Picker/Loader/Returns. Do not modify Production image records before root cause is proven.
 - **Status:** SOURCE FIXED / CI PASS / DEPLOYMENT AND PRODUCTION RUNTIME UNVERIFIED / REAL IMAGE REACHABILITY UNVERIFIED.
 - **Readiness:** READY WITH LIMITATIONS.
+
+
+### LVE-713 CI failure history — preserved
+- Initial app-source commit `a47dd90` triggered Warehouse Run `43462877239`, which failed at Static source contract only: test expected `response.loading_cycle_id`, while the implementation's response variable was named `v` and correctly used `v.loading_cycle_id`. No syntax/runtime failure; Playwright was skipped.
+- Corrected the assertion and compact query-format expectations in commit `930c6eb`.
+- Final Warehouse Run `43462936571` on `930c6eb` passed Static + Playwright Browser E2E. The initial failed run remains part of the audit trail.
+- Full detail: Report713 section 10.
