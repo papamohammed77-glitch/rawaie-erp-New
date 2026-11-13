@@ -1694,3 +1694,8 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - Real image URLs remain unverified: source image_url is in items table; Picker uses items cache; Loader/Returns use FK embed. No authenticated browser context or Cloudflare artifact access; do not migrate/alter image URLs without measured root cause.
 - Report713: `doc/Draft/Reprots/Report713_UNIFIED_WAREHOUSE_HISTORY_REPAIR_AND_CI_20261113.md`.
 - CURRENT_STATE pinned at LVE-2026-11-13-713. Next: authenticated deployed Runtime check for images and parent-tab visibility. Status READY WITH LIMITATIONS.
+
+
+### LVE-713 CI correction history
+- First Warehouse run `43462877239` failed only at a newly added static assertion expecting `response.loading_cycle_id`; implementation correctly used variable `v.loading_cycle_id`. Playwright was not reached.
+- Assertion corrected in `930c6eb`; final run `43462936571` passed Static + Playwright Browser E2E. Initial failure retained in Report713 section 10 and CURRENT_STATE.
