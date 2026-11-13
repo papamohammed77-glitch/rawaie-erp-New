@@ -1657,3 +1657,20 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - Loader يشترك في runsheets فقط مع reconciliation 60s؛ Picker وReturns لا يظهر بهما Realtime/polling. Publication تشمل الجداول الأربعة. Tailwind CDN مستمر، وmain في المستودعين غير محمي ولا Rulesets.
 - توجيه المالك الحالي §19 يمنع QA writes على Production ويعلو على سياسة QA الأقدم في §6.4؛ لم تُنشأ بيانات اختبار. الحالة READY WITH LIMITATIONS؛ الخطوة التالية Browser Runtime read-only بعد Forced Reload، دون أي عمليات أعمال.
 
+
+
+---
+
+## LVE-2026-11-13-712 — Unified Warehouse completed-history defects
+- Operational HEAD remains `903a1fe22c3ec2f8f4f7a3ffeb45d1d8025e306d`; no app source changes in this audit.
+- Confirmed P1 defects exist in both originals and embedded bundles:
+  - Picker completed list filters current status Picked; later Delivered/Returned states hide historically completed picking.
+  - Loader completed list filters current status Loaded; unloading RPC resets runsheet to Picked and clears loader timestamps, hiding successful loading history.
+  - Unloader completed list queries stock_vouchers(type=Unloading,status=Completed), but actual unload RPC writes erp_operation_registry(operation_type=complete_runsheet_unloading) and inventory movements, not stock_vouchers. Production stock_vouchers is empty.
+- Production evidence: 4 completed Picking registry events; 5 completed Loading registry events; RS-1 Delivered and RS-2 Returned; 2 Open runsheets RS-3/RS-4. 19 current runsheet detail rows all have image_url (17 Googleusercontent, 2 Storage), browser image reachability still unverified.
+- RS-3 item 1010 available 1 vs ordered 2; ITM-20260939 missing stock_branches row. RS-4 ITM-20260938 missing stock_branches row. No stock changes.
+- One active branch count has 35 uncounted rows; do not treat as QA or alter.
+- stock_voucher_operations has 32 rows, all voucher_id NULL; 15 QA-prefixed; legacy residue requires lineage audit, no cleanup.
+- CI Run 43276131519 SUCCESS but does not test completed-event persistence after downstream state transitions. Browser/Pages artifact runtime unverified.
+- Report712: `doc/Draft/Reprots/Report712_UNIFIED_WAREHOUSE_COMPLETED_HISTORY_AND_INTEGRATION_AUDIT_20261113.md`.
+- CURRENT_STATE pinned at LVE-2026-11-13-712. CS-WH-712-A prepared but not applied; per constitution §7A owner applies operational app file changes. No Production writes.
