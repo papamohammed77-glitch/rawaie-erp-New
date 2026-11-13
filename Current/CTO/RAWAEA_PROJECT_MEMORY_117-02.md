@@ -1674,3 +1674,7 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - CI Run 43276131519 SUCCESS but does not test completed-event persistence after downstream state transitions. Browser/Pages artifact runtime unverified.
 - Report712: `doc/Draft/Reprots/Report712_UNIFIED_WAREHOUSE_COMPLETED_HISTORY_AND_INTEGRATION_AUDIT_20261113.md`.
 - CURRENT_STATE pinned at LVE-2026-11-13-712. CS-WH-712-A prepared but not applied; per constitution §7A owner applies operational app file changes. No Production writes.
+
+
+### LVE-712 supplemental
+- Unloader pending queue includes Loaded and Delivering, but Production complete_runsheet_unloading RPC accepts only Loaded with loading_cycle_id. Delivering can be offered but cannot complete. Add CS-WH-712-D to align queue with central contract; do not modify RPC/DB without owner approval.
