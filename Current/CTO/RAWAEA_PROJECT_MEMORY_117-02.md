@@ -1678,3 +1678,19 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 
 ### LVE-712 supplemental
 - Unloader pending queue includes Loaded and Delivering, but Production complete_runsheet_unloading RPC accepts only Loaded with loading_cycle_id. Delivering can be offered but cannot complete. Add CS-WH-712-D to align queue with central contract; do not modify RPC/DB without owner approval.
+
+
+---
+
+## LVE-2026-11-13-713 — Warehouse completed-history repair
+- Operational HEAD: `930c6eb1b860b74be9b08563566736e27c8a068e`; source repair commit `a47dd90df1d410a84e5275a6e3295c4563689fef`.
+- Owner's latest direct-execution instruction authorized this bounded source change. Updated standalone Picker/Loader/Unloader and matching Warehouse Hub embedded bundles.
+- Picker history now reads completed `complete_runsheet_picking` events from company/actor-scoped `erp_operation_registry`; reopen gated to latest event and current Picked + matching picker.
+- Loader history now reads `complete_runsheet_loading`; reopen gated to latest event, current Loaded, matching loader, and matching loading_cycle_id.
+- Unloader completed history now reads `complete_runsheet_unloading` registry events and unloaded_total, not stock_vouchers.
+- Unloader queue/search now require company_id + Loaded + non-null loading_cycle_id; Delivering removed to match RPC.
+- CI run `43462936571` SUCCESS; static and Playwright Browser E2E passed including new history persistence, load-cycle reopen, registry-source and eligibility assertions.
+- No Supabase writes, no RPC/Edge calls, no stock/accounting changes.
+- Real image URLs remain unverified: source image_url is in items table; Picker uses items cache; Loader/Returns use FK embed. No authenticated browser context or Cloudflare artifact access; do not migrate/alter image URLs without measured root cause.
+- Report713: `doc/Draft/Reprots/Report713_UNIFIED_WAREHOUSE_HISTORY_REPAIR_AND_CI_20261113.md`.
+- CURRENT_STATE pinned at LVE-2026-11-13-713. Next: authenticated deployed Runtime check for images and parent-tab visibility. Status READY WITH LIMITATIONS.
