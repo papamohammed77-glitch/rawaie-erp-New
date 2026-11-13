@@ -1839,3 +1839,11 @@ No test receipt, voucher, return completion, stock movement, reservation, ledger
 - Then extend CI with completed-event persistence, multiple load cycles, downstream transitions, and no-side-effect assertions; after deployment perform authenticated read-only browser verification.
 - **Status:** ROOT CAUSE CONFIRMED — OWNER FILE CHANGE REQUIRED / RUNTIME UNVERIFIED / NOT CLOSED.
 - **Readiness:** READY WITH LIMITATIONS.
+
+
+### LVE-712 supplemental finding — Unloader eligibility contract mismatch
+- Unloader original + embedded pending query includes `runsheets.status IN ('Loaded','Delivering')`.
+- Production RPC `complete_runsheet_unloading` accepts only `status='Loaded'` with a non-null loading_cycle_id. Delivering can therefore appear as an actionable row but be rejected by the central RPC.
+- No Delivering runsheet is present in the current inspected snapshot; live impact is not established, but source/contract mismatch is CONFIRMED.
+- Add CS-WH-712-D: safest minimal correction is to remove Delivering from the selectable unload queue unless owner approves a different central contract. No RPC or DB change performed.
+- Report712 supplemental commit: `3e7cec127cd3dd00bfd76dadc2a3479460f5092e`.
