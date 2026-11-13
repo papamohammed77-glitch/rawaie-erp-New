@@ -131,3 +131,10 @@
 **LVE-2026-11-13-713 — Source repair + CI passed / runtime and real images pending.**
 
 الخطوة التالية ذات الأولوية: فحص نشر Cloudflare والصفحة المنشورة بجلسة متصفح مصادق عليها، ثم اختبار الصور الحقيقية في Picker/Loader/Returns بقياس HTTP status و`naturalWidth`، مع إعادة التحقق من ظهور السجلات في التبويبات المناسبة داخل النظام الأم. لا تغييرات على صور Production أو بيانات الأعمال قبل ثبوت السبب وخطة تغيير محددة.
+
+
+## 10. سجل فشل الاختبار والتصحيح (محفوظ)
+- أول تشغيل بعد Commit التطبيق `a47dd90`، Run `43462877239`، فشل في Static contract assertion فقط.
+- السبب الجذري: assertion الجديد كان يبحث عن النص `response.loading_cycle_id` بينما اسم متغير نتيجة RPC في التطبيق هو `v`، وبالتالي الكود الصحيح يحتوي `v.loading_cycle_id`. كذلك احتاجت assertions لقائمة Unloader إلى مطابقة تنسيق الاستعلام compact.
+- لم يكن الفشل ناتجًا عن JavaScript syntax أو Runtime behavior؛ توقفت الخطوة قبل Playwright.
+- تم تصحيح assertions في Commit `930c6eb`، ثم نجح Run `43462936571` بالكامل بما فيه Browser E2E. لم تُخفَ نتيجة الفشل الأولى ولم يُعدّل التطبيق لإرضاء assertion خاطئ.
