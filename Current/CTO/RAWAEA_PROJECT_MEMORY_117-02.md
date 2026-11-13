@@ -1725,3 +1725,17 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - No Production business writes, DDL/DML, or test transactions. Edge code deployments only.
 - Residuals: older SQL RPCs still have direct-permissions-only checks in some paths; current unified profile has direct warehouse permission. Authenticated Production browser, real image reachability, parent-tab visual acceptance, and Production alias remain unverified.
 - Report715: `doc/Draft/Reprots/Report715_UNIFIED_WAREHOUSE_FULL_OPERATION_PERMISSION_PARITY_20261113.md`; CURRENT_STATE pinned LVE-715. Readiness READY WITH LIMITATIONS.
+
+
+## LVE-2026-11-13-716 — Staging readiness and inventory-request security (2026-11-13)
+- Continued from LVE-715; operational repo HEAD remains 5a0de601099ad2057e1cc8c757ccb2b6cd3a81e7. Warehouse CI Run 43473648768 passed. Production Cloudflare Preview is historically confirmed on the same HEAD; Production alias/authenticated Runtime remain unverified.
+- Current constitution blob: 3a6b1e220af8509e314e94df76563bbc6f84910d. CURRENT_STATE prior blob: c8a6d15b3fe7722e931bd459f9c69d1861c04eab.
+- A separate Supabase project rawaea-staging exists (ref hfzznsiprnwkpayskzhu, ACTIVE_HEALTHY), correcting the earlier assumption based only on branch listing. It is not safe/ready for warehouse QA: 62 migrations only (latest 20261027142557), 70 public tables but only 5 RLS-enabled and 0 FORCE RLS, 22 outdated Edge Functions, no users/companies rows, and missing inventory_stock_requests/details. Six old test/harness Edge Functions have verify_jwt=false. No staging writes were made.
+- Production remains ACTIVE_HEALTHY with 785 migrations (latest 20261110233152) and 100 Edge Functions. Selected deployed Warehouse Edge entrypoints match current Git source. CI is mock/local only; no real business transaction was run.
+- Confirmed P1: authenticated has INSERT/UPDATE/DELETE on inventory_stock_requests and inventory_stock_request_details; company-only ALL policies allow direct writes; no triggers. inventory_stock_request_engine is service_role-only. Current request rows are zero, so no data corruption observed, but the bypass surface exists.
+- Confirmed idempotency gap: no unique company_id+operation_id index; engine checks operation_id before advisory lock without a recheck.
+- Architecture gap: main.html creates its own Supabase client and does not load core.js/RW_Auth/RW_Realtime; warehouse.html loads ../core.js and embeds native bundles. Parent main has no direct erp_operation_registry consumer; completed unloading history in parent remains unverified.
+- Counter count_date uses UTC toISOString().slice(0,10), risking previous-day dates during early Cairo hours. Existing InProgress count (35 uncounted lines) is live business data and untouched.
+- report-discrepancy v4 writes audit_log non-atomically; some legacy voucher/receiving RPCs still use direct users.permissions checks rather than effective role_permissions.
+- No Production or Staging DML/DDL, no QA records, no code changes, no Edge deploys. All database checks were read-only.
+- Detailed report: doc/Draft/Reprots/Report716_DAILY_CTO_REVIEW_STAGING_READINESS_AND_WAREHOUSE_INTEGRATION_20261113.md; report commit 92774584b9e5f9938b0fb242c3e1aea57525ee28. Overall READY WITH LIMITATIONS; Staging E2E BLOCKED until RLS/schema/Edge parity is restored. Next priority CS-INVREQ-716-A, owner approval required before any Production migration.
