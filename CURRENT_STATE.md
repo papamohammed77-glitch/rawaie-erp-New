@@ -1876,3 +1876,22 @@ No test receipt, voucher, return completion, stock movement, reservation, ledger
 - Corrected the assertion and compact query-format expectations in commit `930c6eb`.
 - Final Warehouse Run `43462936571` on `930c6eb` passed Static + Playwright Browser E2E. The initial failed run remains part of the audit trail.
 - Full detail: Report713 section 10.
+
+
+---
+
+## LAST VERIFIED EVENT — LVE-2026-11-13-714
+**التاريخ:** 2026-11-13 (Africa/Cairo)  
+**التقرير:** `doc/Draft/Reprots/Report714_WAREHOUSE_DEPLOYMENT_AND_RUNTIME_GAP_AUDIT_20261113.md`
+
+- Operational repo `papamohammed77-glitch/erp-frontend`, branch main، HEAD `930c6eb1b860b74be9b08563566736e27c8a068e`؛ لم يظهر commit تشغيلي أحدث.
+- GitHub Actions Warehouse E2E Run `43462936571` SUCCESS؛ كل الخطوات، Static source contract وPlaywright Browser E2E، مكتملة بنجاح.
+- **Cloudflare Pages target project `rawaea-erp` deployed successfully** على commit `930c6eb`; Preview URL: https://d71efa19.rawaea-erp.pages.dev. هذا يثبت Preview deploy ولا يثبت custom Production alias.
+- ثلاث Cloudflare checks لمشروعات منفصلة (`warehouse-supervisor`, `rawaea-store`, `erp-frontend`) فشلت؛ لا تخلطها بنجاح مشروع `rawaea-erp`.
+- `warehouse.html` لا يحتوي iframe/srcdoc ويحتوي أربع واجهات عليا native؛ CI يختبر ست مساحات تشغيل، الجرد، الأذونات وسجل العمليات.
+- Supabase read-only SELECT أكد schema اللازمة ومراجع الصور الحالية لصفحات RS-1..RS-4. الصور من `items.image_url`؛ `run_sheet_details` لا يحتوي `image_url`.
+- فتح Preview وروابط الصور لم ينجح عبر Web، وBrowser connector يتطلب originating context. HTTP status وnaturalWidth في Production ما زالا UNVERIFIED.
+- مراجعة `main.html` لم تجد استهلاكًا مباشرًا لـ`erp_operation_registry` أو أنواع complete picking/loading/unloading؛ هذا لا يثبت وحده أن سجل الأحداث يجب عرضه في تبويب أمومي، ويحتاج مطابقة عقد التبويب قبل أي تغيير. لم يُعدل main.html/core.js.
+- لا DML/DDL/RPC/Edge ولا QA writes ولا حركات مخزون/مالية.
+- **Readiness: READY WITH LIMITATIONS** — Source + CI + Cloudflare Preview deploy confirmed; Production alias/runtime/images/parent presentation remain open.
+- Next: authenticated Browser Forced Reload; measure actual images in Picker/Loader/Returns; verify alias; map operation outputs to parent tabs and only then prepare any narrowly scoped parent change.
