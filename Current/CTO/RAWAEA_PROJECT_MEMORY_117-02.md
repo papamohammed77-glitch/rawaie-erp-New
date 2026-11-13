@@ -1711,3 +1711,17 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - No Production writes, RPC/Edge, inventory/accounting/treasury effects, or QA rows.
 - Report714: `doc/Draft/Reprots/Report714_WAREHOUSE_DEPLOYMENT_AND_RUNTIME_GAP_AUDIT_20261113.md`; CURRENT_STATE pinned LVE-714.
 - Readiness READY WITH LIMITATIONS. Next: authenticated Browser runtime + real image measurement + parent-tab data-contract verification.
+
+
+### LVE-2026-11-13-715 — Unified warehouse operations/permissions audit
+- Operational HEAD `5a0de601099ad2057e1cc8c757ccb2b6cd3a81e7`; Warehouse CI `43473648768` SUCCESS; Cloudflare `rawaea-erp` Preview deployed: https://968ae7b4.rawaea-erp.pages.dev.
+- Audited four host tabs, six operational workspaces, and all manual voucher flows. Added top-level Scrap and Adjustment cards, taking the permissions tab to seven actions.
+- Bulk adjustment Edge v9 now supports active unified warehouse + effective warehouse permission and enforces default/allowed branch scope; legacy explicit stock_adjustment permission path preserved.
+- save-inventory-count v6 enforces effective warehouse permission for unified COUNT_* sessions.
+- start-picking v37, complete-picking v20, start-return v7, complete-return v29 now rely on shared effective warehouse actor and no longer apply duplicate role checks that ignored role_permissions.
+- Hub permission refresh now fails closed, refreshes branch options, and closes a workspace if scope no longer authorizes it.
+- Restored source in GitHub for send-stock-voucher v20, receive-stock-voucher v22, complete-stock-voucher v4, cancel-stock-voucher v4.
+- Live DB contract confirms picking reservation; loading/unloading stock movement; returns credit/refund/discrepancy effects; receiving stock/supplier accounting; count finalization and Scrap/Adjustment post inventory movements and journals. Draft voucher alone does not move stock.
+- No Production business writes, DDL/DML, or test transactions. Edge code deployments only.
+- Residuals: older SQL RPCs still have direct-permissions-only checks in some paths; current unified profile has direct warehouse permission. Authenticated Production browser, real image reachability, parent-tab visual acceptance, and Production alias remain unverified.
+- Report715: `doc/Draft/Reprots/Report715_UNIFIED_WAREHOUSE_FULL_OPERATION_PERMISSION_PARITY_20261113.md`; CURRENT_STATE pinned LVE-715. Readiness READY WITH LIMITATIONS.
