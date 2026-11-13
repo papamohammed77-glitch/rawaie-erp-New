@@ -1699,3 +1699,15 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 ### LVE-713 CI correction history
 - First Warehouse run `43462877239` failed only at a newly added static assertion expecting `response.loading_cycle_id`; implementation correctly used variable `v.loading_cycle_id`. Playwright was not reached.
 - Assertion corrected in `930c6eb`; final run `43462936571` passed Static + Playwright Browser E2E. Initial failure retained in Report713 section 10 and CURRENT_STATE.
+
+
+### LVE-2026-11-13-714 — Warehouse deployment/runtime continuation
+- Operational HEAD remains `930c6eb1b860b74be9b08563566736e27c8a068e`.
+- GitHub Warehouse E2E Run `43462936571` SUCCESS, including Static and local Playwright browser coverage.
+- Cloudflare Pages project `rawaea-erp` reports Deployed successfully on `930c6eb`; preview `https://d71efa19.rawaea-erp.pages.dev`. This does not prove custom Production alias parity.
+- Other Cloudflare Pages failures are for separate projects (`warehouse-supervisor`, `rawaea-store`, `erp-frontend`), not target project `rawaea-erp`.
+- Supabase read-only query confirmed current sample item image URLs in `items.image_url`; real HTTP/naturalWidth still unverified because preview and image URLs are inaccessible to current Web session and Browser requires originating context.
+- main.html source has no direct `erp_operation_registry` consumer for completed picking/loading/unloading events. Whether this is a parent-tab requirement remains to be reconciled against each parent tab's contract; do not edit main/core speculatively.
+- No Production writes, RPC/Edge, inventory/accounting/treasury effects, or QA rows.
+- Report714: `doc/Draft/Reprots/Report714_WAREHOUSE_DEPLOYMENT_AND_RUNTIME_GAP_AUDIT_20261113.md`; CURRENT_STATE pinned LVE-714.
+- Readiness READY WITH LIMITATIONS. Next: authenticated Browser runtime + real image measurement + parent-tab data-contract verification.
