@@ -1951,3 +1951,32 @@ All six retained `verify_jwt=true`.
 - Some older SQL RPCs still inspect direct `users.permissions` rather than the full `role_permissions` set. Current profile has direct warehouse permission; role_permissions-only accounts may still encounter partial mismatch in legacy voucher/receiving/report RPCs. Requires separate DB Change Set.
 - Authenticated Production browser, Production alias parity, real image HTTP/naturalWidth, and parent-tab visual acceptance remain UNVERIFIED.
 - **Readiness: READY WITH LIMITATIONS** — source + CI + Edge deployments + Cloudflare Preview confirmed; authenticated Production and parent UI acceptance remain open.
+
+
+---
+
+## LAST VERIFIED EVENT — LVE-2026-11-13-716
+**التاريخ:** 2026-11-13 (Africa/Cairo)  
+**التقرير:** doc/Draft/Reprots/Report716_DAILY_CTO_REVIEW_STAGING_READINESS_AND_WAREHOUSE_INTEGRATION_20261113.md  
+**Report commit:** 92774584b9e5f9938b0fb242c3e1aea57525ee28
+
+### نقطة الاستئناف والحالة الحية
+- استكمال LVE-715؛ Operational repo main HEAD ما زال 5a0de601099ad2057e1cc8c757ccb2b6cd3a81e7. لم يظهر Commit تشغيلي أحدث.
+- CURRENT_STATE قبل هذا التحديث: blob c8a6d15b3fe7722e931bd459f9c69d1861c04eab. الدستور الحالي: blob 3a6b1e220af8509e314e94df76563bbc6f84910d.
+- Production SMART ERP ACTIVE_HEALTHY، 785 Migration، أحدثها 20261110233152، و100 Edge Functions. فُحصت عقود/مصادر Warehouse الحالية ونسخ Edge المنشورة؛ تطابق entrypoints التي جرى فحصها مع GitHub.
+- Warehouse CI Run 43473648768 وJob standalone-warehouse SUCCESS. Cloudflare Preview على HEAD نفسه مثبت في Report715؛ Production alias وauthenticated Runtime ما زالا UNVERIFIED.
+- اكتُشف عبر list_projects مشروع منفصل rawaea-staging، ref hfzznsiprnwkpayskzhu، ACTIVE_HEALTHY. هذا يصحح افتراض LVE-710/712 السابق الذي اعتمد على list_branches فقط.
+- Staging غير جاهز للاختبار: 62 Migration فقط (آخرها 20261027142557)، 70 public tables منها 5 فقط RLS enabled و0 FORCE RLS، 22 Edge Function قديمة، ولا users/companies أو inventory_stock_requests/details. توجد harness functions قديمة verify_jwt=false. لم تُكتب أي بيانات.
+- Production inventory_stock_requests/details ما زالت تمنح authenticated INSERT/UPDATE/DELETE مع ALL policies company-only، بلا Triggers؛ inventory_stock_request_engine service_role-only. هذا P1 authorization/approval bypass مؤكد، والصفوف الحالية صفر.
+- لا يوجد Unique index على (company_id, operation_id) في inventory_stock_requests؛ المحرك يفحص التكرار قبل advisory lock فقط. يوجد خطر تكرار متزامن.
+- main.html لا يحمل core.js أو RW_Auth/RW_Realtime؛ ينشئ Supabase Client وقنواته الخاصة. warehouse.html يحمل ../core.js ويعمل Native Bundles بلا iframe. هذا اختلاف معماري قائم بين النظام الأم والقلب المشترك المستهدف.
+- Parent main لا يقرأ erp_operation_registry مباشرة؛ completed unloading history في Hub لا يثبت ظهوره في تبويب التفريغ الأمومي. الاستلام والأذونات تقرأ جداول مشتركة لكن القبول البصري UNVERIFIED.
+- Counter bundle يرسل count_date عبر toISOString UTC؛ خطر تاريخ اليوم السابق قرب منتصف ليل القاهرة. جلسة الجرد القائمة InProgress/35 uncounted بقيت دون لمس.
+- report-discrepancy v4 لا يجعل audit_log ذريًا مع stock_discrepancies؛ فشل audit_log يتحول إلى warning. بعض voucher/receiving RPCs القديمة تفحص users.permissions مباشرة وتتجاهل role_permissions-only.
+- Production snapshot: receiving 4/7، inventory_log 83، stock_branches 60، stock_vouchers 0، inventory_counts 1/35 uncounted، erp_operation_registry 98، stock_discrepancies 0، runsheets 4، journal_entries 21، supplier_ledger 3، buyer_goods_custody_events 5، purchase_invoices 5، purchase_orders 3.
+- لا DML/DDL أو Edge posting أو QA writes أو تغييرات تشغيلية في Production أو Staging. جميع استعلامات Supabase كانت SELECT فقط.
+
+### الحكم والخطوة التالية
+**READY WITH LIMITATIONS** للقراءة والتحليل والتوثيق؛ **BLOCKED** لاختبارات Staging E2E حتى استعادة مخطط/RLS/Edge parity، وProduction Runtime حتى توفر Browser مصادق عليه.  
+الخطوة التالية: تجهيز واعتماد CS-INVREQ-716-A لإغلاق direct DML bypass وidempotency والمواءمة مع effective permissions، ثم إصلاح Staging قبل أي E2E. لا Production Migration قبل موافقة المالك الصريحة.
+
