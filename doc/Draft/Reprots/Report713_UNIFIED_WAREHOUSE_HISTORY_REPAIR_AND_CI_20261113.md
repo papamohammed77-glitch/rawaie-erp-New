@@ -72,7 +72,7 @@
 - جميع بيانات QA داخل Browser mock في CI، ولم تُكتب إلى Supabase.
 
 ## 4. نتيجة CI
-<badge>SUCCESS</badge>
+**SUCCESS**
 - Warehouse workflow Run: `43462936571`
 - Commit المختبر: `930c6eb1b860b74be9b08563566736e27c8a068e`
 - Static source and module contract: SUCCESS.
