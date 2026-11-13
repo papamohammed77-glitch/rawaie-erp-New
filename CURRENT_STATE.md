@@ -1895,3 +1895,59 @@ No test receipt, voucher, return completion, stock movement, reservation, ledger
 - لا DML/DDL/RPC/Edge ولا QA writes ولا حركات مخزون/مالية.
 - **Readiness: READY WITH LIMITATIONS** — Source + CI + Cloudflare Preview deploy confirmed; Production alias/runtime/images/parent presentation remain open.
 - Next: authenticated Browser Forced Reload; measure actual images in Picker/Loader/Returns; verify alias; map operation outputs to parent tabs and only then prepare any narrowly scoped parent change.
+
+
+---
+
+## LAST VERIFIED EVENT — LVE-2026-11-13-715
+**التاريخ:** 2026-11-13 (Africa/Cairo)  
+**التقرير:** `doc/Draft/Reprots/Report715_UNIFIED_WAREHOUSE_FULL_OPERATION_PERMISSION_PARITY_20261113.md`
+
+### Operational source and deployed app
+- Operational repo HEAD: `5a0de601099ad2057e1cc8c757ccb2b6cd3a81e7`.
+- Warehouse Hub tabs audited: اليوم، العمليات، الأذونات، حسابي.
+- Six operational workspaces audited: Receiver, Picker, Loader, Returns, Unloader, Counter.
+- Seven top-level manual voucher actions now exposed: Transfer, TransferReceive, DirectSale, DirectReturn, SupplierReturn, Scrap, Adjustment. Internal BranchReceipt request remains in the voucher module with fixed destination to the user's branch.
+- Counter hub remains an enhanced session-based implementation with branch/vehicle/general counts; its finalization uses the central `inventory_count_engine`.
+- Cloudflare Pages project `rawaea-erp` deployed successfully on the HEAD above; Preview: https://968ae7b4.rawaea-erp.pages.dev. This does not by itself verify the Production alias or authenticated runtime.
+
+### Implemented fixes
+- Added Scrap and Adjustment cards to the Hub; both use the existing central adjustment engine.
+- `bulk-stock-adjustment` now reads `get_my_effective_profile`, allows active `مخزن شامل` with effective `warehouse` permission, and restricts unified-storekeeper adjustments to default/allowed branches. Existing explicit `stock_adjustment` behavior for non-unified roles remains.
+- `save-inventory-count` now checks effective `warehouse` permission for `COUNT_*` operations when active role is `مخزن شامل`, preserving the legacy `جرد` role path.
+- Picker/Returns Edge functions now use the canonical shared warehouse actor instead of duplicate permission checks that ignored `role_permissions`.
+- Hub refresh now fails closed on failed permission revalidation, updates `RW_STATE.data.branches`, and closes a workspace if it is no longer allowed.
+- Restored missing deployed source files for `send-stock-voucher` v20, `receive-stock-voucher` v22, `complete-stock-voucher` v4, and `cancel-stock-voucher` v4. No behavior changes were made to those four restored functions.
+
+### Live Edge Function versions confirmed ACTIVE
+- `bulk-stock-adjustment` v9
+- `save-inventory-count` v6
+- `start-picking` v37
+- `complete-picking` v20
+- `start-return` v7
+- `complete-return` v29
+All six retained `verify_jwt=true`.
+
+### CI and deploy evidence
+- Warehouse CI Run `43473648768` SUCCESS (unit tests, static source contract, Playwright E2E).
+- Cloudflare Pages `rawaea-erp` check run SUCCESS; Preview `https://968ae7b4.rawaea-erp.pages.dev`.
+- E2E includes six operational workspaces, seven manual voucher actions, all three count modes, branch receipt destination/source contract, completed histories, and synthetic image/fallback tests.
+- The CI browser uses local fixtures/mocks; no Production business transaction was executed.
+
+### Business effects confirmed from live DB function contracts
+- Picking reserves stock; it does not create a physical stock decrement on pick completion.
+- Loading posts branch-to-vehicle stock movement.
+- Unloading posts vehicle-to-branch stock movement.
+- Returns post good-item stock return and related customer credit/refund/journal or driver discrepancy/liability effects according to the return contract.
+- Purchase receiving updates receiving/PO/stock and supplier/accounting effects.
+- Count finalization calls `post_inventory_adjustment_atomic`, posting stock difference and journal.
+- Manual voucher draft creation alone does not move stock; send/receive/complete stages perform the actual lifecycle effects.
+- Scrap/Adjustment use `post_inventory_adjustment_atomic` and are real stock/accounting operations when the user executes them.
+
+### Production safety and remaining limitations
+- No DML, DDL, migrations, QA rows, RPC business postings, stock/cash/accounting/custody changes.
+- Production changes in this event were Edge Function code deployments only; effects occur only on subsequent real user actions.
+- Current active unified warehouse profile: role `أمين مخزن`, active role `مخزن شامل`, direct `warehouse` permission, one allowed branch, main-branch access confirmed. Direct `stock_adjustment` permission was absent; unified role + warehouse now authorizes adjustment only within branch scope.
+- Some older SQL RPCs still inspect direct `users.permissions` rather than the full `role_permissions` set. Current profile has direct warehouse permission; role_permissions-only accounts may still encounter partial mismatch in legacy voucher/receiving/report RPCs. Requires separate DB Change Set.
+- Authenticated Production browser, Production alias parity, real image HTTP/naturalWidth, and parent-tab visual acceptance remain UNVERIFIED.
+- **Readiness: READY WITH LIMITATIONS** — source + CI + Edge deployments + Cloudflare Preview confirmed; authenticated Production and parent UI acceptance remain open.
