@@ -129,3 +129,15 @@
 
 **الخطوة التالية ذات الأولوية:** تطبيق CS-WH-712-A بواسطة المالك على المصدر الأصلي والمجمّع كحزمة واحدة، ثم تشغيل CI الموسع؛ وبعد نشره، اختبار Browser مصادق read-only على سجلات المكتملة والصور وظهور Parent tabs.  
 **الحالة:** ROOT CAUSE CONFIRMED — OWNER FILE CHANGE REQUIRED / RUNTIME UNVERIFIED / NOT CLOSED.
+
+
+## 10. اكتشاف إضافي — Unloader pending status لا يطابق عقد RPC (P1)
+- المصدر الأصلي `companies/company-1/warehouse/unloader.html`، الدالة `loadRunsheets`، يحمّل الحالات `['Loaded','Delivering']`.
+- النسخة المضمّنة في Warehouse Hub تستخدم الشرط نفسه.
+- تعريف Production لـ`complete_runsheet_unloading` يقبل فقط `r.status='Loaded'` مع `loading_cycle_id IS NOT NULL`؛ أي حالة Delivering ستُرفض برسالة `runsheet not Loaded`، حتى لو ظهرت للمستخدم في قائمة التفريغ.
+- هذا تناقض مباشر بين قائمة الأهلية وعقد الإكمال. لا توجد حاليًا runsheets بحالة Delivering في عينة Production الحالية، لذا أثره Runtime على سجل حالي غير مثبت، لكن المسار البرمجي مؤكد.
+- الإصلاح الأدنى الموصى به: حصر قائمة Unloader في `Loaded` فقط، أو تقديم عقد عمل معتمد يثبت أن Delivering يجب أن يكون مؤهلًا وتعديل RPC/التحقق المركزي وفقًا له. الخيار الآمن حاليًا هو عدم عرض Delivering كعملية قابلة للتفريغ. لا تعديل RPC أو بيانات.
+- معيار القبول: لا تظهر أي حالة لا يقبلها RPC في قائمة Unloader؛ كل عنصر ظاهر يمر preflight القراءة فقط، ولا يبدأ أي حركة إلا عبر RPC المركزي.
+
+## 11. Change Set update
+أضيفت نقطة `CS-WH-712-D` (P1) إلى حزمة التغيير: إزالة `Delivering` من حالات قائمة Unloader، مع تحديث الأصل والنسخة المضمّنة، واختبار عقد القائمة مقابل RPC. لم تُطبق.
