@@ -1796,3 +1796,46 @@ No test receipt, voucher, return completion, stock movement, reservation, ledger
 **READY WITH LIMITATIONS.** يمكن مواصلة التحليل والاختبارات الثابتة والقراءة فقط. لا تعديل تشغيلي ولا كتابة Production.
 الخطوة التالية: Browser Runtime read-only بعد Forced Reload، إثبات Artifact commit، ثم فحص صور Picker/Loader/Returns وNetwork/naturalWidth والتمرير دون بدء أو إكمال أي عملية. إذا فشلت روابط Google، يُعرض Change Set منفصل لنقل الصور إلى Supabase Storage قبل أي تغيير.
 
+
+
+---
+
+## LAST VERIFIED EVENT — LVE-2026-11-13-712
+**التاريخ:** 2026-11-13 (Africa/Cairo)  
+**التقرير:** `doc/Draft/Reprots/Report712_UNIFIED_WAREHOUSE_COMPLETED_HISTORY_AND_INTEGRATION_AUDIT_20261113.md`  
+**Report commit:** `5f4a74d8c37e6b93453c20cacc5b07ae2884fffa`
+
+### نقطة الاستئناف
+- استكمال LVE-711؛ لم يبدأ العمل من الصفر.
+- Operational repo `papamohammed77-glitch/erp-frontend`, branch `main`, HEAD `903a1fe22c3ec2f8f4f7a3ffeb45d1d8025e306d`; لا commit تشغيلي أحدث.
+- Constitution blob `3a6b1e220af8509e314e94df76563bbc6f84910d`.
+- Warehouse Hub blob `41bab8f092dbb5ac1adf32ef34d5feaf92b8dc6e`; Picker original `312b5e387daf2248737749c246c0174095535eac`; Loader original `89aea6635771f1a3328e82a456f3ecfe9ee02acd`; Returns original `39755507bc01331135a1640af5a87a22051ee3e7`; Unloader original `c0a5ac89012e9e612b37dbcfd4e9334adf5c16b9`.
+
+### أخطاء P1 مؤكدة في سجل المكتملة
+1. Picker original + embedded filters completed history by current `runsheets.status='Picked'`; Production contains 4 completed `complete_runsheet_picking` registry events while RS-1 is Delivered and RS-2 Returned, so completed picking records disappear after downstream status changes.
+2. Loader original + embedded filters by current `runsheets.status='Loaded'`; Production contains 5 completed `complete_runsheet_loading` registry events. Production RPC `complete_runsheet_unloading` returns Loaded runsheets to Picked and clears loader timestamps/cycle, so Loader history loses completed operations.
+3. Unloader original + embedded query `stock_vouchers` for type Unloading/status Completed. Production `stock_vouchers=0`; actual RPC records `complete_runsheet_unloading` in `erp_operation_registry`, posts Unloading movements, then transitions runsheet to Picked. Therefore Unloader completed tab reads the wrong source and will remain empty for successful unload events.
+- `erp_operation_registry` has company-scoped authenticated SELECT RLS; payloads contain actor and runsheet identity. History UI must still gate reopen buttons by current state and central RPC contract.
+
+### Production snapshot (read-only)
+- Runsheets: RS-1 Delivered (5 lines; 14 ordered / 13 picked / 13 loaded / 13 delivered); RS-2 Returned (7; 9 ordered / 6 picked / 6 loaded / 1 delivered / 5 returned); RS-3 Open (4; 6 ordered); RS-4 Open (3; 3 ordered).
+- 19 run-sheet detail lines all have image_url; 17 Googleusercontent and 2 Supabase Storage. RS-1/RS-2 all Googleusercontent; browser HTTP/naturalWidth remains UNVERIFIED.
+- RS-3: item 1010 available 1 against 2 requested; ITM-20260939 has no stock_branches row. RS-4: ITM-20260938 has no stock_branches row. Do not create stock rows or execute completion to force a test.
+- Inventory counts: one branch count InProgress with 35 detail rows, all counted_qty NULL; live business record, untouched.
+- stock_vouchers=0; stock_voucher_details=0; stock_voucher_operations=32, all 32 voucher_id NULL, 15 operation IDs QA-prefixed, dated 2026-09-23 through 2026-09-28. Potential legacy idempotency residue; do not delete without lineage and dependency proof.
+- Current Unloading inventory_log rows observed are associated with Reopen references; do not infer successful final unload from movement_type alone.
+- No DML/DDL/RPC/Edge invocation or Production data change was performed.
+
+### CI / Runtime
+- Warehouse workflow Run `43276131519`, Job `131384896689`: SUCCESS.
+- Existing workflow does not assert historical Picker/Loader/Unloader completed operations after downstream transitions; CI success does not cover the newly proven gaps.
+- Browser integration unavailable in this session (no originating browser context); direct Pages artifact bytes and authenticated Runtime are UNVERIFIED.
+- Picker/Returns realtime not found in source; Loader subscribes runsheets only with 60-second reconciliation and does not subscribe run_sheet_details. Delivery of events in Runtime remains unverified.
+- moduleDocument/moduleUI lookup fallback to global document remains a P2 DOM-isolation risk; no runtime cross-module access proven.
+
+### Required next step / ownership
+- Change Set CS-WH-712-A (Picker/Loader/Unloader historical completed read models from company-scoped erp_operation_registry, preserving current-state reopen guards) is prepared in Report712 but NOT applied.
+- Per permanent constitution §7A, owner applies changes to operational application files; no direct operational app edits were made. Any DB/contract/RLS changes require separate exact review and approval.
+- Then extend CI with completed-event persistence, multiple load cycles, downstream transitions, and no-side-effect assertions; after deployment perform authenticated read-only browser verification.
+- **Status:** ROOT CAUSE CONFIRMED — OWNER FILE CHANGE REQUIRED / RUNTIME UNVERIFIED / NOT CLOSED.
+- **Readiness:** READY WITH LIMITATIONS.
