@@ -1847,3 +1847,25 @@ No test receipt, voucher, return completion, stock movement, reservation, ledger
 - No Delivering runsheet is present in the current inspected snapshot; live impact is not established, but source/contract mismatch is CONFIRMED.
 - Add CS-WH-712-D: safest minimal correction is to remove Delivering from the selectable unload queue unless owner approves a different central contract. No RPC or DB change performed.
 - Report712 supplemental commit: `3e7cec127cd3dd00bfd76dadc2a3479460f5092e`.
+
+
+---
+
+## LAST VERIFIED EVENT — LVE-2026-11-13-713
+- Report: `doc/Draft/Reprots/Report713_UNIFIED_WAREHOUSE_HISTORY_REPAIR_AND_CI_20261113.md` (report commit `03e4a4c4a39264c1f71e285a8dc9bdfb19cb9707`).
+- Operational repo `papamohammed77-glitch/erp-frontend`, branch `main`, HEAD `930c6eb1b860b74be9b08563566736e27c8a068e`.
+- Source repair commit `a47dd90df1d410a84e5275a6e3295c4563689fef`; workflow assertion correction `930c6eb1b860b74be9b08563566736e27c8a068e`.
+- Owner's latest explicit instruction authorized direct application of this bounded safe Change Set. Updated Picker, Loader, Unloader standalone files and matching embedded bundles in warehouse.html; updated warehouse CI workflow.
+- Picker completed history now reads company/actor-scoped `erp_operation_registry` type `complete_runsheet_picking`; latest-event reopen only if current state Picked and picker_id matches.
+- Loader completed history now reads `complete_runsheet_loading`; latest-event reopen only if current state Loaded, loader_id matches, and event loading_cycle_id matches current loading_cycle_id.
+- Unloader completed history now reads `complete_runsheet_unloading` and displays unloaded_total, not stock_vouchers.
+- Unloader queue/search now require company_id, status Loaded, and non-null loading_cycle_id; Delivering removed to match RPC.
+- CI Run `43462936571` SUCCESS on HEAD `930c6eb`: Static source contract, Playwright local server, and Browser E2E including completed-history persistence and Unloader eligibility all passed. Link: https://github.com/papamohammed77-glitch/erp-frontend/actions/runs/43462936571
+- Other same-HEAD Mother source verification, helper forensic, and inventory forensic browser smoke checks also SUCCESS.
+- Supabase remained read-only: no DML/DDL/RPC/Edge calls or business data changes.
+- Images: `run_sheet_details` has no image_url; images come from `items.image_url`. Item company IDs for sample run-sheet items match RS-1..RS-4. Picker cache and Loader/Returns FK image queries are present. Real Googleusercontent/Storage HTTP reachability and browser naturalWidth remain UNKNOWN/UNVERIFIED.
+- Browser access requires originating browser context; Cloudflare deployment/artifact and authenticated Production Runtime remain UNVERIFIED.
+- CS-WH-712-A and D applied to source + embedded bundles; CI PASS. CS-WH-712-B DOM isolation and C real-image reachability remain open.
+- Next step: authenticated browser verification of deployed artifact, parent-tab integration, and actual image loading in Picker/Loader/Returns. Do not modify Production image records before root cause is proven.
+- **Status:** SOURCE FIXED / CI PASS / DEPLOYMENT AND PRODUCTION RUNTIME UNVERIFIED / REAL IMAGE REACHABILITY UNVERIFIED.
+- **Readiness:** READY WITH LIMITATIONS.
