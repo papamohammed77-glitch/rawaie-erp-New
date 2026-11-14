@@ -1,3 +1,24 @@
+# CURRENT STATE UPDATE — LVE-2026-11-14-721
+**التاريخ:** 2026-11-14 (Africa/Cairo)  
+**نقطة الاستئناف السابقة:** LVE-2026-11-14-720  
+**التقرير:** doc/Draft/Reprots/Report721_AUTH_EMAIL_QUOTA_ZERO_COST_BREVO_20261114.md
+
+## آخر حدث مثبت — حل حصة بريد Supabase Auth دون تكلفة ثابتة
+
+- Operational repo: papamohammed77-glitch/erp-frontend, branch main, HEAD verified as 2fcccd240f5ce8acf53b438ac9ec7a65f54e11e0. The latest commit is forensic-only; the 429 retry guard is in parent commit cbda0d4f910aa7b6992c965f076742b9c11fc757.
+- SMART ERP fiilmooggumokxanwiyx is ACTIVE_HEALTHY, region eu-west-1.
+- Read-only owner join: Auth email, public.users.email, and owner_profile.owner_email remain owner@alrawae.com; principal links and active license match; email_change empty, email_change_sent_at NULL, confirmation status 0, not banned.
+- Read-only counts: auth.users=36, public.users=32, 31 public rows have auth_id, 1 has NULL. Five unmatched Auth rows are not proven orphans. Do not mass-delete.
+- Root cause: built-in Supabase Auth SMTP has a shared project-level limit of 2 emails/hour. Deleting QA records or audit logs does not refill it.
+- Selected zero-cost provider design: Brevo Free custom SMTP; current published free quota 300 email sends/day and no time limit, with Brevo branding. Recommended initial Supabase Auth limit 10/hour after provider handoff is verified. Keep email confirmation and Secure Email Change enabled.
+- SMTP host smtp-relay.brevo.com, port 587, Brevo SMTP login + generated SMTP key (not generic API key); verified sender/domain and transactional-email activation are required.
+- NOT CONFIGURED: connected Supabase/browser tools expose no Auth SMTP/rate-limit write action; no Brevo account, verified domain, DNS write access, or SMTP credentials are available. Owner must enter secrets privately; none requested or stored.
+- Separate OPEN risk: identity synchronization after confirmed Auth email change across Auth/public.users/owner_profile requires review before another owner email-change attempt.
+- No users/logs/data deleted; no source, DB/schema/config/permissions/stock/cash/GL modifications. Prior main.html 429 retry guard remains unchanged.
+- Status: ROOT CAUSE CONFIRMED + FREE SMTP OPTION SELECTED + REPORT PINNED / PRIVATE PROVIDER SETUP PENDING / OWNER EMAIL SYNC REVIEW OPEN.
+
+---
+
 # CURRENT STATE — LVE-2026-11-14-720
 **التاريخ:** 2026-11-14 (Africa/Cairo)  
 **نقطة الاستئناف السابقة:** LVE-2026-11-14-719  
