@@ -1739,3 +1739,15 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - report-discrepancy v4 writes audit_log non-atomically; some legacy voucher/receiving RPCs still use direct users.permissions checks rather than effective role_permissions.
 - No Production or Staging DML/DDL, no QA records, no code changes, no Edge deploys. All database checks were read-only.
 - Detailed report: doc/Draft/Reprots/Report716_DAILY_CTO_REVIEW_STAGING_READINESS_AND_WAREHOUSE_INTEGRATION_20261113.md; report commit 92774584b9e5f9938b0fb242c3e1aea57525ee28. Overall READY WITH LIMITATIONS; Staging E2E BLOCKED until RLS/schema/Edge parity is restored. Next priority CS-INVREQ-716-A, owner approval required before any Production migration.
+
+
+## LVE-2026-11-14-725 — Warehouse Hub Role Mismatch Revalidation
+- Report725: doc/Draft/Reprots/Report725_WAREHOUSE_ROLE_MISMATCH_REVALIDATION_20261114.md.
+- Revalidated from LVE724. Operational main HEAD 531a63c0a9ba866c858d6623852fef6e807a8578; the only commit after 36a8635 changes _forensic_current_main_extract.md. warehouse.html blob e1cf531... and core.js blob 2b2211a... remain unchanged.
+- Root cause of the reported Console error is confirmed: the authenticated profile returned active_warehouse_role=مرتجعات, while Warehouse Hub intentionally permits only مخزن شامل or the verified owner. The app deliberately returns to login and reveals the existing safe account-switch action.
+- Production profiles are distinct: storekeeper@rawaea.com is أمين مخزن / مخزن شامل / Active / BR-01; returns@rawaea.com is مخزني / مرتجعات / Active / BR-01. The latter is the only active profile with the Returns role.
+- Authenticated-claim read-only simulations inside BEGIN/ROLLBACK: storekeeper effective profile and Hub snapshot succeed with BR-01/main_branch_access=true; Returns profile reports مرتجعات and the Hub UI gate rejects it.
+- Existing supervisor RPC set_active_warehouse_role remains the only approved role-assignment path. No role, permission, source, schema, stock, finance, custody or accounting changes were made.
+- Warehouse E2E Run 43624957517 SUCCESS on 36a8635; role gate, safe account switch, logout/relogin and module cleanup markers PASS. Cloudflare Pages rawaea-erp deployment check on 531a63c SUCCESS (132539034437); production alias and authenticated browser runtime remain UNVERIFIED.
+- P2 review item: get_warehouse_hub_snapshot currently returns branch/company aggregate metrics to every allowed warehouse role, including Returns, before frontend Hub rejection. No row-level exposure was established; confirm owner policy before any server-side tightening.
+- Current status: ROOT CAUSE CONFIRMED — CORRECT ACCOUNT REQUIRED; READY WITH LIMITATIONS. Next: sign in with the already-assigned storekeeper@rawaea.com and verify dashboard transition.

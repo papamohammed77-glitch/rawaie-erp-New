@@ -1,3 +1,30 @@
+# CURRENT STATE UPDATE — LVE-2026-11-14-725
+**التاريخ:** 2026-11-14 (Africa/Cairo)  
+**نقطة الاستئناف السابقة:** LVE-2026-11-14-724  
+**التقرير:** doc/Draft/Reprots/Report725_WAREHOUSE_ROLE_MISMATCH_REVALIDATION_20261114.md
+
+## آخر حدث مثبت — إعادة التحقق من إقلاع Warehouse Hub
+
+- Operational repo: papamohammed77-glitch/erp-frontend، branch main، HEAD 531a63c0a9ba866c858d6623852fef6e807a8578.
+- المقارنة من 36a86359a0ba8d465eed2602cfefb590cd594c38 إلى HEAD الحالي تثبت أن التغيير الوحيد هو _forensic_current_main_extract.md؛ warehouse.html وcore.js لم يتغيرا.
+- warehouse.html blob e1cf531deec5c092e007320e67a35e312528ed09؛ core.js blob 2b2211a3f95049042e27a7b2ecbab3640a584942.
+- Console المقدم يطابق بوابة App.start: الدور المعاد من get_warehouse_hub_snapshot هو «مرتجعات»، بينما Hub يشترط «مخزن شامل» أو المالك الموثق. إبقاء loginScreen وإظهار switchAccountBtn عند mismatch هو السلوك المقصود.
+- Production profile: storekeeper@rawaea.com = أمين مخزن / مخزن شامل / Active / BR-01. returns@rawaea.com = مخزني / مرتجعات / Active / BR-01؛ وهو الحساب النشط الوحيد بهذا الدور.
+- محاكاة get_my_effective_profile وget_warehouse_hub_snapshot تحت authenticated claims داخل BEGIN/ROLLBACK: storekeeper أعاد الدور الكامل وsnapshot success=true مع BR-01 وmain_branch_access=true؛ returns أعاد مرتجعات وsnapshot success=true، ثم يرفضه Hub frontend.
+- set_active_warehouse_role يبقى مسار المشرف المعتمد؛ لم تتغير أدوار أو صلاحيات.
+- Warehouse E2E Run 43624957517 SUCCESS على commit 36a8635، ويتضمن WAREHOUSE_ACTIVE_ROLE_GATE_AND_SAFE_ACCOUNT_SWITCH=PASS واختبارات logout/relogin/module cleanup.
+- Cloudflare Pages مشروع rawaea-erp على HEAD 531a63c: SUCCESS، check 132539034437، Preview URL https://a08e68fc.rawaea-erp.pages.dev. Production alias/authenticated browser acceptance لم يُثبتا.
+- Cloudflare project warehouse-supervisor check على HEAD نفسه FAILURE، رقم 132538957776؛ سبب البناء غير متاح، ولم يؤثر ذلك في إثبات نشر rawaea-erp.
+- Supabase ACTIVE_HEALTHY؛ 788 migrations، أحدثها 20261114175736؛ 100 Edge Functions.
+- ملاحظة P2: get_warehouse_hub_snapshot يعيد مؤشرات إجمالية لكل دور مخزني مسموح، بما فيه Returns، قبل رفض Hub في الواجهة. النطاق مقيد بالشركة والفروع، لكن runsheets totals على مستوى الشركة عند main_branch_access. يحتاج قرار مالك بشأن data minimization؛ لا تعديل Production دون ChangeSet وموافقة.
+- عدادات الأعمال الحالية: receiving=4، receiving_details=7، runsheets=4، run_sheet_details=19، stock_vouchers=0، stock_voucher_details=0، inventory_counts=1، inventory_count_details=35، inventory_log=83، erp_operation_registry=98، journal_entries=21، supplier_ledger=3. لا DML/DDL أو QA rows أو حركات أعمال أُنشئت في هذا الحدث.
+- Tailwind CDN warning منفصل عن رفض الدور. Core loaded successfully؛ لم يكن سبب المنع.
+- الجلسة الحقيقية في المتصفح لم تكن قابلة للفحص؛ البريد الفعلي للجلسة غير مثبت من Console وحده. الحساب الوحيد المسجل حاليًا بدور مرتجعات هو returns@rawaea.com.
+- **الحكم:** ROOT CAUSE CONFIRMED — CORRECT ACCOUNT REQUIRED. READY WITH LIMITATIONS.
+- **الخطوة التالية:** استخدام زر تبديل الحساب ثم الدخول بـ storekeeper@rawaea.com؛ إثبات الانتقال الفعلي إلى لوحة المخزن قبل أي تعديل آخر.
+
+---
+
 # CURRENT STATE UPDATE — LVE-2026-11-14-724
 **التاريخ:** 2026-11-14 (Africa/Cairo)  
 **نقطة الاستئناف السابقة:** LVE-2026-11-14-723  
