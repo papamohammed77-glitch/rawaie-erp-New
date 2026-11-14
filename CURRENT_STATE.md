@@ -3,33 +3,38 @@
 **نقطة الاستئناف السابقة:** LVE-2026-11-14-718  
 **التقرير:** `doc/Draft/Reprots/Report719_PARENT_CORE_SHARED_AUTH_AND_WAREHOUSE_APP_ENTITLEMENTS_20261114.md`
 
-## آخر حدث مثبت
-- Operational repo: `papamohammed77-glitch/erp-frontend`, branch `main`, HEAD `71fa933b3b78fa480f2d50ffb292d1a5bd4f8fa9`.
-- Commit `3058c881fc5341dc370b4c6866d7e53824cf9280` أصلح تجربة الاسترداد من رفض الدور في `companies/company-1/warehouse/warehouse.html` وأضاف اختبار Browser E2E لتبديل الحساب بأمان.
-- Commit `71fa933b3b78fa480f2d50ffb292d1a5bd4f8fa9` أضاف إلى Git ملفي migration اللذين كانا مطبقين مسبقًا في SMART ERP؛ لم يُعد تطبيق DDL على قاعدة البيانات.
-- سبب Console المؤكد: جلسة المستخدم الحالية تحمل active warehouse role=`مرتجعات`، بينما تطبيق المخزن الشامل يشترط `مخزن شامل`. يوجد حساب نشط `storekeeper@rawaea.com` بدور وظيفي `أمين مخزن` ودور نشط `مخزن شامل`، وحساب `returns@rawaea.com` بدور نشط `مرتجعات`. لم يتم تغيير تعيين أي مستخدم أو توسيع الصلاحيات.
-- التطبيق يعرض الآن البريد/الدور الحاليين مع سبب الرفض، ويتيح زر تسجيل الخروج وتبديل الحساب فقط عند mismatch. يبقى التطبيق مغلقًا للحساب غير المؤهل؛ لا bypass لبوابة الدور. بعد logout تُمسح حالة المستخدم المحلية وكلمة المرور ويعود المستخدم إلى شاشة الدخول.
-- تحذير Tailwind CDN غير مرتبط بالرفض؛ هو تحذير build/deployment غير حاجب ولم يغير ضمن إصلاح المصادقة.
-- Parent `main.html` يستخدم RPC `get_picking_display_users` لعرض picker/loader/return-handler ضمن الشركة نفسها. ملفا migration `20261114130015` و`20261114130048` موجودان الآن في مصدر Git ومتطابقان مع التغييرات المطبقة سابقًا في SMART ERP.
+## آخر حدث مثبت — Current Reality
+- Operational repo `papamohammed77-glitch/erp-frontend`, branch `main`, HEAD `d7caf2eafd37ecc7777ccd6aa37856c7918b02dd`.
+- Cloudflare Pages project `rawaea-erp`: Production / main / Automatic deployments enabled؛ أحدث deployment ظاهر على `d7caf2e`, URL `https://d0306a63.rawaea-erp.pages.dev/`. Deployment confirmed؛ authenticated app acceptance remains unverified.
+- SMART ERP project ref `fiilmooggumokxanwiyx`; all Production SQL in this cycle was read-only.
+- The single unified role `مخزن شامل` grants entry to `warehouse.html` through `get_warehouse_hub_snapshot`, not to every standalone app.
+- Standalone access now requires each app's dedicated active role or explicit Parent permission key: Picker `picking`, Receiver `receiving`, Loader `loading`, Returns `return`, Unloader `unloading`, Counter `vehicle-count|branch-count|general-count`, Vouchers `vouchers`; owner remains permitted.
+- Current SMART ERP storekeeper profile `storekeeper@rawaea.com` has `permissions=[warehouse]` and active role `مخزن شامل`; it is intended for the unified Hub only. Supervisor/manager accounts have explicit app keys in `public.users.permissions`; entry is based on those keys, not titles. No user/role permission records were changed.
+- Picker standalone now loads Core, uses one shared Supabase client and RW_Auth, and subscribes through RW_Realtime to runsheets/details/registry/items. Active Picking sessions are not rerendered destructively on incoming events.
+- Parent `main.html` loads `core.js`; Parent and Core reuse one Supabase client. Parent Picking/Loading/Unloading registry history uses one Core company-scoped channel. Other Parent subscriptions and the local Parent login/boot wrapper remain unchanged; only the client/session is shared, not every auth abstraction.
+- Parent Receiving reads existing `receiving` and `receiving_details` and displays `responsible`. Latest Production rows still show the expected creators. These two receiving tables are not in `supabase_realtime`, so instant direct events are unavailable; the Receiving view reloads on normal entry/refresh.
+- Current counts: `receiving=4`, `receiving_details=7`, `inventory_counts=1`, `inventory_count_details=35`, `inventory_log=83`, `stock_vouchers=0`, `stock_voucher_details=0`, `erp_operation_registry=98`.
 
-## الاختبارات
-- Warehouse E2E Run `43600194412` على Commit `3058c881`: **SUCCESS**. Job log يؤكد `WAREHOUSE_ACTIVE_ROLE_GATE_AND_SAFE_ACCOUNT_SWITCH=PASS`، مع جميع اختبارات الوحدات الأصلية الست والأذونات السبعة وصور المنتجات والحراسة المخزنية وسجلات Parent وعدم الكتابة.
-- Mother Inventory Forensic E2E Run `43600326868` على HEAD `71fa933b`: **SUCCESS**.
-- Mother Assembly Guard Run `43600326851`: **SUCCESS**.
-- Forensic Current Mother Extract Run `43600326876`: **SUCCESS**.
-- CTO Helper Files Run `43600326824`: **SUCCESS**.
-- اختبارات CI تستخدم fixtures/mocks ولا تنشئ حركات Production.
+## اختبارات القبول النهائية
+- Warehouse E2E Run `43605817668`: SUCCESS; seven standalone Parent app entitlement contract PASS; Picker Core/Auth/Realtime and permission-boundary PASS; Parent receiving actor/details PASS; Parent tests confirmed no data writes.
+- Parent Core bridge Browser E2E Run `43605778406`: SUCCESS; `clientCount=1`, shared-client identity true, Core Auth verified company, and one Core warehouse-history channel with `company_id=eq.qa-parent-company`. Existing HR channel preserved.
+- Mother Inventory anonymous smoke Run `43605908068`: SUCCESS with local Supabase mock; Mother Assembly Guard `43605908054`: SUCCESS; current Mother extract `43605908018`: SUCCESS; CTO Helper Files `43605908129`: SUCCESS.
+- Parent forensic gate Run `43605651042`: SUCCESS.
+- CI browser tests use synthetic fixtures/mocks; they do not prove a live signed-in Production account's UI acceptance.
 
-## SMART ERP Production safety
-- المشروع الوحيد المستخدم: `fiilmooggumokxanwiyx`.
-- آخر لقطة قراءة: `inventory_counts=1`, `inventory_count_details=35`, `inventory_log=83`, `erp_operation_registry=98`.
-- لم تُستخدم جلسة الجرد القائمة ذات 35 بندًا، ولم تنشأ QA rows أو حركات مخزنية/مالية جديدة في هذا الحدث.
-- لا تغييرات على RLS أو grants أو أدوار المستخدمين في إصلاح شاشة الإقلاع.
+## SMART ERP / Production safety
+- No DML, DDL, Migration, RPC posting, Edge Function posting, RLS/GRANT/publication update, user/role/permission mutation, or QA business row was created.
+- No receiving/picking/loading/unloading/returns/count/voucher operation was created by this test cycle.
+- Existing inventory count with 35 details was not touched. No stock/cash/ledger/journal/custody movement was generated.
+- Latest read-only records: 12 Nov `PINV-1002` responsible `receiver@rawaea.com`; 11 Nov `PINV-1003` responsible `storekeeper@rawaea.com`; both completed.
 
-## الحدود والحكم
-- Cloudflare artifact على HEAD `71fa933b` وAuthenticated Production browser runtime: **UNVERIFIED**؛ لا يوجد إثبات نشر موثوق من جلسة الفحص.
-- الحساب المقصود للتشغيل يجب أن يكون الحساب المعيّن «مخزن شامل» أو أن يعيّنه مشرف المخازن عبر `set_active_warehouse_role` المعتمد؛ لا تُقبل أدوار التطبيقات الأصلية بدلًا منه.
-- Readiness: **READY WITH LIMITATIONS** للمصدر وCI؛ قبول Runtime/Deployment Production ما زال مفتوحًا.
+## الحدود المفتوحة والحكم
+- Authenticated live login with `storekeeper@rawaea.com` and warehouse supervisor, and visual verification of each allowed/denied standalone app: **UNVERIFIED**.
+- Parent Receiving UI under a real authenticated Production session: **UNVERIFIED**.
+- Direct realtime for `receiving` / `receiving_details`: **OPEN**; requires separate reviewed ChangeSet for publication/replica identity/RLS.
+- Complete migration of Parent's local auth wrapper/boot/permissions to `RW_Auth`: **OPEN**; the current surgery shares one client/session and centralizes the three warehouse registry-history subscriptions only.
+- No additional schema/data/permission changes until the required ChangeSet review and owner approval.
+- **Readiness: READY WITH LIMITATIONS.** See Report719 for source SHAs, commit list, detailed results and exact next actions.
 
 ---
 
