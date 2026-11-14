@@ -1,3 +1,29 @@
+# CURRENT STATE — LVE-2026-11-14-718
+**التاريخ:** 2026-11-14 (Africa/Cairo)  
+**نقطة الاستئناف السابقة:** LVE-2026-11-14-717  
+**التقرير المرجعي:** `doc/Draft/Reprots/Report717_WAREHOUSE_PARENT_HISTORY_INTEGRATION_AND_SMART_ERP_VERIFICATION_20261114.md` — أضيف إليه ملحق التحقق LVE-718.
+
+## آخر حدث مثبت
+- Operational repository: `papamohammed77-glitch/erp-frontend`, branch `main`, HEAD `5e7e27c9ffbef1646c2bc8cd0560da0d94a89e6d`.
+- هذا الـCommit يغيّر ملف اختبار Browser E2E فقط: `scripts/warehouse-parent-unloading-history.e2e.mjs`. لا تغيير في ملفات Runtime أو `companies/company-1/main.html` أو `warehouse.html` أو `core.js`.
+- Parent `main.html` blob لا يزال `a499277ff6899d6bf759ade13db6d47926ae6817`; Warehouse Hub blob لا يزال `a8ae55793beac95f1dd34f6fd8646d3995eb1b40`.
+- أضيفت اختبارات DOM اصطناعية لعرض مستند الاستلام ومسؤوله وملاحظات التفاصيل، ومنشئ الإذن، ومنشئ جلسة الجرد داخل تبويبات النظام الأم القائمة. نجح Warehouse CI Run `43599201930` على HEAD `5e7e27c`، بما في ذلك تأكيد عدم تنفيذ أي data writes.
+- Mother Inventory Forensic Run `43599201941` وMother Assembly Guard `43599201932` وForensic Current Mother Extract `43599201943` وCTO Helper Files `43599201976` نجحت كذلك.
+- SMART ERP الوحيد المستخدم: `fiilmooggumokxanwiyx`. لقطة القراءة الأخيرة لم تتغير: receiving=4، receiving_details=7، runsheets=4، completed picking=4، completed loading=5، completed unloading=0، completed returns=4، stock_vouchers=0، inventory_counts=1، inventory_count_details=35، inventory_log=83. سجل الجرد ذو 35 بندًا لم يُلمس ولم يُستخدم كـFixture.
+- لا توجد حركات QA أو سجلات أعمال مصطنعة أُنشئت في Production. اختبار CI يعمل على mocks داخل المتصفح فقط؛ لا يثبت Runtime مصادقًا عليه.
+- التعديلين السابقين على `get_picking_display_users(uuid[])` ظلا كما هما: المخرجات تشمل picker/loader/return-handler ضمن الشركة نفسها، مع auth + effective permission + حد 500 ID؛ authenticated EXECUTE=true وanon EXECUTE=false.
+
+## حالة الإغلاق
+- Parent source integration + read contracts + mocked Browser E2E: **CONFIRMED**.
+- Production business-data unchanged within this continuation: **CONFIRMED**.
+- Cloudflare artifact على HEAD `5e7e27c` وAuthenticated Production browser E2E: **UNVERIFIED**؛ لقطة Cloudflare المتاحة أقدم من هذه الـCommits.
+- Parent/Core shared-bootstrap mismatch، ونقص هوية دورة `complete_return` التاريخية: **OPEN** ولا يعالجان ضمن هذا التحديث الاختباري.
+- Readiness: **READY WITH LIMITATIONS**.
+
+## الخطوة التالية الدقيقة
+التحقق من deployment/artifact الفعلي الذي يحمل تغييرات Parent، ثم التحقق بصريًا بجلسة مستخدم مخزن مصادق عليها، من دون إنشاء حركات أو تغيير أرصدة. لا تُعد فتح سجل التفريغ الفعلي كاختبار أعمال؛ لا توجد حاليًا واقعة تفريغ مكتملة في SMART ERP.
+---
+
 # CURRENT STATE UPDATE — LVE-2026-11-12-708
 
 ## LVE-2026-11-12-709 — Picker Image Refresh + Stock Preflight
