@@ -1,27 +1,36 @@
 # CURRENT STATE — LVE-2026-11-14-718
 **التاريخ:** 2026-11-14 (Africa/Cairo)  
 **نقطة الاستئناف السابقة:** LVE-2026-11-14-717  
-**التقرير المرجعي:** `doc/Draft/Reprots/Report717_WAREHOUSE_PARENT_HISTORY_INTEGRATION_AND_SMART_ERP_VERIFICATION_20261114.md` — أضيف إليه ملحق التحقق LVE-718.
+**التقرير:** `doc/Draft/Reprots/Report718_WAREHOUSE_ROLE_MISMATCH_BOOT_RECOVERY_20261114.md`
 
 ## آخر حدث مثبت
-- Operational repository: `papamohammed77-glitch/erp-frontend`, branch `main`, HEAD `5e7e27c9ffbef1646c2bc8cd0560da0d94a89e6d`.
-- هذا الـCommit يغيّر ملف اختبار Browser E2E فقط: `scripts/warehouse-parent-unloading-history.e2e.mjs`. لا تغيير في ملفات Runtime أو `companies/company-1/main.html` أو `warehouse.html` أو `core.js`.
-- Parent `main.html` blob لا يزال `a499277ff6899d6bf759ade13db6d47926ae6817`; Warehouse Hub blob لا يزال `a8ae55793beac95f1dd34f6fd8646d3995eb1b40`.
-- أضيفت اختبارات DOM اصطناعية لعرض مستند الاستلام ومسؤوله وملاحظات التفاصيل، ومنشئ الإذن، ومنشئ جلسة الجرد داخل تبويبات النظام الأم القائمة. نجح Warehouse CI Run `43599201930` على HEAD `5e7e27c`، بما في ذلك تأكيد عدم تنفيذ أي data writes.
-- Mother Inventory Forensic Run `43599201941` وMother Assembly Guard `43599201932` وForensic Current Mother Extract `43599201943` وCTO Helper Files `43599201976` نجحت كذلك.
-- SMART ERP الوحيد المستخدم: `fiilmooggumokxanwiyx`. لقطة القراءة الأخيرة لم تتغير: receiving=4، receiving_details=7، runsheets=4، completed picking=4، completed loading=5، completed unloading=0، completed returns=4، stock_vouchers=0، inventory_counts=1، inventory_count_details=35، inventory_log=83. سجل الجرد ذو 35 بندًا لم يُلمس ولم يُستخدم كـFixture.
-- لا توجد حركات QA أو سجلات أعمال مصطنعة أُنشئت في Production. اختبار CI يعمل على mocks داخل المتصفح فقط؛ لا يثبت Runtime مصادقًا عليه.
-- التعديلين السابقين على `get_picking_display_users(uuid[])` ظلا كما هما: المخرجات تشمل picker/loader/return-handler ضمن الشركة نفسها، مع auth + effective permission + حد 500 ID؛ authenticated EXECUTE=true وanon EXECUTE=false.
+- Operational repo: `papamohammed77-glitch/erp-frontend`, branch `main`, HEAD `71fa933b3b78fa480f2d50ffb292d1a5bd4f8fa9`.
+- Commit `3058c881fc5341dc370b4c6866d7e53824cf9280` أصلح تجربة الاسترداد من رفض الدور في `companies/company-1/warehouse/warehouse.html` وأضاف اختبار Browser E2E لتبديل الحساب بأمان.
+- Commit `71fa933b3b78fa480f2d50ffb292d1a5bd4f8fa9` أضاف إلى Git ملفي migration اللذين كانا مطبقين مسبقًا في SMART ERP؛ لم يُعد تطبيق DDL على قاعدة البيانات.
+- سبب Console المؤكد: جلسة المستخدم الحالية تحمل active warehouse role=`مرتجعات`، بينما تطبيق المخزن الشامل يشترط `مخزن شامل`. يوجد حساب نشط `storekeeper@rawaea.com` بدور وظيفي `أمين مخزن` ودور نشط `مخزن شامل`، وحساب `returns@rawaea.com` بدور نشط `مرتجعات`. لم يتم تغيير تعيين أي مستخدم أو توسيع الصلاحيات.
+- التطبيق يعرض الآن البريد/الدور الحاليين مع سبب الرفض، ويتيح زر تسجيل الخروج وتبديل الحساب فقط عند mismatch. يبقى التطبيق مغلقًا للحساب غير المؤهل؛ لا bypass لبوابة الدور. بعد logout تُمسح حالة المستخدم المحلية وكلمة المرور ويعود المستخدم إلى شاشة الدخول.
+- تحذير Tailwind CDN غير مرتبط بالرفض؛ هو تحذير build/deployment غير حاجب ولم يغير ضمن إصلاح المصادقة.
+- Parent `main.html` يستخدم RPC `get_picking_display_users` لعرض picker/loader/return-handler ضمن الشركة نفسها. ملفا migration `20261114130015` و`20261114130048` موجودان الآن في مصدر Git ومتطابقان مع التغييرات المطبقة سابقًا في SMART ERP.
 
-## حالة الإغلاق
-- Parent source integration + read contracts + mocked Browser E2E: **CONFIRMED**.
-- Production business-data unchanged within this continuation: **CONFIRMED**.
-- Cloudflare artifact على HEAD `5e7e27c` وAuthenticated Production browser E2E: **UNVERIFIED**؛ لقطة Cloudflare المتاحة أقدم من هذه الـCommits.
-- Parent/Core shared-bootstrap mismatch، ونقص هوية دورة `complete_return` التاريخية: **OPEN** ولا يعالجان ضمن هذا التحديث الاختباري.
-- Readiness: **READY WITH LIMITATIONS**.
+## الاختبارات
+- Warehouse E2E Run `43600194412` على Commit `3058c881`: **SUCCESS**. Job log يؤكد `WAREHOUSE_ACTIVE_ROLE_GATE_AND_SAFE_ACCOUNT_SWITCH=PASS`، مع جميع اختبارات الوحدات الأصلية الست والأذونات السبعة وصور المنتجات والحراسة المخزنية وسجلات Parent وعدم الكتابة.
+- Mother Inventory Forensic E2E Run `43600326868` على HEAD `71fa933b`: **SUCCESS**.
+- Mother Assembly Guard Run `43600326851`: **SUCCESS**.
+- Forensic Current Mother Extract Run `43600326876`: **SUCCESS**.
+- CTO Helper Files Run `43600326824`: **SUCCESS**.
+- اختبارات CI تستخدم fixtures/mocks ولا تنشئ حركات Production.
 
-## الخطوة التالية الدقيقة
-التحقق من deployment/artifact الفعلي الذي يحمل تغييرات Parent، ثم التحقق بصريًا بجلسة مستخدم مخزن مصادق عليها، من دون إنشاء حركات أو تغيير أرصدة. لا تُعد فتح سجل التفريغ الفعلي كاختبار أعمال؛ لا توجد حاليًا واقعة تفريغ مكتملة في SMART ERP.
+## SMART ERP Production safety
+- المشروع الوحيد المستخدم: `fiilmooggumokxanwiyx`.
+- آخر لقطة قراءة: `inventory_counts=1`, `inventory_count_details=35`, `inventory_log=83`, `erp_operation_registry=98`.
+- لم تُستخدم جلسة الجرد القائمة ذات 35 بندًا، ولم تنشأ QA rows أو حركات مخزنية/مالية جديدة في هذا الحدث.
+- لا تغييرات على RLS أو grants أو أدوار المستخدمين في إصلاح شاشة الإقلاع.
+
+## الحدود والحكم
+- Cloudflare artifact على HEAD `71fa933b` وAuthenticated Production browser runtime: **UNVERIFIED**؛ لا يوجد إثبات نشر موثوق من جلسة الفحص.
+- الحساب المقصود للتشغيل يجب أن يكون الحساب المعيّن «مخزن شامل» أو أن يعيّنه مشرف المخازن عبر `set_active_warehouse_role` المعتمد؛ لا تُقبل أدوار التطبيقات الأصلية بدلًا منه.
+- Readiness: **READY WITH LIMITATIONS** للمصدر وCI؛ قبول Runtime/Deployment Production ما زال مفتوحًا.
+
 ---
 
 # CURRENT STATE UPDATE — LVE-2026-11-12-708
