@@ -1980,3 +1980,24 @@ All six retained `verify_jwt=true`.
 **READY WITH LIMITATIONS** للقراءة والتحليل والتوثيق؛ **BLOCKED** لاختبارات Staging E2E حتى استعادة مخطط/RLS/Edge parity، وProduction Runtime حتى توفر Browser مصادق عليه.  
 الخطوة التالية: تجهيز واعتماد CS-INVREQ-716-A لإغلاق direct DML bypass وidempotency والمواءمة مع effective permissions، ثم إصلاح Staging قبل أي E2E. لا Production Migration قبل موافقة المالك الصريحة.
 
+
+
+
+---
+
+## LAST VERIFIED EVENT — LVE-2026-11-14-717
+**التاريخ:** 2026-11-14 (Africa/Cairo)  
+**التقرير:** `doc/Draft/Reprots/Report717_WAREHOUSE_PARENT_HISTORY_INTEGRATION_AND_SMART_ERP_VERIFICATION_20261114.md`
+
+- Operational repo `papamohammed77-glitch/erp-frontend`, branch `main`, HEAD `65596ceecaa30fcca99fb1c9c327507f075c2242`.
+- Parent source `companies/company-1/main.html` blob `a499277ff6899d6bf759ade13db6d47926ae6817`; Warehouse Hub `companies/company-1/warehouse/warehouse.html` blob `a8ae55793beac95f1dd34f6fd8646d3995eb1b40`.
+- Parent now renders completed Picking and Loading event histories in their existing tabs from company-scoped `erp_operation_registry`, with Realtime refresh; Unloading history remains registry-backed and its queue now requires `Loaded` plus non-null `loading_cycle_id`.
+- Parent Returns now labels the return handler column and uses the shared actor lookup RPC; Parent Loading actor lookup also uses the RPC. Vouchers and inventory-count creator columns remain present.
+- SMART ERP only (`fiilmooggumokxanwiyx)): applied migrations `20261114130015` and `20261114130048` to extend `get_picking_display_users` to picker/loader/return-handler IDs while retaining authentication, company, permission and 500-ID guards. `anon` cannot execute; `authenticated` can. No RLS/grant widening.
+- Production counts after change: receiving 4, receiving_details 7, runsheets 4, run_sheet_details 19, stock_vouchers 0, stock_voucher_details 0, inventory_counts 1, inventory_count_details 35, inventory_log 83, erp_operation_registry 98. Completed unloading events 0; Loaded runsheets 0; Picked runsheets 0. No QA rows or business movements were created.
+- Authenticated-role RPC read was exercised inside `BEGIN/ROLLBACK`; it returned same-company warehouse actor metadata. No business write.
+- Warehouse CI Run `43598314439` on `65596ce` SUCCESS, including unit, static, seven-workspace/voucher and Parent history Browser E2E. Parent history tests verify Picking/Loading/Unloading histories, actor attribution, company filter, realtime, return handler, creator columns, unloading cycle eligibility, and zero data writes.
+- Mother System Browser E2E `43598190657`, Mother Inventory Forensic `43598190590`, and Assembly Guard `43598314398` SUCCESS.
+- Cloudflare dashboard latest visible deployment remains `206b363` with Preview `https://71c4933f.rawaea-erp.pages.dev`; HEAD `65596ce` has no confirmed deployment. Authenticated Production browser, deployed artifact parity, and real image HTTP/naturalWidth remain UNVERIFIED.
+- Architecture conflict remains: Hub loads `core.js`; Parent `main.html` still owns a separate Supabase client/RW_Auth/Realtime and does not load `core.js`. No risky bootstrap refactor was attempted.
+- No new branch/repository/project. No stock/cash/accounting/custody movements. Readiness: READY WITH LIMITATIONS.
