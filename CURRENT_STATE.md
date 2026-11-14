@@ -1,3 +1,33 @@
+# CURRENT STATE UPDATE — LVE-2026-11-14-723
+**التاريخ:** 2026-11-14 (Africa/Cairo)  
+**نقطة الاستئناف السابقة:** LVE-2026-11-14-722  
+**التقرير:** doc/Draft/Reprots/Report723_ZERO_COST_OWNER_AUTH_CREDENTIALS_20261114.md
+
+## آخر حدث مثبت — إدارة معرف المالك وكلمة المرور دون اعتماد على تأكيد البريد
+
+- **Operational repo:** papamohammed77-glitch/erp-frontend, branch main, commit \`36a86359a0ba8d465eed2602cfefb590cd594c38\`.
+- **Supabase SMART ERP:** fiilmooggumokxanwiyx, ACTIVE_HEALTHY. Existing \`save-settings\` deployed as Version 17, ACTIVE, verify_jwt=true.
+- Owner UI no longer uses \`supabase.auth.updateUser({email})\` or \`resetPasswordForEmail\`. It re-authenticates by current password through \`signInWithPassword\`, then uses the owner-only server route.
+- Internal alias format restricted to \`@rawaea.com\` or \`@alrawae.com\`. Owner password change requires the current password and new password length 12–128.
+- Server action validates active user, owner-profile linkage, wildcard permission, matching Auth/users/owner-profile email, and sign-in recency under five minutes.
+- Alias update uses server-only Auth Admin API followed by the service-role-only \`owner_login_alias_sync_atomic\` function. The RPC locks rows, validates old values, rejects duplicates, updates both linked public records and writes audit. Edge route compensates Auth alias to the old value if the RPC fails.
+- New RPC EXECUTE privileges read back as service_role=true, authenticated=false, anon=false.
+- Production owner data remains unchanged and aligned: Auth/public.users/owner_profile = \`owner@alrawae.com\`; same UUID; Active; \`permissions=["*"]\`.
+- Password audit writes metadata only; never stores password material. The existing save-employee path and global Auth security/confirmation settings were not altered.
+- **CI SUCCESS on the exact commit:** Owner Credential Security Contract 43624957462; Parent full-file gate 43624957539; Mother Browser E2E 43624957467; Mother Inventory Forensic E2E 43624957468; Standalone Unified Warehouse E2E 43624957517.
+- **No inventory/treasury/cash/custody/receivables/payables/journal/accounting rows or balances were changed.** Only the database function definition and grants were applied. No live owner credentials were changed.
+
+### Open verification boundaries
+- Cloudflare Pages serving commit 36a86359 is UNVERIFIED; GitHub source and CI do not prove publication.
+- Project-level Auth security notification toggles for email/password changes are UNVERIFIED. Confirmation/reset flows are removed from this Parent path; notification emails are separate project-level settings, which were not modified.
+- Actual owner credential change was not executed because the current password was not accessed; a successful live owner mutation is not claimed.
+- Self-service offline recovery-code issuance/consumption remains OPEN. The old owner recovery stub remains HTTP 410; lost owner password recovery stays under trusted Supabase project administrator control.
+- No separate project, branch, paid email provider, SMS provider, SMTP, or new Edge Function was created.
+
+**الحكم:** READY FOR OWNER-INITIATED USE AFTER VERIFYING CLOUDFLARE PUBLICATION AND AUTH NOTIFICATION SETTINGS; NO PRODUCTION BUSINESS TRANSACTIONS.
+
+---
+
 # CURRENT STATE UPDATE — LVE-2026-11-14-722
 **التاريخ:** 2026-11-14 (Africa/Cairo)  
 **نقطة الاستئناف السابقة:** LVE-2026-11-14-721  
