@@ -1,3 +1,27 @@
+# CURRENT STATE UPDATE — LVE-2026-11-14-722
+**التاريخ:** 2026-11-14 (Africa/Cairo)  
+**نقطة الاستئناف السابقة:** LVE-2026-11-14-721  
+**التقرير:** doc/Draft/Reprots/Report722_ZERO_COST_INTERNAL_AUTH_IDENTIFIERS_NO_EMAIL_OR_SMS_20261114.md
+
+## آخر حدث مثبت — هوية دخول داخلية بلا بريد حقيقي أو SMTP أو SMS
+
+- Owner clarified that rawaea.com is not registered/controlled and addresses such as picker@rawaea.com and owner@alrawae.com are synthetic test login identifiers, not real mailboxes.
+- Previous Report721's Brevo Free SMTP proposal is superseded for this stage; no domain, SMTP account, email provider, SMS provider, or external service is required for synthetic login aliases.
+- Production Auth root cause confirmed: owner UI uses client-side supabase.auth.updateUser({email}), which triggers email confirmation delivery and reaches the project's built-in SMTP quota.
+- Existing Production Edge Function save-employee v10 (ACTIVE, verify_jwt=true) already uses Supabase Auth Admin API: admin.createUser({email_confirm:true}) and admin.updateUserById({email,email_confirm:true}). This is the existing no-mail account lifecycle pattern for synthetic employee IDs.
+- Existing save-settings v15 (ACTIVE, verify_jwt=true) already uses server-only service_role and verifies the current actor, active public user, owner metadata, wildcard permission, and owner_profile linkage; reuse it for a narrowly scoped owner action. Do not create a new Edge Function.
+- Read-only owner identity join remains aligned: auth.users.email = public.users.email = owner_profile.owner_email = owner@alrawae.com; no pending email change.
+- Read-only function catalog found auth.email() and owner_license_admin_atomic but no current owner email sync RPC. No trigger sync exists. A scoped transactional RPC is required to update public.users and owner_profile consistently after the server-side Auth Admin update, with rollback compensation if the RPC fails.
+- Recommended permanent pattern: keep current email-shaped strings as internal Auth login aliases; owner alias updates through existing owner-gated save-settings + Auth Admin updateUserById(email_confirm=true) + dedicated atomic identity sync; no email/SMS send.
+- Do NOT disable Confirm Email or Secure Email Change globally; the selected route avoids the email confirmation flow and preserves protection for any real future email identities.
+- Password-reset-by-email is not usable for synthetic aliases; employee admin password reset is already supported through save-employee. Owner recovery edge functions checked are retired HTTP 410 stubs; owner recovery needs a separate no-email secure process/control-plane path.
+- No production code, Auth settings, database records/schema, permissions, stock, treasury, custody, or GL changes were made.
+- Status: ZERO-COST NO-MAIL DESIGN CONFIRMED / OWNER CHANGESET AND RPC NOT YET IMPLEMENTED / REPORT722 PINNED.
+
+**Historical note:** Report721 is retained as history but its Brevo SMTP recommendation is superseded by Report722 given the owner's clarification that the domain/mailboxes do not exist and the system should use internal Auth identifiers.
+
+---
+
 # CURRENT STATE UPDATE — LVE-2026-11-14-721
 **التاريخ:** 2026-11-14 (Africa/Cairo)  
 **نقطة الاستئناف السابقة:** LVE-2026-11-14-720  
