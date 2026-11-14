@@ -102,7 +102,7 @@ CI الحالي يؤكد ست مساحات تشغيل مخزنية كاملة، 
 - أعداد الجداول قبل تعديل RPC وبعده متطابقة في اللقطة المتاحة؛ لا يوجد دليل على DML أو حركة مخزون/خزينة/محاسبة نتيجة هذا العمل.
 
 ## 7. نتائج CI / E2E
-<badge>SUCCESS</badge> Warehouse CI Run `43598314439` على HEAD `65596ce`:
+**SUCCESS** Warehouse CI Run `43598314439` على HEAD `65596ce`:
 - Unit tests وStatic source/module contract: SUCCESS.
 - Browser E2E — ست مساحات تشغيل مخزنية وسبعة إجراءات أذونات: SUCCESS.
 - Parent warehouse history Browser E2E: SUCCESS.
