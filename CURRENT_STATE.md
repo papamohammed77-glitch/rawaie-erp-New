@@ -1,3 +1,22 @@
+# CURRENT STATE UPDATE — LVE-2026-11-14-724
+**التاريخ:** 2026-11-14 (Africa/Cairo)  
+**نقطة الاستئناف السابقة:** LVE-2026-11-14-723  
+**التقرير:** doc/Draft/Reprots/Report724_OWNER_ALIAS_SYNC_NOOP_RUNTIME_VERIFICATION_20261114.md
+
+## آخر حدث مثبت — تحقق تشغيل دالة مزامنة هوية المالك دون تعديل
+
+- Supabase migration version \`20261114175736\` يسجل \`owner_login_alias_sync_atomic\`.
+- تم استدعاء الدالة الحية داخل معاملة تحت \`SET LOCAL ROLE service_role\` مع المعرف القديم والجديد متطابقين؛ أعادت \`success=true, changed=false\`.
+- تم تنفيذ \`ROLLBACK\`، ثم أكدت قراءة لاحقة أن \`public.users.email\` و\`owner_profile.owner_email\` ما زالا \`owner@alrawae.com\`، والروابط Auth UUID متطابقة، والحساب Active وصلاحية \`["*"]\` باقية.
+- EXECUTE: service_role=true, authenticated=false, anon=false.
+- لا توجد حركة بيانات في مسار no-op؛ لم يتم تغيير كلمة المرور أو معرف المالك، ولم يتغير سجل التدقيق أو أي رصيد مخزني/مالي.
+- CI على commit \`36a86359a0ba8d465eed2602cfefb590cd594c38\`: Owner Credential Contract 43624957462 SUCCESS؛ Parent structural gate 43624957539 SUCCESS؛ Mother Browser E2E 43624957467 SUCCESS؛ Mother Inventory Forensic 43624957468 SUCCESS؛ Unified Warehouse E2E 43624957517 SUCCESS.
+- الاختبار يثبت مسار no-op فقط؛ تغيير المعرف الحقيقي وتعويض rollback وفعل تغيير كلمة المرور لم تُنفذ على حساب المالك.
+
+**الحالة:** IMPLEMENTATION + RPC NO-OP LIVE VALIDATION + REGRESSION CI PASS. Cloudflare publication, Auth security-notification settings and real owner credential acceptance remain UNVERIFIED as in Report723.
+
+---
+
 # CURRENT STATE UPDATE — LVE-2026-11-14-723
 **التاريخ:** 2026-11-14 (Africa/Cairo)  
 **نقطة الاستئناف السابقة:** LVE-2026-11-14-722  
