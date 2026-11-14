@@ -154,3 +154,71 @@ CI الحالي يؤكد ست مساحات تشغيل مخزنية كاملة، 
 - `_forensic_current_main_extract.md` ملف مساعد آلي في جذر المستودع، ليس ملف Runtime؛ لم يُحذف لأنه ينتج من Workflow قائم.
 
 **القرار النهائي:** Source + DB read contract + CI = CONFIRMED. Production business data unchanged = CONFIRMED. Latest Cloudflare deployment/runtime = UNVERIFIED. Overall READY WITH LIMITATIONS, وليس إغلاقًا نهائيًا قبل النشر وفحص جلسة Production مصادق عليها.
+
+
+---
+
+# ملحق LVE-2026-11-14-718 — توسيع اختبارات تبويبات النظام الأم
+
+**التاريخ:** 2026-11-14 (Africa/Cairo)  
+**Operational HEAD:** `5e7e27c9ffbef1646c2bc8cd0560da0d94a89e6d`  
+**الحكم:** READY WITH LIMITATIONS — تغطية المصدر وE2E الموسعة ناجحة؛ النشر وProduction authenticated runtime ما زالا غير مثبتين.
+
+## ما استُكمل بعد تقرير LVE-717
+Commit `5e7e27c9ffbef1646c2bc8cd0560da0d94a89e6d` غيّر ملف الاختبار القائم فقط:
+`scripts/warehouse-parent-unloading-history.e2e.mjs`.
+
+مقارنة GitHub بين `65596ce` و`5e7e27c` تثبت أن الملف الوحيد المتغير هو الاختبار (+88 / -1). لم تتغير:
+- `companies/company-1/main.html` — blob `a499277ff6899d6bf759ade13db6d47926ae6817`.
+- `companies/company-1/warehouse/warehouse.html` — blob `a8ae55793beac95f1dd34f6fd8646d3995eb1b40`.
+- `companies/company-1/core.js`.
+- أي RPC أو Migration أو بيانات أعمال في هذه الخطوة.
+
+## تغطية Parent التي أضيفت
+استخدم الاختبار Fixtures داخل صفحة متصفح محلية وSupabase mock، ومنع جميع عمليات `insert/update/upsert/delete` عبر عداد يرفع خطأ عند محاولة الكتابة. أضيفت حالات تحقق لـ:
+1. سجل الاستلام داخل تبويب الاستلام الموجود: مرجع المستند، المسؤول، وملاحظة تفاصيل الاستلام.
+2. سجل الأذونات داخل تبويب الأذونات المخزنية الموجود: إظهار `created_by`.
+3. سجل الجرد داخل مركز التحكم في المخزون/تبويب الجرد الموجود: إظهار `created_by`.
+4. فحص نهائي يؤكد أن مجموع عمليات الكتابة يظل صفرًا.
+
+## نتيجة CI الحية
+- Warehouse CI Run `43599201930`: **SUCCESS**، Job `standalone-warehouse`.
+- السجل يثبت صراحة:
+  - `PARENT_RECEIVING_DOCUMENT_ACTOR_AND_DETAILS=PASS`
+  - `PARENT_VOUCHER_CREATOR_RENDER=PASS`
+  - `PARENT_INVENTORY_COUNT_CREATOR_RENDER=PASS`
+  - `PARENT_ALL_ADDED_PARENT_TAB_TESTS_NO_DATA_WRITES=PASS`
+  - واختبارات Parent السابقة للتحضير والتحميل والتفريغ والمرتجع وRealtime ونطاق الشركة بقيت ناجحة.
+- Mother Inventory Forensic `43599201941`: **SUCCESS**.
+- Mother Assembly Guard `43599201932`: **SUCCESS**.
+- Forensic Mother Extract `43599201943`: **SUCCESS**.
+- CTO Helper Files `43599201976`: **SUCCESS**.
+
+هذه اختبارات Browser محلية بمصادر اصطناعية، وليست تسجيل دخول فعليًا إلى Production ولا إثباتًا لنشر Artifact.
+
+## SMART ERP — لقطة ما بعد الاختبارات
+جميع الاستعلامات كانت Read-only. النتيجة المطابقة للقطة السابقة:
+| المؤشر | العدد |
+|---|---:|
+| receiving | 4 |
+| receiving_details | 7 |
+| runsheets | 4 |
+| complete_runsheet_picking / completed | 4 |
+| complete_runsheet_loading / completed | 5 |
+| complete_runsheet_unloading / completed | 0 |
+| complete_return / completed | 4 |
+| stock_vouchers | 0 |
+| inventory_counts | 1 |
+| inventory_count_details | 35 |
+| inventory_log | 83 |
+
+لا توجد واقعة تفريغ مكتملة حاليًا لتأكيد سجلها من سجل Production. جلسة الجرد ذات 35 تفصيلة لم تُستخدم للاختبار أو التعديل. لا توجد QA rows أو حركات مخزون/خزينة/قيود محاسبية أُنشئت في هذه المرحلة.
+
+## الحدود المفتوحة — لا تغيير في تصنيفها
+- Cloudflare dashboard snapshot المتاح عند المراجعة السابقة كان أقدم من Commits `ac51d83` وما بعدها؛ لذلك نشر `5e7e27c` ومطابقة Production alias/artifact ما زالا **UNVERIFIED**.
+- صفحة Parent المفتوحة في المتصفح لا تمثل جلسة مستخدم مخزن مصادقًا عليها؛ لذلك ظهور القوائم على Runtime الحقيقي **UNVERIFIED**.
+- لا يزال Parent لا يحمل `core.js` بينما Warehouse Hub يحمله؛ لا تغيير في هذا المعمار ضمن هذه المرحلة.
+- سجل `complete_return` التاريخي الحالي لا يحمل معرف الرانشيت وهوية المنفذ في payload؛ لذلك لا ندعي سجل مرتجعات منفصلًا كاملًا متعدد الدورات.
+- لا يُنشأ حدث تفريغ أو جرد أو إذن على Production لمجرد توفير صف اختبار؛ الاختبارات الحالية تتوقف عند mocks بلا كتابات.
+
+**الخلاصة:** Source + SMART ERP read contracts + expanded Parent Browser E2E = **CONFIRMED**. Production data unchanged = **CONFIRMED**. Cloudflare deployment parity + authenticated live runtime = **UNVERIFIED**. Readiness remains **READY WITH LIMITATIONS**.
