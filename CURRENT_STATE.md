@@ -1,7 +1,7 @@
-# CURRENT STATE — LVE-2026-11-14-718
+# CURRENT STATE — LVE-2026-11-14-719
 **التاريخ:** 2026-11-14 (Africa/Cairo)  
-**نقطة الاستئناف السابقة:** LVE-2026-11-14-717  
-**التقرير:** `doc/Draft/Reprots/Report718_WAREHOUSE_ROLE_MISMATCH_BOOT_RECOVERY_20261114.md`
+**نقطة الاستئناف السابقة:** LVE-2026-11-14-718  
+**التقرير:** `doc/Draft/Reprots/Report719_PARENT_CORE_SHARED_AUTH_AND_WAREHOUSE_APP_ENTITLEMENTS_20261114.md`
 
 ## آخر حدث مثبت
 - Operational repo: `papamohammed77-glitch/erp-frontend`, branch `main`, HEAD `71fa933b3b78fa480f2d50ffb292d1a5bd4f8fa9`.
@@ -2036,3 +2036,44 @@ All six retained `verify_jwt=true`.
 - Cloudflare dashboard latest visible deployment remains `206b363` with Preview `https://71c4933f.rawaea-erp.pages.dev`; HEAD `65596ce` has no confirmed deployment. Authenticated Production browser, deployed artifact parity, and real image HTTP/naturalWidth remain UNVERIFIED.
 - Architecture conflict remains: Hub loads `core.js`; Parent `main.html` still owns a separate Supabase client/RW_Auth/Realtime and does not load `core.js`. No risky bootstrap refactor was attempted.
 - No new branch/repository/project. No stock/cash/accounting/custody movements. Readiness: READY WITH LIMITATIONS.
+
+
+---
+
+## LAST VERIFIED EVENT — LVE-2026-11-14-719
+**التاريخ:** 2026-11-14 (Africa/Cairo)  
+**التقرير:** `doc/Draft/Reprots/Report719_PARENT_CORE_SHARED_AUTH_AND_WAREHOUSE_APP_ENTITLEMENTS_20261114.md`  
+**Operational repo:** `papamohammed77-glitch/erp-frontend`, branch `main`, HEAD `d7caf2eafd37ecc7777ccd6aa37856c7918b02dd`.  
+**Cloudflare:** Pages project `rawaea-erp`, Production / main / automatic deployment؛ أحدث Deployment ظاهر على commit `d7caf2e`، preview `https://d0306a63.rawaea-erp.pages.dev/`.
+
+### الصلاحيات — التصحيح المعتمد
+- `warehouse.html` هو التطبيق الموحد الوحيد الذي يقبل active warehouse role = `مخزن شامل` بعد `get_warehouse_hub_snapshot` والتحقق من tenant/branch scope.
+- التطبيقات المستقلة السبعة لا تستخدم `مخزن شامل` كمنح عام: Picker `picking`/«تحضير»، Receiver `receiving`/«استلام»، Loader `loading`/«تحميل»، Returns `return`/«مرتجعات»، Unloader `unloading`/«تفريغ»، Counter أحد `vehicle-count|branch-count|general-count`/«جرد»، Vouchers `vouchers`/«أذونات». المالك الموثق مستثنى.
+- SMART ERP read-only أكد أن `storekeeper@rawaea.com` يملك `[warehouse]` فقط ودوره النشط `مخزن شامل`؛ لا مفاتيح تطبيقات مستقلة في ملفه. حسابات Picker/Receiver/Loader/Returns لها أدوار تشغيلية مخصصة. `warehouse.supervisor@rawaea.com` و`warehouse.manager@rawaea.com` يحملان مفاتيح تطبيقات مستقلة صريحة؛ الدخول بسبب تلك المفاتيح لا بسبب اسم الدور.
+- لم يتم تعديل أي `users` أو `roles` أو `role_permissions` في قاعدة البيانات.
+
+### Core / Picker / Parent
+- Picker المستقل الآن يحمل `../core.js` ويستخدم عميل `RW_SHARED_SUPABASE` و`RW_Auth` و`RW_Realtime`; لا ينشئ Supabase client مستقلًا. قناة `warehouse-picker` تشمل runsheets/details/registry/items. أثناء Picking Session مفتوحة، يتم تأجيل تحديث العرض حتى لا تُفقد حالة العمل.
+- Core.js يعيد استخدام Parent client إذا توفر في `window.RW_SUPABASE_CLIENT`.
+- Parent `main.html` يحمل Core.js، ينشئ Supabase client واحدًا بإعدادات الجلسة الأصلية ويضعه كـshared client، ومصنع Parent يعيد استخدامه دون fallback لإنشاء عميل آخر.
+- Parent سجل Picking/Loading/Unloading يستخدم قناة Core واحدة company-scoped على `erp_operation_registry`؛ الاشتراكات الأخرى لم تتغير.
+- Parent auth wrapper/boot المحلي لم يُستبدل بالكامل؛ الجلسة/العميل واحد، لكن توحيد جميع Auth abstractions في Parent بقي خطوة مستقلة حتى لا يُعاد بناء مسار الدخول كاملًا بلا رسم اعتماديات.
+
+### الاستلام وSMART ERP
+- `receiving=4`, `receiving_details=7`, `stock_vouchers=0`, `stock_voucher_details=0`, `inventory_counts=1`, `inventory_count_details=35`, `inventory_log=83`, `erp_operation_registry=98`.
+- آخر Receiving في 2026-11-12: `PINV-1002`, المسؤول `receiver@rawaea.com`. سجل 2026-11-11 `PINV-1003` منشؤه `storekeeper@rawaea.com`; Parent loadReceiving يقرأ receiving/details ويعرض responsible.
+- `receiving` و`receiving_details` غير منشورين في `supabase_realtime`؛ العرض عند فتح/إعادة تحميل التبويب مثبت، أما حدث لحظي مباشر من الجدولين فغير متاح. لم تُعدّل publication/RLS/replica identity.
+
+### اختبارات ونشر
+- Warehouse E2E Run `43605817668`: SUCCESS؛ `WAREHOUSE_SEVEN_STANDALONE_PARENT_APP_ENTITLEMENTS=PASS`, `STANDALONE_PICKER_CORE_REALTIME_AND_PARENT_PERMISSION_BOUNDARY=PASS`, `PARENT_RECEIVING_DOCUMENT_ACTOR_AND_DETAILS=PASS`, `PARENT_ALL_ADDED_PARENT_TAB_TESTS_NO_DATA_WRITES=PASS`.
+- Parent Core bridge Browser E2E Run `43605778406`: SUCCESS؛ `clientCount=1`, `sameClient=true`, Core Auth verified company, Core channel company filter = `company_id=eq.qa-parent-company`.
+- Mother Inventory anonymous smoke Run `43605908068`: SUCCESS بعد فصل Supabase mock عن WebSocket الخارجي؛ Mother Assembly Guard `43605908054`: SUCCESS؛ Mother extract `43605908018`: SUCCESS؛ CTO Helper Files `43605908129`: SUCCESS.
+- Cloudflare deployment: CONFIRMED من dashboard على HEAD `d7caf2e`. المصادقة الحية الفعلية لحسابات Production لم تُختبر.
+
+### السلامة والحدود
+- جميع استعلامات SMART ERP كانت SELECT / catalog reads؛ لا DML/DDL/Migration/RLS/role permission change/QA business rows/عمليات مخزنية أو مالية.
+- Authenticated live account acceptance (storekeeper/supervisor) = UNVERIFIED.
+- Parent Receiving visual review in a signed-in Production browser = UNVERIFIED.
+- Direct Realtime for receiving tables remains OPEN and requires approved ChangeSet.
+- Full replacement of Parent local auth abstractions by RW_Auth remains OPEN; current change shares a single Supabase client/session and migrates only warehouse registry history.
+- Readiness = READY WITH LIMITATIONS; do not reopen already-passed source tests unless new regression evidence appears.
