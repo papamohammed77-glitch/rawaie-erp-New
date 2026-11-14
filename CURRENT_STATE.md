@@ -1,40 +1,40 @@
-# CURRENT STATE — LVE-2026-11-14-719
+# CURRENT STATE — LVE-2026-11-14-720
 **التاريخ:** 2026-11-14 (Africa/Cairo)  
-**نقطة الاستئناف السابقة:** LVE-2026-11-14-718  
-**التقرير:** `doc/Draft/Reprots/Report719_PARENT_CORE_SHARED_AUTH_AND_WAREHOUSE_APP_ENTITLEMENTS_20261114.md`
+**نقطة الاستئناف السابقة:** LVE-2026-11-14-719  
+**التقرير:** `doc/Draft/Reprots/Report720_PARENT_OWNER_AUTH_INVALID_API_KEY_AND_EFFECTIVE_PROFILE_SECURITY_20261114.md`
 
-## آخر حدث مثبت — Current Reality
+## آخر حدث مثبت — Parent Owner Auth / Supabase API Key
+
 - Operational repo `papamohammed77-glitch/erp-frontend`, branch `main`, HEAD `d7caf2eafd37ecc7777ccd6aa37856c7918b02dd`.
-- Cloudflare Pages project `rawaea-erp`: Production / main / Automatic deployments enabled؛ أحدث deployment ظاهر على `d7caf2e`, URL `https://d0306a63.rawaea-erp.pages.dev/`. Deployment confirmed؛ authenticated app acceptance remains unverified.
-- SMART ERP project ref `fiilmooggumokxanwiyx`; all Production SQL in this cycle was read-only.
-- The single unified role `مخزن شامل` grants entry to `warehouse.html` through `get_warehouse_hub_snapshot`, not to every standalone app.
-- Standalone access now requires each app's dedicated active role or explicit Parent permission key: Picker `picking`, Receiver `receiving`, Loader `loading`, Returns `return`, Unloader `unloading`, Counter `vehicle-count|branch-count|general-count`, Vouchers `vouchers`; owner remains permitted.
-- Current SMART ERP storekeeper profile `storekeeper@rawaea.com` has `permissions=[warehouse]` and active role `مخزن شامل`; it is intended for the unified Hub only. Supervisor/manager accounts have explicit app keys in `public.users.permissions`; entry is based on those keys, not titles. No user/role permission records were changed.
-- Picker standalone now loads Core, uses one shared Supabase client and RW_Auth, and subscribes through RW_Realtime to runsheets/details/registry/items. Active Picking sessions are not rerendered destructively on incoming events.
-- Parent `main.html` loads `core.js`; Parent and Core reuse one Supabase client. Parent Picking/Loading/Unloading registry history uses one Core company-scoped channel. Other Parent subscriptions and the local Parent login/boot wrapper remain unchanged; only the client/session is shared, not every auth abstraction.
-- Parent Receiving reads existing `receiving` and `receiving_details` and displays `responsible`. Latest Production rows still show the expected creators. These two receiving tables are not in `supabase_realtime`, so instant direct events are unavailable; the Receiving view reloads on normal entry/refresh.
-- Current counts: `receiving=4`, `receiving_details=7`, `inventory_counts=1`, `inventory_count_details=35`, `inventory_log=83`, `stock_vouchers=0`, `stock_voucher_details=0`, `erp_operation_registry=98`.
+- Target: `companies/company-1/main.html`, blob `e6d7a835f4e43b810e8c93c818d45880f5396c1e`; `companies/company-1/core.js`, blob `2b2211a3f95049042e27a7b2ecbab3640a584942`.
+- SMART ERP project ref `fiilmooggumokxanwiyx`, status ACTIVE_HEALTHY. Project key inventory confirms enabled active legacy anon key.
 
-## اختبارات القبول النهائية
-- Warehouse E2E Run `43605817668`: SUCCESS; seven standalone Parent app entitlement contract PASS; Picker Core/Auth/Realtime and permission-boundary PASS; Parent receiving actor/details PASS; Parent tests confirmed no data writes.
-- Parent Core bridge Browser E2E Run `43605778406`: SUCCESS; `clientCount=1`, shared-client identity true, Core Auth verified company, and one Core warehouse-history channel with `company_id=eq.qa-parent-company`. Existing HR channel preserved.
-- Mother Inventory anonymous smoke Run `43605908068`: SUCCESS with local Supabase mock; Mother Assembly Guard `43605908054`: SUCCESS; current Mother extract `43605908018`: SUCCESS; CTO Helper Files `43605908129`: SUCCESS.
-- Parent forensic gate Run `43605651042`: SUCCESS.
-- CI browser tests use synthetic fixtures/mocks; they do not prove a live signed-in Production account's UI acceptance.
+### Root causes — CONFIRMED
+1. Parent bootstrap before Core uses malformed/wrong legacy anon JWT in `main.html` line 153. Its decoded claims set `iss=fiilmooggumokxanwiyx` and omit `ref`. Correct active key used later in Parent's `RW_SUPABASE_ANON_KEY` and `core.js` has `iss=supabase`, `ref=fiilmooggumokxanwiyx`, role anon. Parent creates the sole shared client with the bad key, and Core reuses it. This explains password-token 401 and Realtime WebSocket authentication failures; no second client is created to replace it.
+2. Parent session restore reads `user_metadata` directly for role/isOwner and uses `meta.permissions || ['*']`. Missing metadata therefore grants wildcard by default; role fallback also labels any such user «مدير النظام». This is an authorization boundary defect independent of API-key 401.
+3. Parent interactive login computes owner from `public.users.permissions contains '*'` alone, and derives role from metadata fallback, rather than the canonical Core effective profile. Core RPC owner contract requires metadata isOwner=true, public wildcard, and a matching owner_profile. Login/restore should consume `window.RW_Auth.init()` profile.
+4. `RW_Audit_log` sends `failed_login` to Edge even without an access token. Deployed `log-action` is ACTIVE version 5 with `verify_jwt=true`; gateway rejects the unauthenticated call before the function's internal failed_login branch. This is secondary audit noise, not the cause of Auth failure.
 
-## SMART ERP / Production safety
-- No DML, DDL, Migration, RPC posting, Edge Function posting, RLS/GRANT/publication update, user/role/permission mutation, or QA business row was created.
-- No receiving/picking/loading/unloading/returns/count/voucher operation was created by this test cycle.
-- Existing inventory count with 35 details was not touched. No stock/cash/ledger/journal/custody movement was generated.
-- Latest read-only records: 12 Nov `PINV-1002` responsible `receiver@rawaea.com`; 11 Nov `PINV-1003` responsible `storekeeper@rawaea.com`; both completed.
+### Owner identity — VERIFIED
+- `owner@alrawae.com`: Active; role «مدير النظام»; `permissions=['*']`; `owner_profile.license_status='active'`; email confirmed; not banned; public/auth/owner_profile links consistent.
+- `last_sign_in_at=2026-11-14 12:34:00.783353+00`; Auth logs contain a successful password login at 12:34 UTC on the same day. Current failure must not be treated as missing owner principal or inactive account.
+- Owner role text alone is not authority. Effective Owner = Core-calculated isOwner plus database wildcard plus owner_profile linkage.
+- General Manager, Warehouse Manager, and Warehouse Supervisor are not Owners; they retain explicit permission keys. Storekeeper remains warehouse-only and uses the unified Hub; no user/role grants were changed.
 
-## الحدود المفتوحة والحكم
-- Authenticated live login with `storekeeper@rawaea.com` and warehouse supervisor, and visual verification of each allowed/denied standalone app: **UNVERIFIED**.
-- Parent Receiving UI under a real authenticated Production session: **UNVERIFIED**.
-- Direct realtime for `receiving` / `receiving_details`: **OPEN**; requires separate reviewed ChangeSet for publication/replica identity/RLS.
-- Complete migration of Parent's local auth wrapper/boot/permissions to `RW_Auth`: **OPEN**; the current surgery shares one client/session and centralizes the three warehouse registry-history subscriptions only.
-- No additional schema/data/permission changes until the required ChangeSet review and owner approval.
-- **Readiness: READY WITH LIMITATIONS.** See Report719 for source SHAs, commit list, detailed results and exact next actions.
+### Proposed ChangeSet — not yet approved or executed
+`CS-AUTH-720-A`:
+- A. Replace only the malformed API key literal in the Parent pre-Core bootstrap with the exact currently active legacy anon key already used by Parent's `RW_SUPABASE_ANON_KEY` and Core. Preserve URL, auth options, and one-client sharing.
+- B. Route Parent login and session restore through `window.RW_Auth.init()` to derive user ID, company, role, owner status, effective permissions and branch scope. Remove metadata authorization and the `['*']` fallback. Keep Parent shell, enterSystem, navigation and logout behavior intact.
+- C. Do not call `log-action` for unauthenticated actions without a token; keep `verify_jwt=true`. Supabase Auth logs remain the source for failed password attempts unless a separately reviewed abuse-resistant anonymous audit design is approved.
+- D. Add mocked Browser E2E for Owner, General Manager, Warehouse Manager, Warehouse Supervisor, Storekeeper and missing-metadata users; verify Owner-only routes, no wildcard fallback, one shared client/session, Realtime connection setup, and no unauthenticated log-action request.
+- No Tailwind CDN/CSS change in this ChangeSet.
+
+### Production safety and current state
+- All database checks this event were SELECT/catalog/log reads. No DML/DDL, password reset, auth mutation, role/permission mutation, Edge deployment/config change or business operation was performed.
+- Tailwind CDN warning is independent of Auth/Realtime; do not remove it until compiled CSS replaces the utilities.
+- **Implementation status: HELD FOR SPECIFIC OWNER APPROVAL** under permanent governance §77.2. Exact evidence and proposed changes are in Report720.
+- **Next step:** owner reviews and explicitly approves `CS-AUTH-720-A`; only then apply the surgical source patch, run the specified mocked E2E, deploy, and test live Owner login with the password entered by the owner. No new project or branch.
+- **Readiness: READY FOR OWNER CHANGESET REVIEW; NOT FIXED/DEPLOYED YET.**
 
 ---
 
