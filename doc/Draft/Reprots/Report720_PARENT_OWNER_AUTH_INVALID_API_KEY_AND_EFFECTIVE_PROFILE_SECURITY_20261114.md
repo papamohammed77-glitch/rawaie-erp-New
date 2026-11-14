@@ -2,7 +2,7 @@
 **التاريخ:** 2026-11-14 (Africa/Cairo)  
 **Last Verified Event:** LVE-2026-11-14-720  
 **Operational repository:** `papamohammed77-glitch/erp-frontend` / `main`  
-**Operational HEAD:** `d7caf2eafd37ecc7777ccd6aa943? no`  
+**Operational HEAD:** `d7caf2eafd37ecc7777ccd6aa934? no`  
 **Target:** `companies/company-1/main.html` + `companies/company-1/core.js`  
 **SMART ERP:** `fiilmooggumokxanwiyx`  
 **Status:** ROOT CAUSES CONFIRMED; PRECISE CHANGESET PREPARED; IMPLEMENTATION HELD FOR THE SPECIFIC OWNER APPROVAL REQUIRED BY GOVERNANCE §77.2.
