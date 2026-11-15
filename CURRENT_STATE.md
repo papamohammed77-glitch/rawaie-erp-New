@@ -1,4 +1,49 @@
 # CURRENT STATE UPDATE — LVE-2026-11-14-725
+
+## LAST VERIFIED EVENT — LVE-2026-11-15-726
+**Date:** 2026-11-15  
+**Checkpoint:** Buyer UOM + Quick Market cash-custody validation + Production source parity  
+**Operational repository:** papamohammed77-glitch/erp-frontend, main  
+**Operational HEAD:** 5f36edbbc5fb18821076277c04227df3a6cf1ece  
+**Governance report:** Report726_DAILY_CTO_REVIEW_BUYER_UOM_CUSTODY_PRODUCTION_DRIFT_20261115.md  
+**Report commit:** 24099d4ddb0297012554f42b2abd81623fe74360  
+**Readiness:** READY WITH LIMITATIONS
+
+### CONFIRMED
+- Buyer changes after LVE725 consist of seven commits affecting buyer.html and buyer.tailwind.css only. main.html and core.js are unchanged from LVE725.
+- Buyer now has unit selectors in Quick Market and PO invoice modals. Production RPCs validate base/alternate units, persist base_unit/unit_conversion_factor, and receiving/posting functions consume the conversion factor.
+- The previous client-side balance rejection in Buyer was removed; Quick Market save now relies on the authoritative server-side custody RPC.
+- Live EGP custody snapshot: acknowledged 5,000; committed expenses 250; open invoice reservations 1,430; returns 0; calculated available 3,320 EGP.
+- Existing PINV-1002/PINV-1003 have actual receiving documents and PurchaseIn movements; no supplier ledger, journal entry, or payment was found for those invoices.
+- save-purchase-order Edge Function Version41 is Active, verify_jwt=true, and its deployed source matches the current GitHub source.
+- Buyer inline JavaScript syntax parse and local in-memory unit/custody harness passed for valid paths.
+- Supabase project fiilmooggumokxanwiyx is ACTIVE_HEALTHY, PostgreSQL 17.6.1.121.
+
+### CONFLICT / RISKS
+- Production has three Nov15 migrations absent from operational GitHub migrations directory: 20261115161918, 20261115162526, 20261115171442. Production history has 791 entries; GitHub migrations directory has 84 files and ends at 20261114180000. Source parity is not established.
+- main branch is unprotected and has no required status checks.
+- Buyer PO setInvoiceUnitOptions can leave the select without a selected valid option when a PO line prefers an alternate unit whose factor is invalid. No current PO detail uses that case; exact fix prepared in Report726 but not applied.
+- Current item model supports base + one alternate unit only, not three independent UOM levels.
+- buyer_custody_returns, receiving, and receiving_details are absent from the Realtime publication/subscription path; a 15-second reconcile is the fallback.
+- One legacy QA-labeled Production invoice QA-SR-INV-20260927 is Draft with is_received=true/LEGACY_UNVERIFIED but has no linked receiving, inventory, accounting, or audit effects found. Origin is unknown; do not delete or edit without owner approval.
+- Security Advisor flags a SECURITY DEFINER finance employee view, public trigger-function EXECUTE grants, and disabled leaked-password protection; no immediate anon data leak was confirmed for the finance view.
+- Performance Advisor reports 253 unindexed foreign keys, 66 auth_rls_initplan, 118 unused indexes, 20 multiple permissive policies, and 8 duplicate indexes. No index or policy changes were made.
+
+### UNVERIFIED / BLOCKERS
+- No authenticated Buyer browser E2E or successful save after HEAD 5f36ed was observed.
+- Published Cloudflare artifact bytes/cache lineage were not retrieved. The rawaea-erp Pages check passed; warehouse-supervisor, rawaea-store, and erp-frontend Pages checks failed without accessible build logs.
+- No isolated Staging environment was used; no Production QA data was created.
+- The actual three-level UOM requirement remains unresolved.
+
+### SAFETY / EXECUTION
+- This run performed read-only SQL/catalog/log/advisor queries and local in-memory harness checks only.
+- No Production DML/DDL, Edge deployment, RLS/ACL change, app source change, branch protection change, or test business data was created.
+- The Constitution and current daily protocol were applied; the stricter current prohibition on Production QA data was followed.
+
+### NEXT PRIORITY
+Reconcile the three already-applied Production migrations into a reviewed, source-controlled Source-Parity package without reapplying SQL. Owner approval is required before committing reconstructed migration source. Buyer authenticated E2E remains pending in an isolated environment.
+
+---
 **التاريخ:** 2026-11-14 (Africa/Cairo)  
 **نقطة الاستئناف السابقة:** LVE-2026-11-14-724  
 **التقرير:** doc/Draft/Reprots/Report725_WAREHOUSE_ROLE_MISMATCH_REVALIDATION_20261114.md
