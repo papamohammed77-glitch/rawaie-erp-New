@@ -1751,3 +1751,22 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - Warehouse E2E Run 43624957517 SUCCESS on 36a8635; role gate, safe account switch, logout/relogin and module cleanup markers PASS. Cloudflare Pages rawaea-erp deployment check on 531a63c SUCCESS (132539034437); production alias and authenticated browser runtime remain UNVERIFIED.
 - P2 review item: get_warehouse_hub_snapshot currently returns branch/company aggregate metrics to every allowed warehouse role, including Returns, before frontend Hub rejection. No row-level exposure was established; confirm owner policy before any server-side tightening.
 - Current status: ROOT CAUSE CONFIRMED — CORRECT ACCOUNT REQUIRED; READY WITH LIMITATIONS. Next: sign in with the already-assigned storekeeper@rawaea.com and verify dashboard transition.
+
+
+## LVE-2026-11-15-726 — Buyer UOM / Cash Custody / Production Source-Parity
+- Operational HEAD: 5f36edbbc5fb18821076277c04227df3a6cf1ece (main).
+- Seven commits after LVE725 changed Buyer.html and Buyer Tailwind CSS only; parent main.html and core.js stayed unchanged.
+- Buyer now contains unit selectors for Quick Market and PO invoice modals. Production create/update RPCs validate base/alternate UOM and persist base_unit/unit_conversion_factor; receipt/posting functions consume the factor.
+- Root cause of the previous false custody rejection was the old client-side availableByCustody pre-check before API submission. The current source removed that gate and delegates to the live RPC. No post-HEAD authenticated save was observed.
+- Current EGP custody read-only snapshot: acknowledged 5,000; submitted/approved expenses 250; open QMP invoice reservations 1,430; returns 0; available 3,320 EGP.
+- PINV-1002 and PINV-1003 are received through three receiving documents and five PurchaseIn movements; no journal/supplier-ledger/payment effect was found for these invoices.
+- Production migrations 20261115161918, 20261115162526, 20261115171442 are applied but absent from GitHub migrations folder (84 source files vs 791 Production migration records). P1 Source-Parity blocker; do not reapply.
+- PO unit selector has a confirmed edge case: invalid alternate preferred unit can leave the select value empty. Exact safe replacement tested in a local harness and recorded in Report726; not applied because operational file changes require owner approval.
+- Item model supports base + one alternate unit only; three-level UOM remains a design decision.
+- Realtime publication/subscription omits buyer_custody_returns, receiving, receiving_details; Buyer uses 15-second reconcile fallback. Runtime latency not measured.
+- One pre-existing QA-labeled invoice QA-SR-INV-20260927 is Draft/is_received=true/LEGACY_UNVERIFIED with no linked receipt, stock, GL, supplier-ledger, or audit effect found. Origin unknown; no deletion or mutation.
+- Security/Performance Advisors: 1 SECURITY DEFINER finance view finding (no anon SELECT; company/permission filter), 4 anon SECURITY DEFINER functions (two trigger-return functions, two public storefront functions), 142 authenticated SECURITY DEFINER warnings, leaked-password protection disabled; 253 unindexed FKs, 66 RLS initplan warnings, 118 unused indexes, 20 multiple permissive policies, 8 duplicate indexes. No permission/index changes.
+- main branch remains unprotected. Cloudflare Pages check: rawaea-erp PASS; warehouse-supervisor, rawaea-store, erp-frontend FAIL. Buyer Tailwind CSS workflow PASS; no Buyer browser E2E.
+- No Production writes, DDL/DML, deployment, app source change, branch-setting change, or QA data creation in this run. Read-only inspection and local in-memory harness only.
+- Readiness: READY WITH LIMITATIONS. Next priority: reconcile the three applied Production migrations into reviewed source files without reapplying SQL; owner approval required.
+- Report: doc/Draft/Reprots/Report726_DAILY_CTO_REVIEW_BUYER_UOM_CUSTODY_PRODUCTION_DRIFT_20261115.md (commit 24099d4ddb0297012554f42b2abd81623fe74360).
