@@ -481,6 +481,7 @@ CONFIRMED في Production:
 - Report571: https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report571_BUYER_PURCHASING_INTEGRATION_EXECUTION_20261101.md
 - Report599: https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report599_CTO_PROCUREMENT_RECEIVING_INVOICE_PAYMENT_ACCOUNTING_FLOW_20261103.md
 - Report633: https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report633_BUYER_PO_SUPPLIER_INVOICE_SEPARATION_20261105.md
+- Report680: https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report680_PURCHASING_SUPERVISOR_CYCLE_EXPANSION_20261109.md
 - Report727: https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/Report727_PURCHASE_RECEIPT_IDEMPOTENCY_AND_PARENT_INVOICE_STATE_CLOSURE_20261116.md
 - Parent main: https://github.com/papamohammed77-glitch/erp-frontend/blob/main/companies/company-1/main.html
 - Buyer: https://github.com/papamohammed77-glitch/erp-frontend/blob/main/companies/company-1/purchasing/buyer.html
