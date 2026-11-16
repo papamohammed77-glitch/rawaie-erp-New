@@ -155,6 +155,7 @@ Commits:
 - Receiver embedded module inside Warehouse: parse success.
 - Parent `main.html`: two inline scripts parsed successfully بعد تعديل جدول الفواتير.
 - اختبارات source assertions أكدت فصل الحالات، اختفاء زر ترحيل المورد عن Quick Market، بقاء ترحيل الفواتير الأخرى، وربط زر الترحيل دون inline handler.
+- استُخرج renderer نفسه إلى harness ذاكرة محلية ببيانات مصطنعة: PINV-1004 ظهرت Draft + RECEIVED + UNSETTLED دون زر ترحيل مورد؛ وفاتورة PO Draft منفصلة احتفظت بزر الترحيل. PASS؛ لم تُكتب هذه البيانات إلى Supabase.
 
 ### 5.2 Edge read-model harness
 
