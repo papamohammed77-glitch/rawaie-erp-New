@@ -303,11 +303,11 @@ CONFIRMED في Production:
 
 مصادر رسمية:
 - Microsoft Dynamics 365: https://learn.microsoft.com/en-us/dynamics365/supply-chain/procurement/purchase-requisitions-workflow
-- SAP Purchase Requisition Workflow: https://help.sap.com/docs/SAP_S4HANA_CLOUD/...
-- SAP Purchase Order Workflow: https://help.sap.com/docs/SAP_S4HANA_CLOUD/...
-- Daftra purchase cycle: https://help.daftra.com/...
-- Odoo RFQ/PO and bill control: https://www.odoo.com/documentation/19.0/applications/inventory_and_mrp/purchase.html
-- Manager.io purchase orders: https://www.manager.io/guides/purchase-orders
+- SAP Purchase Requisition Workflow: https://help.sap.com/docs/SAP_S4HANA_CLOUD/0e602d466b99490187fcbb30d1dc897c/8536fac83ec045d796cb6f12a5f21bf1.html
+- SAP Purchase Order Workflow: https://help.sap.com/docs/SAP_S4HANA_CLOUD_BEST_PRACTICES/1c59d5eff367771fdf7231d970fe7194/855057c394de4929841abe36b7248c82.html?locale=en-US&state=PRODUCTION&version=2608
+- Daftra purchase cycle: https://docs.daftra.com/en/tutorial/the-complete-purchase-cycle/
+- Odoo RFQ/PO and bill control: https://www.odoo.com/documentation/19.0/applications/inventory_and_mrp/purchase/manage_deals/rfq.html and https://www.odoo.com/documentation/19.0/applications/inventory_and_mrp/purchase/manage_deals/control_bills.html
+- Manager.io purchase orders: https://www.manager.io/guides/purchase-orders/ and https://www.manager.io/guides/purchase-invoices/
 
 الخلاصة التنافسية المحدودة: RAWAEA لديه أجزاء من سلسلة RFQ/Quotation/PO، لكنه لا يثبت بعد مستوى Dynamics/SAP/Daftra في هوية القسم، صلاحية الاعتماد، عدم تجاوز الموافقة، وإظهار أصل PO. لا يُعلن تكافؤ عالمي.
 
@@ -335,7 +335,7 @@ CONFIRMED في Production:
 ## 16. خريطة النظام الأم والقلب المركزي والعقود
 
 - النظام الأم: companies/company-1/main.html، وفيه RW_PurchaseGold وتبويبات دورة المشتريات ونماذج PR/RFQ/Quotation/PO والفاتورة.
-- Core: companies/company-1/core.js، blob 2b2211a...؛ لم يتغير في commits الـ15 الأخيرة.
+- Core: companies/company-1/core.js، blob 2b2211a3f95049042e27a7b2ecbab3640a584942؛ لم يتغير في commits الـ15 الأخيرة.
 - Buyer PWA: companies/company-1/purchasing/buyer.html، يستخدم save-purchase-order للعمليات ويحتوي قراءة PR/PO والفواتير.
 - Supervisor PWA: companies/company-1/purchasing/supervisor.html، مخصص لصلاحية purchases_supervisor ويعتمد على القراءة المباشرة وAPPROVE_PO.
 - Receiver: companies/company-1/warehouse/receiver.html، يستهلك PO بحالات Approved/Sent/Partially Received مع فحص الكمية المتبقية.
@@ -414,6 +414,64 @@ CONFIRMED في Production:
 10. **Supervisor:** إضافة approved_by وapproved_at إلى SELECT الخاص بطلبات PR؛ وإضافة details/document_links/status_history إلى آلية التحديث أو reconcile.
 11. **Acceptance tests في بيئة معزولة فقط:** مستخدم قسم ينشئ PR ويرى نطاقه؛ لا يستطيع تعديل PR آخر أو سجل التدقيق؛ Draft لا يتحول إلى RFQ؛ Submitted quote لا يتحول إلى PO؛ Accepted quote فقط ينتج PO؛ منشئ PO لا يعتمده؛ PO يحفظ القسم/الفرع والمصدر؛ Parent/Buyer يعرضان نفس PO eligibility؛ لا أثر مخزون/مالي قبل الاستلام؛ Realtime/reconnect؛ reload persistence؛ idempotency.
 12. **Rollback:** إعادة السياسات/GRANT إلى النسخة السابقة فقط إذا فشل اختبار القراءة/الكتابة المعتمد، مع إبقاء جميع سجلات الأعمال وعدم حذف أي مستند أو أثر تدقيق.
+
+### ملحق إضافي — المقاطع الأصلية والبدائل الدقيقة
+
+هذه المقاطع هي أساس Change Set وليست تغييرات منفذة. أرقام الأسطر تخص مصدر main الحالي عند HEAD ebb2a01؛ لا تُستخدم بعد أي تعديل آخر دون إعادة جلب المصدر.
+
+1. **Parent — إنشاء RFQ من PR**
+   - المصدر: main.html، 12821–12824.
+   - الأصل الحالي: شرط الاستعلام يضم Approved وDraft: q.in('status', ['Approved', 'Draft']).
+   - البديل المقترح: q.eq('status', 'Approved')، مع بقاء الشرط نفسه داخل purchase_create_rfq_atomic. لا يكفي إخفاء الزر وحده.
+
+2. **Parent — تحويل عرض المورد إلى PO**
+   - المصدر: main.html، 13123–13127.
+   - الأصل الحالي: إظهار التحويل عندما تكون الحالة Accepted أو Submitted.
+   - البديل المقترح: إظهار التحويل عندما تكون الحالة Accepted فقط. يجب أن يرفض RPC حالة Submitted أيضًا، وألا يملأ accepted_by أو accepted_at تلقائيًا أثناء التحويل.
+
+3. **Parent — اختيار PO في مودال الفاتورة**
+   - المصدر: main.html، 13664–13689.
+   - الأصل الحالي: الاستعلام يضم Draft وConfirmed وApproved وPartially Received وReceived.
+   - البديل المقترح: إعادة استخدام منطق Buyer الحالي: PO معتمد فقط، له تفاصيل، وجميع qty_received = 0. عند تحرير Draft فاتورة موجودة، يمكن الاحتفاظ بأمرها الأصلي كمرجع مقفول فقط، لا كاختيار جديد.
+
+4. **Buyer — عنوان PR ومصدر مقدم الطلب**
+   - المصدر: buyer.html، 537–605.
+   - الأصل الحالي: عنوان القائمة «طلبات الشراء المعتمدة / PR» مع عرض جميع الحالات، وعرض requested_by تحت عنوان «الإدارة/مقدم الطلب».
+   - البديل المقترح: تسمية القائمة «طلبات الشراء / PR»، وعرض مقدم الطلب والقسم والفرع كحقول منفصلة بعد إضافة عقدها إلى Production؛ لا يُستنتج القسم من البريد أو نص العنوان.
+
+5. **Supervisor — حقول اعتماد PR**
+   - المصدر: supervisor.html، 97–110.
+   - الأصل الحالي: SELECT لا يتضمن approved_by وapproved_at بينما detail summary يستخدمهما.
+   - البديل المقترح: إضافة approved_by وapproved_at إلى SELECT، ثم عرضها من سجل الحالة عند الحاجة إلى تاريخ كامل.
+
+6. **Database — إنشاء RFQ**
+   - الدالة: purchase_create_rfq_atomic.
+   - الأصل الحالي: تقبل status في Approved أو Draft، ثم تجعل purchase_requests.status = Converted عند إنشاء RFQ.
+   - البديل المقترح: قبول Approved فقط؛ تعيين حالة RFQCreated/Sourcing بدل Converted؛ عدم اعتبار PR محولًا إلى PO قبل وجود PO مرتبط.
+
+7. **Database — تحويل quotation إلى PO**
+   - الدالة: purchase_convert_quotation_to_po_atomic.
+   - الأصل الحالي: تقبل Accepted أو Submitted، ثم قد تملأ accepted_by وaccepted_at إذا كانا فارغين.
+   - البديل المقترح: قبول Accepted فقط؛ إزالة الكتابة التلقائية لبيانات القبول؛ التحقق من RFQ/PR المصدر أو من استثناء مباشر معتمد.
+
+8. **Database — اعتماد PR وPO**
+   - purchase_approve_request_atomic يقبل Draft وPendingApproval وSubmitted ولا يمنع اعتماد مقدم الطلب لنفسه.
+   - purchase_approve_po_atomic يسمح purchases أو purchases_supervisor ولا يقارن created_by بالمعتمد.
+   - البديل المقترح: بوابة صلاحية مستقلة معتمدة من المالك، ومنع self-approval، مع Owner override مسجل فقط.
+
+9. **RLS/GRANT**
+   - الأصل الحالي في سياسات الجداول المتأثرة: FOR ALL TO public مع USING وWITH CHECK على company_id فقط، مع DML grants للمستخدم authenticated.
+   - البديل المقترح: REVOKE INSERT/UPDATE/DELETE من anon وauthenticated، وإبقاء SELECT وفق نطاق الشركة/القسم، وتوجيه كل الكتابة إلى RPC/Edge مركزي. لا تُكتب migration النهائية قبل فحص جميع التطبيقات والمستهلكين للـdirect DML.
+
+10. **PR identity**
+    - الأصل الحالي: purchase_create_request_atomic لا يستقبل requested_by_user_id أو department_id أو branch_id، والجدول لا يخزنها.
+    - البديل المقترح: إضافة هذه المفاتيح والتحقق منها من auth.uid() وتعيين HR نشط وفرع مصرح به؛ لا تثق بقيم يرسلها العميل دون تحقق خادمي.
+
+11. **PO provenance**
+    - الأصل الحالي: PO لا يحمل request_id، ومسار التحويل لا يحدث PR.
+    - البديل المقترح: إنشاء رابط PR→PO في سلسلة المستندات عند التحويل، مع تحديث PR إلى PartiallyOrdered/Ordered وفق الكميات المرتبطة، ونقل branch_id وexpected_delivery_date وpayment_terms من مصدر معتمد.
+
+لا يوجد نص SQL نهائي للتنفيذ في هذا التقرير؛ لأن هجرة RLS قد تكسر مستهلكًا مباشرًا لم يُحصر بعد. هذه فجوة تحقق يجب إغلاقها قبل طلب موافقة التنفيذ، وليست مبررًا لتجاوز الموافقة.
 
 ### مراجع المشروع
 
