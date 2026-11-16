@@ -69,6 +69,7 @@
 - Production changes were limited to schema precision, RLS policies, Realtime publication, scoped indexes, and deployment of the existing save-purchase-order Edge Function.
 - Source changes were limited to the receiving read model/subscriptions and Parent invoice-state presentation.
 - Parent main.html and warehouse application JS syntax gates passed; the Parent full-file gate and related CI workflows passed.
+- Parent invoice renderer in-memory harness passed with two cases: PINV-1004 displayed Draft + RECEIVED + UNSETTLED without Supplier AP posting action; a PO-linked Draft retained the posting action. No DB writes.
 
 ### NEXT PRIORITY
 1. Keep the 20 EGP difference isolated pending accountant/owner-directed, traceable reconciliation.
