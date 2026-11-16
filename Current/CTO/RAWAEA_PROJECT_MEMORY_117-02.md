@@ -1770,3 +1770,27 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - No Production writes, DDL/DML, deployment, app source change, branch-setting change, or QA data creation in this run. Read-only inspection and local in-memory harness only.
 - Readiness: READY WITH LIMITATIONS. Next priority: reconcile the three applied Production migrations into reviewed source files without reapplying SQL; owner approval required.
 - Report: doc/Draft/Reprots/Report726_DAILY_CTO_REVIEW_BUYER_UOM_CUSTODY_PRODUCTION_DRIFT_20261115.md (commit 24099d4ddb0297012554f42b2abd81623fe74360).
+
+
+## LVE-2026-11-16-727 — Purchase receiving and Parent invoice-state closure
+- Operational HEAD at verification: 8c26511ec34f143aa0c07779bad213aa7c5f74ed; Parent main blob 1af4430e34bb5434327cb24a3dca50b538188f42; Buyer blob c986c4730da0200ff9c99eabce579b8c39a021a6; Receiver blob dfae1278769c469559c18b778e1e71f6c605248b; save-purchase-order Edge Version 42.
+- Receiving read model was repaired to merge standalone receipt documents with buyer-visible invoice receipts and deduplicate by operation_id. Buyer/Receiver/embedded Warehouse subscriptions include receiving and receiving_details.
+- Parent now separates invoice status, receipt status, and settlement status; QUICK_MARKET + EMPLOYEE_CUSTODY does not create supplier AP.
+- Production receiving quantity columns use numeric(14,4); receiving and receiving_details are in Realtime publication with consolidated SELECT policies.
+- Rollback-only receipt tests passed for partial receipt, idempotency duplicate/conflict, and zero accepted quantity. No test rows survived.
+- PINV-1004 is QUICK_MARKET + EMPLOYEE_CUSTODY, received 5 cartons/120 base units, Draft invoice, Unsettled custody, no supplier AP or journal; do not post it as supplier payable.
+- OPEN: GL control 211 = 4,690 EGP vs supplier subledger 4,670 EGP; 20 EGP difference originates from two QA_CLEANUP_REVERSAL journals with no party_id. No correction without accountant/owner direction.
+- Report727: doc/Draft/Reprots/Report727_PURCHASE_RECEIPT_IDEMPOTENCY_AND_PARENT_INVOICE_STATE_CLOSURE_20261116.md.
+
+## LVE-2026-11-16-728 — PR/PO lifecycle and authorization audit
+- Operational HEAD: ebb2a01d07c8dc1460bd4f577962a7b8c26be920. Only buyer.html, buyer.tailwind.css, and save-purchase-order/index.ts changed after LVE727; main.html/core.js/supervisor.html unchanged.
+- Supabase SMART ERP is ACTIVE_HEALTHY with 795 migrations; save-purchase-order Version 44 is ACTIVE and its live source matches GitHub.
+- PR-1000 is Approved by its requester owner@rawaea.com, but no department/branch/requester_user_id is stored. HR departments/assignments/profiles are empty. PO-20260930 predates PR-1000 and has different lines; it is not a conversion. No RFQs exist; the sole quotation PQT-1000 has rfq_id NULL.
+- Canonical historical flow remains PR → RFQ → quotation → Accepted → PO. Current RFQ RPC marks PR Converted too early and accepts Draft; quote-to-PO RPC accepts Submitted and may auto-fill acceptance metadata. Manual CREATE_PO path is separate and unlinked.
+- P0: company-only ALL RLS policies plus authenticated DML grants on purchase_requests, request_details, RFQs, RFQ details, quotations, document links, and status history permit direct writes/deletes outside Edge/RPC permission gates. No DML was tested or executed.
+- P1: no department/branch identity or departmental requester permission; no PR approval separation; PO approval does not prevent creator self-approval; PO conversion loses branch/delivery/payment terms; no PR origin shown on PO.
+- Buyer PO invoice selector filters Approved + zero received; current eligible count 0. Parent main selector still includes Draft/Confirmed/Approved/Partially Received/Received and returns all four current POs.
+- Supervisor PR details omit approved_by/approved_at in SELECT while summary references them; Parent/Supervisor Realtime omit detail/link/history subscriptions.
+- Cloudflare Pages check for rawaea-erp on HEAD succeeded; other Pages checks failed. Exact served artifact and authenticated runtime remain UNVERIFIED. No Staging/E2E run today.
+- No operational source changes, Production DDL/DML, RPC writes, Edge deploys, inventory/finance effects, or QA data were created. Current owner instruction prohibiting Production QA supersedes older constitution §6.4 allowance for this run.
+- Report728: doc/Draft/Reprots/Report728_DAILY_CTO_REVIEW_PR_PO_LIFECYCLE_20261116.md. Next priority: owner-reviewed P0 RLS/GRANT closure, then department identity/permissions and PR/PO state machine.

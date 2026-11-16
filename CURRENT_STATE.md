@@ -1,3 +1,67 @@
+# CURRENT STATE UPDATE — LVE-2026-11-16-728
+
+## LAST VERIFIED EVENT — LVE-2026-11-16-728
+**Date:** 2026-11-16 (Africa/Cairo) 22:04  
+**Checkpoint:** Procurement PR/PO lifecycle, departmental request identity, approval separation, Parent/Buyer/Supervisor consistency, and Production RLS authorization audit  
+**Previous checkpoint:** LVE-2026-11-16-727 — purchase receiving read-model + Receiver precision/idempotency + Parent invoice state separation  
+**Operational repository:** papamohammed77-glitch/erp-frontend, main  
+**Operational HEAD:** ebb2a01d07c8dc1460bd4f577962a7b8c26be920 (2026-11-16 17:06:05Z; branch unprotected)  
+**Parent main blob:** 1af4430e34bb5434327cb24a3dca50b538188f42  
+**Core blob:** 2b2211a3f95049042e27a7b2ecbab3640a584942  
+**Buyer blob:** db1d311966a676dd2c7210895afefef5b5d2a954  
+**Purchasing Supervisor blob:** 916636b89f6e376b437a9328087b02de82c2610d  
+**save-purchase-order source blob:** 22971afed19c1f23cc0038bb62e56c251202f05e  
+**Supabase SMART ERP:** fiilmooggumokxanwiyx, ACTIVE_HEALTHY, PostgreSQL 17.6.1.121, 795 migrations (latest 20261116144311)  
+**save-purchase-order live:** Version 44 ACTIVE, verify_jwt=true, SHA 0bf7e223babdf1bf9ee61c3d90148b86934fdfcebe16015004b1a030be9f0791; live content matches GitHub exactly  
+**Governance report:** doc/Draft/Reprots/Report728_DAILY_CTO_REVIEW_PR_PO_LIFECYCLE_20261116.md  
+**Readiness:** READY WITH LIMITATIONS for read-only analysis and Change Set preparation; operational changes BLOCKED pending exact owner approval.
+
+### CONFIRMED — Procurement lifecycle and Production data
+- PR and PO are separate tables and separate documents. The historical canonical flow remains PR → RFQ → supplier quotations → Accepted quotation → PO.
+- Production counts: purchase_requests=1, purchase_rfqs=0, purchase_quotations=1, purchase_orders=4, purchase_document_links=5, purchase_status_history=22.
+- PR-1000 is Approved, requested_by and approved_by are both owner@rawaea.com; status history contains INSERT PendingApproval then UPDATE Approved. PR schema has no department_id, branch_id, or requested_by_user_id.
+- PO-20260930 is Draft, created by buyer1@rawaea.com at 2026-11-16 17:09:32Z, before PR-1000 at 17:12:09Z; its item lines differ from PR-1000. It is not the PR's PO and must not be linked retroactively.
+- No RFQ exists. The sole quotation PQT-1000 has rfq_id NULL and is Converted; no current PR→RFQ→PO chain is present.
+- purchase_settings.require_request_approval=true and default_branch_id=NULL. hr_departments, hr_employee_assignments, employee_profiles each have zero rows; the owner requester has employee_id NULL.
+- purchase_create_rfq_atomic accepts Draft or Approved and sets PR.status=Converted when RFQ is created, before PO exists.
+- purchase_convert_quotation_to_po_atomic accepts Submitted or Accepted and may set accepted_by/accepted_at during conversion; it creates a Draft PO without copying branch_id/expected_delivery_date/payment_terms or updating PR status.
+- purchase_create_po_atomic provides a separate manual PO path with no PR link; policy decision needed whether it remains as a controlled exception.
+- purchase_approve_po_atomic and Supervisor UI exist now (superseding Report633's old no-approval finding), but the RPC/Edge also permits purchases users and does not prevent the PO creator from approving their own PO. Parent and Supervisor UI gates differ.
+- Buyer invoice selector now limits new selection to Approved POs with no received quantities; current eligible count is zero. Parent main createInvoice still queries Draft, Confirmed, Approved, Partially Received, and Received, returning all four current POs.
+- Receiver source accepts Approved/Sent/Partially Received and checks remaining quantities; no SEND_PO operation was found, but receiving after Approved remains possible.
+
+### CONFIRMED — P0 Production authorization finding
+- purchase_requests, purchase_request_details, purchase_rfqs, purchase_rfq_details, purchase_quotations, purchase_document_links, and purchase_status_history have company-only ALL RLS policies and authenticated INSERT/UPDATE/DELETE grants.
+- app_private.current_user_company_id() scopes by active authenticated user/company, not by purchases permission, requester, or department.
+- Therefore authenticated users in the company can bypass the intended Edge/RPC write gates and can alter/delete procurement documents, document links, and status history. purchase_orders and purchase_order_details are SELECT-only for ordinary authenticated users.
+- No DML was executed. P0 remediation is pending owner approval and a repository-wide scan for direct DML consumers.
+
+### CONFIRMED — Source and deployment checks
+- 15 commits after LVE727 changed only buyer.html, buyer.tailwind.css, and save-purchase-order/index.ts; main.html/core.js/supervisor.html unchanged.
+- Cloudflare Pages check for rawaea-erp on HEAD succeeded at 2026-11-16 17:06:52Z; checks for warehouse-supervisor, rawaea-store, and erp-frontend failed. Exact served artifact bytes, alias/cache, and authenticated runtime were not verified.
+- Buyer/Parent/Supervisor source differences remain: Parent allows RFQ from Draft and quote conversion from Submitted; Buyer requires Approved and Accepted respectively. Supervisor PR details query omits approved_by/approved_at while its detail summary references them.
+- Realtime subscriptions differ: Buyer includes detail/link/history tables; Parent and Supervisor subscribe mainly to document headers. No latency or reconnect test was performed.
+
+### OPEN / UNVERIFIED
+- P0: procurement document and audit-history DML/RLS bypass.
+- P1: no department/branch/requester identity on PR and no departmental requester permission.
+- P1: PR Converted status applied at RFQ creation; RFQ accepts Draft; quotation conversion accepts Submitted and can mark it accepted.
+- P1: no PR approval separation; PO approval self-approval is not blocked.
+- P1: no PO origin trace in UI and conversion loses branch/delivery/payment terms.
+- P1: Parent invoice PO selector still includes received and draft POs.
+- P2: Supervisor PR approval metadata and Realtime subscriptions incomplete; no supplier-send action.
+- Cloudflare artifact and authenticated Runtime remain UNVERIFIED. No Staging verification or E2E today.
+- The 20 EGP AP control vs supplier subledger difference recorded in LVE727 remains OPEN and was not rechecked in this run.
+
+### SAFETY / EXECUTION
+- No operational source changes, DDL, DML, RPC writes, Edge deployments, stock movements, journals, treasury movements, supplier/customer ledger changes, or QA records were created in this run.
+- All Supabase queries were read-only.
+- Current owner instruction forbids Production QA; this supersedes the older QA allowance in constitution §6.4 for this run.
+- Report728 contains the detailed forensic findings, exact source locations, proposed Change Set CS-PRPO-728-A, acceptance criteria, and rollback plan.
+- Next priority: owner-reviewed P0 RLS/GRANT closure, then department identity/permissions and PR/PO state machine. Do not edit operational files or Production before explicit approval.
+
+---
+
 # CURRENT STATE UPDATE — LVE-2026-11-16-727
 
 ## LAST VERIFIED EVENT — LVE-2026-11-16-727
