@@ -1,3 +1,83 @@
+# CURRENT STATE UPDATE — LVE-2026-11-16-727
+
+## LAST VERIFIED EVENT — LVE-2026-11-16-727
+**Date:** 2026-11-16 (Africa/Cairo)  
+**Checkpoint:** Purchase receiving read-model + Receiver precision/idempotency + Parent invoice receipt/settlement state separation  
+**Operational repository:** papamohammed77-glitch/erp-frontend, main  
+**Operational HEAD at verification:** 8c26511ec34f143aa0c07779bad213aa7c5f74ed  
+**Parent main blob:** 1af4430e34bb5434327cb24a3dca50b538188f42  
+**Buyer blob:** c986c4730da0200ff9c99eabce579b8c39a021a6  
+**Receiver blob:** dfae1278769c469559c18b778e1e71f6c605248b  
+**Unified Warehouse blob:** b9c132a6f10db7524cdc9f0767935069371d5562  
+**save-purchase-order source blob:** 3d3a84cb9c0fc58be73c0617bc50bdaa83b8a4ee  
+**Governance report:** doc/Draft/Reprots/Report727_PURCHASE_RECEIPT_IDEMPOTENCY_AND_PARENT_INVOICE_STATE_CLOSURE_20261116.md  
+**Report commit:** cba539d4d2d60c1b198b091d903c29a281c51163  
+**Readiness:** IMPLEMENTED + PRODUCTION DB VERIFIED + SOURCE DEPLOY VERIFIED + ROLLBACK INTEGRATION TESTS PASS — WITH ACCOUNTING EXCEPTION OPEN
+
+### CONFIRMED — Source and deployment
+- Fixed `save-purchase-order` GET_DATA read model to include standalone PO receiving documents even when the buyer has no visible linked purchase invoice; merge with purchaser-visible invoice receiving; deduplicate by operation_id. Commit: 281ca686f32f7a3ac2b79bef0a81a007b870c2ff.
+- Added Realtime subscriptions/event targets for `receiving` and `receiving_details` in Buyer, standalone Receiver, and the embedded Receiver workspace in warehouse.html. Commits: 739eaa6199f91588af7c5c0b7fa779b5f1c31404, 363836b0cd19b6915ebe6a5a80581e933b1ac518, 911d8b9b7cf10f111089a3f64c3be6d7ebf39580.
+- Parent main.html now displays distinct invoice document status, warehouse receipt status, and financial settlement status. For QUICK_MARKET + EMPLOYEE_CUSTODY, the invalid Supplier AP posting button is suppressed and the table explains that supplier posting is not required. The non-QMP Draft posting action remains for standard/PO invoice workflows. Success toast no longer promises that stock/journal were posted twice. Commit: d06affa82ca640b633c4ac33c457235bcbb29f21.
+- Operational HEAD at verification: 8c26511ec34f143aa0c07779bad213aa7c5f74ed. This later commit only adds the forensic Mother extract and includes d06affa on main.
+- Cloudflare Pages project rawaea-erp showed Production/main commit 8c26511, Automatic deployments enabled. Latest observed preview deployment: https://761f3d4d.rawaea-erp.pages.dev/.
+- Existing Edge Function `save-purchase-order` deployed as Version 42, ACTIVE, verify_jwt=true. Live SHA 8e18ad9372a84b6aa81f6a88e802abdea80f2c556f27ebabe0c195608b65cab6; live source content matches the GitHub file. No new Edge Function was created.
+
+### CONFIRMED — Supabase migrations and access
+- Applied migration `20261116141323_receiving_read_scope_realtime_20261116`: scoped SELECT policies and publication membership for receiving/receiving_details.
+- Applied migration `20261116142749_receiver_qty_precision_and_idempotency_20261116`: receiving_details qty_expected/qty_received/difference now numeric(14,4); incoming and persisted request fingerprints canonicalized to four decimals.
+- Applied migration `20261116144005_receiving_read_policy_consolidation_20261116`: consolidates previous tenant/warehouse/finance/reports and Buyer-owned QMP read paths with purchasing and receipt actor paths into one SELECT policy per table.
+- Applied migration `20261116144311_receiving_rls_context_and_fk_index_opt_20261116`: statement-level auth context evaluation and FK indexes on receiving.purchase_invoice_id and receiving_details.purchase_invoice_detail_id.
+- Production catalog confirms numeric scale 4 for all three receipt quantity columns; publication includes receiving and receiving_details; each table has one consolidated SELECT policy.
+- RLS read simulations in BEGIN/ROLLBACK: purchaser buyer1@rawaea.com = 7 headers/10 lines; receiver@rawaea.com = 7/10; anon = 0/0; unauthorized authenticated subject = 0/0.
+
+### CONFIRMED — Receipt integration tests (all rolled back)
+- Isolated the deployed receive_purchase_atomic logic via DB transaction-only test PO fixtures.
+- Partial receipt 2.1234 sent / 1.1234 received: accepted quantity alone posted to inventory; journal debit=credit=50.55; one supplier subledger credit=50.55.
+- Same operation_id + identical payload returns duplicate=true; same ID + changed payload is rejected as idempotency conflict; retry does not create a second stock movement.
+- Zero accepted quantity 1.2345: receipt document/detail retained at four-decimal precision, PO status stays Approved, no PurchaseIn movement, no journal and no supplier_ledger row.
+- Test transaction/subtransaction rolled back. Independent post-test SELECTs found zero test rows in purchase_orders, receiving, inventory_log, journal_entries and supplier_ledger.
+- Production business baseline after test remained receiving=7, receiving_details=10, PurchaseIn rows=15, PurchaseIn qty=219, posted journals=19, supplier_ledger net=4670.
+
+### CONFIRMED — PINV-1004 business meaning
+- PINV-1004 is QUICK_MARKET + EMPLOYEE_CUSTODY, status Draft, receipt_status RECEIVED, settlement_status UNSETTLED, is_received=true, paid_amount=0, total=2240 EGP.
+- Invoice detail = 5 cartons × 448 EGP, factor=24, base_unit=علبة; Receiver accepted 5 cartons; inventory PurchaseIn = 120 base units; buyer_goods_custody_events records BUYER_TO_WAREHOUSE_ACCEPTED qty_delta=-5.
+- No journal or supplier_ledger entry exists for PINV-1004. This is correct for the employee-custody Quick Market path: receipt transfers goods from buyer custody to warehouse, it does not create supplier AP. Invoice status Draft is not the stock receipt state or custody settlement state.
+- purchase_post_buyer_invoice_atomic deliberately rejects QUICK_MARKET from supplier-AP posting. Parent UI now communicates this distinction and removes the misleading button. Do not mark PINV-1004 Posted and do not create supplier payable for it.
+- For PO-linked invoices, preserve the separate post/matching action: purchase_post_invoice_atomic validates completed PO receiving, UOM, quantity, price and total, then changes invoice status without reposting stock/AP already generated during receiving.
+
+### CONFIRMED — CI and Cloudflare
+- On commit d06affa, these GitHub workflows completed successfully: Mother System Browser E2E run 43890920592; Mother Inventory Forensic E2E run 43890920335; Standalone Unified Warehouse E2E run 43890920281; Mother full-file forensic gate run 43890920397.
+- Mother Browser and Warehouse CI use Playwright with local source-server startup in their workflow steps unless an external published URL is supplied. Treat these as CI/source E2E, not a real authenticated production user session.
+- Cloudflare Production/main latest observed commit 8c26511 includes d06affa. A real authenticated Parent browser acceptance session was not performed after deployment.
+
+### OPEN — Accounting exception, not modified
+- GL control account 211 balance is 4,690 EGP; supplier subledger net is 4,670 EGP; difference 20 EGP.
+- Exact origins are two posted QA_CLEANUP_REVERSAL journals:
+  - JE-4F149BF343BD4A55BC6B, reference QA-CLEANUP-20260923:IN-12, debit inventory 124 10 / credit AP 211 10.
+  - JE-B7DEBA9686E74629A6B9, reference QA-CLEANUP-20260923:IN-22, debit inventory 124 10 / credit AP 211 10.
+- Both lines lack party_id/party_type; no inventory_log rows exist for IN-12/IN-22; no vendor is identified. No journal or ledger mutation was performed. Accountant/owner must identify the counterparty or approve a correction account before an auditable compensating entry. Do not invent vendor identity or reverse these posted entries blindly.
+
+### OPEN / UNVERIFIED
+- No real authenticated production-browser session was exercised after latest deployment; Cloudflare commit metadata is verified, runtime acceptance for a real owner/finance user is not.
+- 20 EGP AP control vs supplier subledger reconciliation remains OPEN as above.
+- QA-SR-PO-20260927 remains untouched because it is a permanent QA anchor for SupplierReturn contract closure; its qty_received=5 with no receiving/stock is not to be "fixed" by synthetic stock posting.
+- Legacy QA-SR-INV-20260927 remains untouched/LEGACY_UNVERIFIED.
+- No live invoice posting or real business receipt was performed.
+
+### SAFETY / EXECUTION
+- No business DML survived testing. No real PO, invoice, stock balance, treasury, journal or supplier ledger row was created/updated for test purposes.
+- Production changes were limited to schema precision, RLS policies, Realtime publication, scoped indexes, and deployment of the existing save-purchase-order Edge Function.
+- Source changes were limited to the receiving read model/subscriptions and Parent invoice-state presentation.
+- Parent main.html and warehouse application JS syntax gates passed; the Parent full-file gate and related CI workflows passed.
+
+### NEXT PRIORITY
+1. Keep the 20 EGP difference isolated pending accountant/owner-directed, traceable reconciliation.
+2. Perform post-deployment Parent visual acceptance using an authenticated purchasing/finance user to verify the three invoice-state columns and action visibility; do not press posting on QUICK_MARKET.
+3. Preserve PO invoice posting after completed receiving; verify that it only closes invoice/PO match and does not create duplicate PurchaseIn/AP effects.
+4. Resume from LVE-2026-11-16-727; do not rerun the rollback test unless a code/migration change affects the receipt RPC.
+
+---
+
 # CURRENT STATE UPDATE — LVE-2026-11-15-726
 
 ## LAST VERIFIED EVENT — LVE-2026-11-15-726
