@@ -1,3 +1,73 @@
+# CURRENT STATE UPDATE — LVE-2026-11-16-729
+
+## LAST VERIFIED EVENT — LVE-2026-11-16-729
+**Date:** 2026-11-16 (Africa/Cairo) 22:32  
+**Checkpoint:** Procurement direct-DML authorization expansion, PO invoice server eligibility, Parent/Buyer contract parity  
+**Previous checkpoint:** LVE-2026-11-16-728  
+**Operational repository:** papamohammed77-glitch/erp-frontend, main  
+**Operational HEAD:** ebb2a01d07c8dc1460bd4f577962a7b8c26be920 — unchanged since LVE728  
+**Parent main blob:** 1af4430e34bb5434327cb24a3dca50b538188f42  
+**Core blob:** 2b2211a3f95049042e27a7b2ecbab3640a584942  
+**Buyer blob:** db1d311966a676dd2c7210895afefef5b5d2a954  
+**Purchasing Supervisor blob:** 916636b89f6e376b437a9328087b02de82c2610d  
+**save-purchase-order source blob:** 22971afed19c1f23cc0038bb62e56c251202f05e  
+**Supabase SMART ERP:** fiilmooggumokxanwiyx, ACTIVE_HEALTHY, PostgreSQL 17.6.1.121, 795 migrations (latest 20261116144311)  
+**save-purchase-order live:** Version 44 ACTIVE, verify_jwt=true, SHA 0bf7e223babdf1bf9ee61c3d90148b86934fdfcebe16015004b1a030be9f0791; live content matches GitHub exactly  
+**Constitution:** doc/Draft/Reprots/الدستور التشغيلي الدائم.md, SHA 3a6b1e220af8509e314e94df76563bbc6f84910d, read in full  
+**Governance report:** doc/Draft/Reprots/Report729_DAILY_CTO_REVIEW_PROCUREMENT_SERVER_GUARDS_AND_RLS_EXPANSION_20261116.md  
+**Report commit:** d2af51114a04f1c1ab5b36ec54c490d1af49a596  
+**Readiness:** READY WITH LIMITATIONS for read-only analysis/documentation; operational changes BLOCKED pending full consumer scan and exact owner approval.
+
+### CONFIRMED — Production authorization scope
+- 81 public base tables have RLS; 11 have FORCE RLS. DML grants exist for anon on 78 tables and authenticated on 81; no DML-granted table in this count lacks RLS.
+- Company-only ALL policies plus authenticated DML grants affect 12 procurement tables: purchase_requests, purchase_request_details, purchase_rfqs, purchase_rfq_details, purchase_rfq_suppliers, purchase_quotations, purchase_quotation_details, purchase_document_links, purchase_status_history, purchase_settings, purchase_payments, purchase_payment_allocations.
+- current_user_company_id scopes company only, not business permission/request ownership/department. Authenticated users in the company can bypass intended Edge/RPC write gates on those tables.
+- purchase_status_history has no append-only guard; purchase_document_links has no source/target FK; purchase_settings and payment records are directly writable within company.
+- purchase_orders, purchase_order_details, purchase_invoices/details, purchase_returns, supplier_ledger, journal_entries, treasury, cash_box, inventory_log, stock_branches remain without authenticated direct DML in the read-only privilege check. No cash/ledger effect from direct purchase_payments writes was proven.
+- pg_default_acl for postgres and supabase_admin grants broad default table privileges and function EXECUTE to anon/authenticated for future public objects. Global correction requires full impact review.
+
+### CONFIRMED — PO invoice eligibility and Parent/Buyer
+- Buyer UI filters new PO invoice selection to Approved + at least one detail + every qty_received=0; current eligible count is 0.
+- Parent main.html still queries Draft/Confirmed/Approved/Partially Received/Received and returns all four current POs.
+- purchase_create_po_invoice_atomic only rejects Cancelled; it does not enforce Approved/no receipt or PO-line/quantity matching, and it sets receipt_status=NOT_RECEIVED without checking the actual PO receipt state.
+- purchase_create_invoice_atomic has no PO status/no-receipt guard; current require_receiving_before_invoice=false.
+- Parent RW_Purchases.savePO sends the legacy orderHeader/itemsList payload, while Edge v44 requires operation/payload with CREATE_PO. The Parent direct-PO button remains reachable.
+- PR/RFQ/Quotation state defects from LVE728 remain: Draft can be approved/converted to RFQ; RFQ creation marks PR Converted early and is not idempotent; PendingApproval reject UI/RPC mismatch; Submitted quotation can convert and auto-accept; PO approval permits purchases and does not prevent self-approval.
+- purchase_create_po_atomic manual Created history plus trg_purchase_orders_status_history duplicates creation history; Production confirms duplicates on PO-20260928 and PO-20260930.
+
+### CONFIRMED — Current procurement data
+- purchase_requests=1, purchase_rfqs=0, purchase_quotations=1, purchase_orders=4, purchase_document_links=5, purchase_status_history=22.
+- PR-1000 is Approved, has lines item 1001 qty 2 and item 1004 qty 4, and lacks department_id/branch_id/requested_by_user_id. HR departments/assignments/profiles remain empty.
+- PO-20260930 is Draft, lines item 1001 qty 10 and item 1019 qty 3; it is not linked to PR-1000. Current created_at is 2026-11-16 17:09:11.379156+00.
+- LVE728 recorded PO-20260930 created_at as 17:09:32Z; this is a timestamp CONFLICT. The current row remains before PR-1000; do not rely on the older exact timestamp.
+- PQT-1000 has rfq_id NULL and created PO-20260929; no PR→RFQ→PO chain exists in current data.
+- PO-20260928 is fully Received. QA-SR-PO-20260927 remains a QA anchor with qty_received=5; do not modify it.
+- purchase_settings: require_request_approval=true, require_receiving_before_invoice=false, require_invoice_before_payment=true, default_branch_id=NULL.
+
+### CONFIRMED — Edge / coverage
+- 100 Edge Functions total; 16 have verify_jwt=false. Thirteen old harness/canary endpoints return 410 retired. create-stock-voucher performs custom Bearer validation; submit-online-order is a public storefront-key path. No new Edge Function was created.
+- Main, Buyer, Supervisor, Core and save-purchase-order source were fetched; primary PR/PO write calls use Edge/RPC, but no repository-wide direct-DML census is complete because GitHub Code Search index is unavailable.
+- save-purchase-order v44 is byte-identical between Production and GitHub.
+
+### OPEN / UNVERIFIED
+- P0: complete repository-wide direct DML consumer scan before grant closure.
+- P0: broad default privileges for future public tables/functions require separate global impact analysis.
+- P1: server-side PO invoice eligibility and Parent/Buyer parity.
+- P1: PR department identity/authorization and PR/PO state machine.
+- P1: Parent direct PO legacy contract mismatch.
+- P1: duplicate PO status history.
+- Cloudflare served artifact, cache/headers, authenticated Runtime, Browser E2E, Realtime latency/reconnect, and Staging remain UNVERIFIED.
+- Existing 20 EGP AP control vs supplier subledger difference from LVE727 remains OPEN and was not rechecked.
+
+### SAFETY / EXECUTION
+- No operational source changes, DDL, DML, RPC writes, Edge deployments, stock movements, journals, treasury movements, supplier/customer ledger changes, payment postings, or QA rows were created in this run.
+- All Supabase statements were read-only catalog/data queries.
+- No Production QA was performed; the latest owner instruction in this task supersedes the older §6.4 QA allowance.
+- Only governance documentation was updated: Report729, CURRENT_STATE, and project memory.
+- Next priority: complete repository-wide direct-DML consumer census, then submit CS-PRPO-729-A for owner approval. Do not edit operational files or Production before approval.
+
+---
+
 # CURRENT STATE UPDATE — LVE-2026-11-16-728
 
 ## LAST VERIFIED EVENT — LVE-2026-11-16-728
