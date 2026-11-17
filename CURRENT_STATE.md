@@ -1,3 +1,19 @@
+## LVE-2026-11-17-730 — إكمال حصر Direct-DML وإعادة تحقق دورة المشتريات
+- Report730: doc/Draft/Reprots/Report730_DAILY_CTO_REVIEW_DIRECT_DML_CENSUS_AND_PO_GUARDS_20261117.md.
+- استئناف من LVE-2026-11-16-729؛ operational main HEAD ما زال ebb2a01d07c8dc1460bd4f577962a7b8c26be920، وآخر Commit غيّر buyer.html فقط. لا توجد تغييرات تشغيلية أحدث.
+- أُكمل مسح 70 ملف HTML/JS/TS/MJS/JSX/TSX في مستودع التشغيل بحثًا عن Direct-DML على 12 جدول مشتريات/سجل تدقيق؛ لم يظهر مستهلك insert/update/upsert/delete مباشر لهذه الجداول. هذا يزيل مانع الحصر السابق ولا يمنح إذن تنفيذ Production.
+- Production SMART ERP: 795 migrations، آخرها 20261116144311؛ save-purchase-order version 44 يطابق مصدر GitHub.
+- إعادة قراءة الكتالوج: 190/190 public base tables لديها RLS؛ 166 لديها Policies و24 بلا Policy (default deny)؛ 11 FORCE RLS؛ DML grants على 78 جدولًا لـanon و81 لـauthenticated. هذا يصحح تعارض العدد في Report729 الذي ذكر 81 جدولًا مع RLS؛ لا تعدل التقرير التاريخي.
+- ما زالت الجداول الاثنا عشر purchase_requests وpurchase_request_details وpurchase_rfqs وpurchase_rfq_details وpurchase_rfq_suppliers وpurchase_quotations وpurchase_quotation_details وpurchase_document_links وpurchase_status_history وpurchase_settings وpurchase_payments وpurchase_payment_allocations تمنح anon/authenticated صلاحيات كتابة مباشرة مع Policy شركة فقط. purchase_status_history بلا Append-only guard، وpurchase_document_links بلا FK على source/target. default ACL العام ما زال واسعًا.
+- ثبتت فجوة Parent Direct PO: view='purchase-pos' ما زال يوجه إلى RW_Purchases.renderPOS؛ savePO يرسل orderHeader/itemsList بينما Edge v44 يشترط operation/payload؛ Cart يستخدم code/price بينما RPC يتوقع item_code/unit_price؛ المسار بلا operation_id ثابت.
+- ثبت اختلاف أهلية PO invoice: Parent يجلب Draft/Confirmed/Approved/Partially Received/Received؛ Buyer يشترط Approved + تفاصيل + صفر استلام؛ Production الحالي Parent selector=4 وBuyer eligible=0. Server create_po_invoice_atomic لا يفرض حالة Approved/no receipt.
+- Parent CREATE_INVOICE يستخدم purchase_create_invoice_atomic_v2، وpurchase_source الافتراضي LEGACY_UNCLASSIFIED؛ POST_INVOICE يمر إلى purchase_post_buyer_invoice_atomic الذي يشترط PURCHASE_ORDER ويرفض QUICK_MARKET قبل Receiver. لذلك Parent draft قد ينشأ دون أن يقبل الترحيل عبر المسار نفسه.
+- بيانات PINV-1004 وPINV-1005: كلاهما Draft/QUICK_MARKET/RECEIVED/UNSETTLED/paid=0؛ حركات PurchaseIn الثلاث تطابق استلام 1004 (5 كراتين) و1005 (1+4 كراتين). لا journal/supplier ledger references لهما.
+- فرق حساب الموردين مستمر: GL account 211 = 4,690 EGP net credit مقابل supplier subledger = 4,670 EGP؛ فرق 20 EGP. لم يُعدل أي قيد.
+- PO Created history مكرر لـPO-20260928 وPO-20260930 بسبب Trigger + إدخال يدوي داخل RPC. purchase_create_rfq_atomic يقبل Draft ويحوّل PR إلى Converted مبكرًا؛ quotation conversion يقبل Submitted ويكتب بيانات قبول تلقائيًا؛ PO approval لا يمنع self-approval.
+- لم تُنفذ أي كتابة/DDL/DML/Edge deploy/Source edit/Production QA. Cloudflare Artifact وBrowser E2E وRealtime event delivery/latency ما زالت UNVERIFIED. سجلات Supabase المتاحة خلال 24 ساعة أظهرت 24 edge log entry، بينها WebSocket 101 مرتين، دون مسارات شراء.
+- الجاهزية: READY WITH LIMITATIONS للتحليل والتوثيق؛ تنفيذ أي تغيير Production BLOCKED حتى موافقة المالك على CS-PRPO-730-A.
+- الخطوة التالية: اعتماد المالك لنص REVOKE غير-SELECT على الجداول الاثني عشر من anon/authenticated مع إبقاء SELECT، ثم تحقق catalog/ACL read-only؛ لا تعديل default ACL العام أو مسارات UI ضمن نفس التغيير.
 # CURRENT STATE UPDATE — LVE-2026-11-16-729
 
 ## LAST VERIFIED EVENT — LVE-2026-11-16-729
