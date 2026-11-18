@@ -1,3 +1,20 @@
+## LVE-2026-11-18-732 — Parent PO contract, PO-invoice guards and Buyer custody reconciliation
+- التقرير: `doc/Draft/Reprots/Report732_CTO_BUYER_LIVE_FORENSIC_PARENT_GUARDS_AND_CUSTODY_20261118.md`.
+- Operational repository `erp-frontend`, branch `main`, HEAD `ebb2a01d07c8dc1460bd4f577962a7b8c26be920`; Parent main.html وBuyer الحاليان قُرئا من HEAD دون تعديل.
+- Parent `RW_Purchases.savePO` في `main.html:12189` يرسل `orderHeader/itemsList` بصيغة قديمة، بينما Production Edge `save-purchase-order` v44 يتطلب `operation/payload/operation_id`؛ cart يستخدم `code/price` بدل `item_code/unit_price`. المسار الحديث `RW_PurchaseGold` يستدعي العقد الحالي؛ الخلل محصور في نقطة الشراء القديمة.
+- Parent `createInvoice` قرب `main.html:13664` يعرض PO بحالات Draft/Confirmed/Approved/Partially Received/Received؛ Buyer `poEligible` قرب `buyer.html:1118` يطلب Approved + تفاصيل + صفر استلام للمسودة الجديدة. commit `ebb2a01` بتاريخ 2026-11-16 أدخل ذلك الشرط عمدًا.
+- Production RPC `purchase_create_po_invoice_atomic` يتحقق من عدم إلغاء PO والمورد والعملة، لكنه لا يفرض Approved/no receipt ولا line membership عند الإنشاء؛ `purchase_post_invoice_atomic` يفحص line membership والكمية المقبولة عند الترحيل فقط. يلزم guard خادمي قبل الإنشاء.
+- Production `PO-20260928`: Received، 700 EGP، 15 وحدة، لا PurchaseInvoice مرتبطة؛ GRN واحد وJE Posted Dr124/Cr211 بقيمة 700 وSupplier Ledger Credit 700. لا تعديل أو عكس. توقيت AP (عند GRN أم فاتورة المورد) غير محسوم؛ إصلاح الاستلام والترحيل يجب أن يكون ذريًا بعد قرار السياسة.
+- QMP EMPLOYEE_CUSTODY التسوية النقدية منفصلة: claim + receiving evidence ثم مراجعة Finance Dr124/Cr127 دون supplier AP أو Treasury movement. PINV-1002..1005 (الإجمالي 3,770 EGP) كلها Draft/RECEIVED/UNSETTLED وpaid=0 ولا buyer_custody_expenses مرتبطة؛ لم تتم تسويتها تلقائيًا.
+- QMP SUPPLIER_CREDIT يسمح بإنشاء الفاتورة، لكن queue وreceive RPC تقبل EMPLOYEE_CUSTODY فقط، ولا يوجد posting branch خاص AP-only؛ لا توجد QMP SupplierCredit rows حاليًا.
+- Buyer goods balances تحتوي إسقاطات افتراضية: invoice-derived positive custody ثم accepted warehouse negative projection. غياب الحدث الموجب الفعلي لا يعني رصيدًا سالبًا. لكن `buyer_goods_custody_get_invoice_handover_progress_atomic` يخرج `handed_over_qty=d.qty` و`remaining_qty=0` دون فصل وجود evidence event؛ المطلوب عرض invoice-derived vs evidence-backed.
+- Buyer التسعة tabs محفوظة؛ cash `عهدتي` منفصل عن goods `عهدة بضاعتي`; vehicle_id اختياري. لا حذف أو دمج.
+- لا source patch أو DDL/DML أو Edge deploy أو QA fixture أو E2E في هذه الجولة؛ قراءات Supabase فقط. لم تتغير أرصدة أو قيود أو ملفات منشورة.
+- ChangeSets: CS-732-01 Parent old POS payload; CS-732-02 PO invoice UI/server guard; CS-732-03 QMP SupplierCredit; CS-732-04 explicit custody evidence display; CS-732-05 SupplierReturn partial acceptance; CS-732-06 Buyer custody count; CS-732-07 AP recognition policy. انظر التقرير لتفاصيل scope/impact/acceptance.
+- الجاهزية READY WITH LIMITATIONS للتحليل؛ التغييرات المؤثرة BLOCKED حتى عرض النص الكامل والحصول على اعتماد محدد وفق الدستور §6.2 و§10.1–10.3 من التكليف.
+ 
+---
+
 ## LVE-2026-11-18-731 — مراجعة Buyer التاريخية وعقود الحيازة والمشتريات
 - التقرير: `doc/Draft/Reprots/Report731_CTO_BUYER_HISTORICAL_OPERATING_MODEL_AND_STAGED_REPAIR_20261118.md`.
 - استعادة رؤية المالك: Buyer بني تدريجيًا من ستة تبويبات إلى تسعة؛ تبويب الحيازة بدأ باسم «رصيد السيارة» Placeholder في commit 02b5f00 ثم استُبدل بدفتر حيازة بضاعة حي في commit 2c421a9. المركبة metadata اختيارية؛ الحيازة تشمل Supplier-owned Quick Market وCompany-owned SupplierReturn وUnclassified. لا تحذف التبويب ولا تدمجه مع عهدة النقد أو Van Sales.
