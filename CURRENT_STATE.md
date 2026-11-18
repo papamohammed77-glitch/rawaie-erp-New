@@ -1,3 +1,21 @@
+## LVE-2026-11-19-733 — Buyer / Parent purchasing modal forensic continuation
+- التقرير: `doc/Draft/Reprots/Report733_BUYER_PARENT_MODAL_FORENSIC_AND_STAGED_REPAIR_20261119.md` (commit `0d4e599fe9cd8add408652372754337025ea833b`).
+- استكمالًا من LVE-732: أُعيدت قراءة `writing-block-8888-10.md` كاملًا (1,035 سطرًا)، `CURRENT_STATE.md` (2,516 سطرًا)، والدستور كاملًا (310 أسطر)، وتقارير 731/732 والمراجع التاريخية المرتبطة.
+- Buyer source الحالي `db1d311966a676dd2c7210895afefef5b5d2a954`، Parent blob `1af4430e34bb5434327cb24a3dca50b538188f42`، HEAD `ebb2a01d07c8dc1460bd4f577962a7b8c26be920`. Buyer يحوي 9 تبويبات و32 موضع Swal.fire؛ لا يوجد دليل على أن عدد المودالات وحده يعني تكرارًا. لا حذف أو دمج لأي تبويب.
+- تأكد تاريخيًا أن «رصيد السيارة» في commit `02b5f00` كان Placeholder ثم تحول في `2c421a9` إلى دفتر «عهدة بضاعتي» للحيازة الفعلية؛ السيارة metadata اختيارية. «عهدتي» منفصل للنقدية.
+- CS-733-01 CONFIRMED: Parent `RW_Purchases.savePO` يرسل `orderHeader/itemsList` وcart fields `code/price` إلى Edge v44 الذي يتطلب `operation/payload/operation_id` وبنود `item_code/qty/unit_price`. التعديل محصور في جسم الدالة القديمة، ويطبقه المالك حسب §7(a).
+- CS-733-02 CONFIRMED: Buyer `poEligible` يفرض Approved + تفاصيل + صفر استلام، لكن Parent `RW_PurchaseGold.createInvoice` يعرض حالات أوسع، وProduction create/update PO invoice RPCs لا تفرض الحارس نفسه server-side. يلزم إصلاح UI + create/update RPCs.
+- CS-733-03 P0: Production `receive_purchase_atomic` يضيف المخزون المقبول ثم ينشئ Dr124/Cr211 Journal Posted وSupplier Ledger Credit من GRN وحده. لا تعديل منفرد؛ يجب حسم سياسة AP/GRNI وإصلاح طرف الاستلام والترحيل المالي معًا. لا عكس أو تعديل لأي قيد قائم.
+- CS-733-04 CONFIRMED: Quick Market يقبل إنشاء `SUPPLIER_CREDIT` لكن receiving queue/RPC تقبل `EMPLOYEE_CUSTODY` فقط؛ لا مسار AP مكتمل للمصدر الائتماني. QMP EMPLOYEE_CUSTODY الحالي يظل منفصلًا Dr124/Cr127.
+- CS-733-05 CONFIRMED: progress RPC يعرض handed_over_qty=d.qty وremaining_qty=0 دون إثبات قبول المورد؛ يلزم فصل الكمية المشتقة عن evidence-backed.
+- CS-733-06/07: SupplierReturn partial acceptance يحتاج Trigger+RPC+manual voucher+financial core كوحدة؛ ولا توجد جلسة جرد مخصصة لعهدة بضاعتي.
+- CS-733-08: PR approval/identity/HR-source gap مستمر؛ يجب فصل صلاحية اعتماد الاحتياج عن purchases ومنع self-approval.
+- SMART ERP `fiilmooggumokxanwiyx` ACTIVE_HEALTHY، أحدث migration `20261116144311`، Edge `save-purchase-order` v44. Snapshot read-only: 4 POs (1 Approved, 1 Received)؛ QMP EMPLOYEE_CUSTODY 4 Draft/RECEIVED بإجمالي 3,770 EGP وpaid=0؛ 8 custody events كلها warehouse-accepted و0 supplier-accepted في اللقطة؛ لا تغيير بيانات.
+- لم تُعدل ملفات التشغيل أو RPC/DDL/ACL أو Edge، ولم تُنشأ Fixtures ولم تنفذ E2E تفاعلية. السبب: §6.2/§7 من الدستور؛ ملفات Parent/Buyer يطبقها المالك، وتغييرات Production المؤثرة تحتاج ChangeSet كاملًا وموافقة محددة. لا تغيير في المخزون أو الخزينة أو دفاتر الموردين أو القيود.
+- الجاهزية: `ROOT CAUSE CONFIRMED — OWNER FILE CHANGE REQUIRED`; حزم Production المالية/المخزنية `BLOCKED — SPECIFIC OWNER APPROVAL REQUIRED`. التالي: تجهيز replacement sets كاملة لـCS-733-03 وCS-733-02 مع ACL/callers/rollback؛ وPatch CS-733-01 للمالك. لا E2E pass claim.
+ 
+---
+
 ## LVE-2026-11-18-732 — Parent PO contract, PO-invoice guards and Buyer custody reconciliation
 - التقرير: `doc/Draft/Reprots/Report732_CTO_BUYER_LIVE_FORENSIC_PARENT_GUARDS_AND_CUSTODY_20261118.md`.
 - Operational repository `erp-frontend`, branch `main`, HEAD `ebb2a01d07c8dc1460bd4f577962a7b8c26be920`; Parent main.html وBuyer الحاليان قُرئا من HEAD دون تعديل.
