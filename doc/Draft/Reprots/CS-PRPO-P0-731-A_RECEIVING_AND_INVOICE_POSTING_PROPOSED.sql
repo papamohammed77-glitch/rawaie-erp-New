@@ -440,7 +440,7 @@ BEGIN
     )::uuid;
 
 
-    v_journal := public.post_journal_entry(
+    je := public.post_journal_entry(
       p_company_id,
       v_journal_operation,
       i.invoice_date,
@@ -501,7 +501,7 @@ BEGIN
       'accounting_source', 'PurchaseInvoice',
       'stock_posted_by_invoice', false,
       'supplier_liability_posted_by_invoice', true,
-      'journal', v_journal,
+      'journal', je,
       'supplier_ledger', v_supplier_ledger
     );
   END IF;
