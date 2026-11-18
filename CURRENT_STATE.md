@@ -1,3 +1,20 @@
+## LVE-2026-11-18-731 — مراجعة Buyer التاريخية وعقود الحيازة والمشتريات
+- التقرير: `doc/Draft/Reprots/Report731_CTO_BUYER_HISTORICAL_OPERATING_MODEL_AND_STAGED_REPAIR_20261118.md`.
+- استعادة رؤية المالك: Buyer بني تدريجيًا من ستة تبويبات إلى تسعة؛ تبويب الحيازة بدأ باسم «رصيد السيارة» Placeholder في commit 02b5f00 ثم استُبدل بدفتر حيازة بضاعة حي في commit 2c421a9. المركبة metadata اختيارية؛ الحيازة تشمل Supplier-owned Quick Market وCompany-owned SupplierReturn وUnclassified. لا تحذف التبويب ولا تدمجه مع عهدة النقد أو Van Sales.
+- Buyer الحالي Blob `db1d311966a676dd2c7210895afefef5b5d2a954` / 32 موضع Swal.fire. 32 موضعًا ليس 32 تكرارًا؛ التاريخ يثبت استنساخ بعض أنماط Parent ثم إضافة العمليات بالتدريج. التوصية توحيد shell/forms/timeline مع حفظ كل الإجراءات والحقول والاختلافات التشغيلية. Parent main.html الحالي لم يُقرأ كاملًا في هذه الجولة بسبب حجمه؛ التفاصيل الحالية Parent UNVERIFIED.
+- Production read-only: 795 migrations، أحدثها `20261116144311`; `save-purchase-order` v44، `receive-purchase` v18، `send-stock-voucher` v20، `complete-stock-voucher` v4. ملفات Edge الأربع التي فُحصت كانت byte-identical مع ملفات GitHub.
+- P0 مؤكد فعليًا: استلام PO يكتب PurchaseIn ثم JE Dr 124 / Cr 211 ويضيف Supplier Ledger. PO-20260928 بقيمة 700 EGP مكتمل، 15 وحدة، لا توجد فاتورة PurchaseInvoice مرتبطة به، ومع ذلك JE `JE-RCV-aaa9a71bd0b9412ea4831157cd8c46cf` Posted 700/700 وقيد supplier_ledger Credit 700. لم يُعكس أو يُعدل أي قيد.
+- يجب إصلاح الطرفين معًا: receive_purchase_atomic يصبح GRN/stock only، وpurchase_post_invoice_atomic/purchase_post_buyer_invoice_atomic ينشئان AP بعد مطابقة PO+GRN+invoice واعتماد Finance. لا تحذف قيود الاستلام فقط دون إصلاح الترحيل المالي المقابل.
+- Quick Market `SUPPLIER_CREDIT` يسمح بها إنشاء الفاتورة، لكن QMP receiving queue/RPC تقبل `EMPLOYEE_CUSTODY` فقط، وBuyer posting يرفض QUICK_MARKET عمومًا. يلزم إكمال مسار Supplier Credit مع Receiver stock-only ثم Finance AP، مع الحفاظ على QMP EMPLOYEE_CUSTODY path Dr124/Cr127.
+- SupplierReturn → Buyer custody path موجود: receiver_user_id assignment، حدث `WAREHOUSE_TO_BUYER_SUPPLIER_RETURN` عند Draft→Sent، وقبول المورد `BUYER_TO_SUPPLIER_ACCEPTED` عند Sent→Completed. العقد الحالي full-quantity only؛ partial acceptance يرفض. المطلوب acceptance operation موثق جزئي + separate warehouse return للجزء المرفوض؛ لا تعديل trigger وحده.
+- PR schema لا يحمل department_id/branch_id/requested_by_user_id؛ HR department/assignment/employee_profile tables موجودة لكن صفوفها صفر في اللقطة الحالية. Cost centers=3. لا تفترض إدارة أو هوية موظف من نص requested_by. Buyer يعرض PR ولا ينشئه؛ هذا الفصل ينبغي الحفاظ عليه.
+- دورة PR: صلاحية اعتماد PR في Edge تعتمد purchases العامة؛ RPC تسمح Draft/PendingApproval/Submitted دون authority/self-approval guard؛ create_rfq يقبل Draft ويحوّل PR إلى Converted عند إنشاء RFQ. Direct PO لا يرتبط بمرجع PR؛ احفظه كاستثناء محكوم ولا تحذفه. Buyer poEligible يرفض الفاتورة الجديدة بعد أي استلام جزئي؛ يحتاج كمية مستلمة غير مفوترة.
+- موجود في Production وقت القراءة: PR=1, RFQ=0, Quotations=1, PO=4, Purchase Invoices=7, Receiving=7, Status History=22, Document Links=5. hr_departments=0, hr_employee_assignments=0, employee_profiles=0, cost_centers=3.
+- لا يوجد في هذه الجولة operational source change أو DDL/DML أو Edge deploy أو QA fixture أو E2E. تم تنفيذ reads فقط. الحالة `READY WITH LIMITATIONS`.
+- المرحلة التالية: تجهيز exact P0 ChangeSet بكل replacement SQL/callers والأثر وخطة rollback/fixture، ثم تقديمه للمالك. لا تُعدّل main.html أو Buyer/Receiver/vouchers مباشرة؛ المالك يطبق patches التشغيلية. أي SQL/Production change ينتظر موافقة المالك المحددة حسب §6.2/§7 من الدستور.
+
+---
+
 ## LVE-2026-11-17-730 — إكمال حصر Direct-DML وإعادة تحقق دورة المشتريات
 - Report730: doc/Draft/Reprots/Report730_DAILY_CTO_REVIEW_DIRECT_DML_CENSUS_AND_PO_GUARDS_20261117.md.
 - استئناف من LVE-2026-11-16-729؛ operational main HEAD ما زال ebb2a01d07c8dc1460bd4f577962a7b8c26be920، وآخر Commit غيّر buyer.html فقط. لا توجد تغييرات تشغيلية أحدث.
