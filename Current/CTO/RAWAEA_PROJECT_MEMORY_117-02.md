@@ -1826,3 +1826,17 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - Supplier AP reconciliation remains GL 4,690 EGP net credit vs supplier subledger 4,670 EGP; open difference 20 EGP. PO Created history duplicate remains due manual RPC insert plus status trigger.
 - No Production DDL/DML, no operational source edit, no Edge deployment, no QA, no business test. Cloudflare artifact, Browser E2E, Realtime event delivery/latency remain UNVERIFIED.
 - Next: owner approval of CS-PRPO-730-A to revoke non-SELECT table privileges from anon/authenticated on the twelve tables, preserving SELECT and service_role/RPC writes. Do not change default ACL or operational UI in the same change.
+
+
+---
+
+## LVE-2026-11-19-735 — Security and continuity checkpoint
+- Operational source HEAD: papamohammed77-glitch/erp-frontend main 4f7fba271d35d463364a5659f8e181dabad41215.
+- Governance CURRENT_STATE was stale at LVE719; Report733 and Report734 were newer. Report735 created at doc/Draft/Reprots/Report735_DAILY_CTO_SECURITY_BUYER_COUNTFLOW_20261119.md (commit 9daddc22178fb1fba0704be4ae1f21875876ce44).
+- SMART ERP P0: public.role_permissions has an unconditional PUBLIC ALL policy and anon CRUD grants; get_my_effective_profile() merges role_permissions into effective permissions. No exploit or write was executed.
+- rawaea-staging P0: 65 legacy public tables have RLS disabled, 56 have anon DML; public.users has 1,871 rows and password_hash column with anon CRUD/TRUNCATE; three SECURITY DEFINER business RPCs are anon-executable and accept caller-supplied p_user_email without auth.uid binding. No password hashes/PII values read; no RPC invoked.
+- CountFlow own scope remains 21 tables, 70 policies, 72 FKs, all RLS enabled and no anon grants; zero CountFlow projects/members/data. It is separate from SMART ERP by project ref but not isolated from legacy ERP inside rawaea-staging.
+- Buyer: five new migrations applied; save-purchase-order v44 and receive-purchase v18 byte-match Git and require JWT. QMP Supplier Credit receiving posts stock and Dr124/Cr211 plus supplier ledger on accepted receipt; no such invoices/journals exist yet; AP/GRNI policy remains unresolved.
+- P1s: CountFlow direct DML bypasses state RPC guards; Broadcast warnings/no child partitions; offline queue hidden after session freeze; Supervisor export uses mutable global session; parent savePO creates a fresh operation_id per retry.
+- No operational code/DB/ACL/RLS changes, no new accounts, no new tests, no deployments, no postings. Read-only audit/documentation only.
+- Readiness: BLOCKED for deployment/account provisioning and production writes pending owner-approved P0 security containment; READY WITH LIMITATIONS for read-only audit.
