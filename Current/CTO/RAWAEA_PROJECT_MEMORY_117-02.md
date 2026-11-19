@@ -1840,3 +1840,6 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - P1s: CountFlow direct DML bypasses state RPC guards; Broadcast warnings/no child partitions; offline queue hidden after session freeze; Supervisor export uses mutable global session; parent savePO creates a fresh operation_id per retry.
 - No operational code/DB/ACL/RLS changes, no new accounts, no new tests, no deployments, no postings. Read-only audit/documentation only.
 - Readiness: BLOCKED for deployment/account provisioning and production writes pending owner-approved P0 security containment; READY WITH LIMITATIONS for read-only audit.
+
+
+**Documentation-only follow-up after LVE735:** Report735 and the LVE735 state/memory addenda were saved. The operational repo then received commit 2676526ee4214ae98aa89742b48cf40172cd1976 updating only companies/company-2/Counting/CURRENT_STATE.md; no app code, SQL migration, schema, ACL, or business data changed. The source-code baseline used for the audit remains 4f7fba271d35d463364a5659f8e181dabad41215.
