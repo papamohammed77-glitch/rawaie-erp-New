@@ -2531,3 +2531,36 @@ All six retained `verify_jwt=true`.
 - Direct Realtime for receiving tables remains OPEN and requires approved ChangeSet.
 - Full replacement of Parent local auth abstractions by RW_Auth remains OPEN; current change shares a single Supabase client/session and migrates only warehouse registry history.
 - Readiness = READY WITH LIMITATIONS; do not reopen already-passed source tests unless new regression evidence appears.
+
+
+---
+
+# LVE-2026-11-19-735 — CTO security and continuity addendum
+**Timestamp:** 2026-11-19 23:08 Africa/Cairo  
+**Report:** doc/Draft/Reprots/Report735_DAILY_CTO_SECURITY_BUYER_COUNTFLOW_20261119.md  
+**Report commit:** 9daddc22178fb1fba0704be4ae1f21875876ce44
+
+## Verified checkpoint
+- Operational repo: papamohammed77-glitch/erp-frontend, branch main, HEAD 4f7fba271d35d463364a5659f8e181dabad41215.
+- Governance repo CURRENT_STATE before this addendum was stale at LVE719; Report733 and Report734 were newer historical checkpoints.
+- Permanent constitution read fully, blob 3a6b1e220af8509e314e94df76563bbc6f84910d.
+- CountFlow local state before this addendum: blob 2eabcc4ae8dd41aec99f45493a0acdf08764a7c5, LVE734.
+
+## New P0 findings — read-only evidence
+1. SMART ERP project fiilmooggumokxanwiyx: public.role_permissions has RLS enabled but an unconditional PUBLIC ALL policy, anon/authenticated CRUD grants, 21 rows across 3 roles, no audit trigger. get_my_effective_profile() and seven other SECURITY DEFINER functions consume this table. This is a confirmed anonymous permission-escalation path; no exploit was executed.
+2. rawaea-staging project hfzznsiprnwkpayskzhu: 65 public legacy tables have RLS disabled; 56 have anon DML grants. public.users has 1,871 rows, includes password_hash/permissions/role/auth_id columns, RLS disabled, and anon SELECT/INSERT/UPDATE/DELETE/TRUNCATE. Three SECURITY DEFINER business RPCs are executable by anon and do not bind p_user_email to auth.uid(). No hashes or PII values were read and no RPC was called.
+3. CountFlow tables themselves remain 21 tables / 70 policies / 72 validated FKs, all RLS enabled, no anon grants; all 21 tables have zero rows, count_projects=0 and count_members=0. The project is separate from SMART ERP by ref, but not cleanly isolated from legacy ERP inside rawaea-staging.
+
+## Other verified changes and blockers
+- SMART ERP has five new Buyer/Quick Market migrations applied; latest live ledger versions include 20261119000955, 20261119001800, 20261119002638, 20261119005759, 20261119010201. Source filenames for the last two use 04000/05000 timestamps; lineage mapping remains open.
+- save-purchase-order v44 and receive-purchase v18 are ACTIVE, verify_jwt=true, and byte-match current Git source.
+- QMP Supplier Credit receiving now posts stock and Dr 124 / Cr 211 plus supplier ledger on accepted receipt quantities. No QMP Supplier Credit invoice or QMP receiving journal currently exists. AP-versus-GRNI classification remains an owner decision.
+- Parent RW_Purchases.savePO generates a new operation_id per call; retry after uncertain response is not idempotent across calls.
+- CountFlow retains P1 direct-DML/state-guard gaps, offline queue visibility/retry bugs, Supervisor export session-id bug, and Broadcast partition warnings (2,027 current warning attempts; no child partitions).
+- No deployment/browser E2E, no CountFlow project/member accounts, no new test execution, no production DDL/DML/ACL/RLS changes, no postings, no new branch/project/function.
+
+## Readiness
+BLOCKED for CountFlow deployment/account provisioning and SMART ERP operational writes until the P0 security surfaces are contained through an owner-approved Change Set. READY WITH LIMITATIONS for read-only audit and documentation only.
+
+## Next priority
+Prepare and obtain approval for the P0 security containment Change Set across SMART ERP role_permissions/categories and rawaea-staging legacy public.users/tables/RPCs. Do not modify legacy objects, deploy, create accounts, or run further write tests until approval.
