@@ -2564,3 +2564,6 @@ BLOCKED for CountFlow deployment/account provisioning and SMART ERP operational 
 
 ## Next priority
 Prepare and obtain approval for the P0 security containment Change Set across SMART ERP role_permissions/categories and rawaea-staging legacy public.users/tables/RPCs. Do not modify legacy objects, deploy, create accounts, or run further write tests until approval.
+
+
+**Documentation-only follow-up after LVE735:** Report735 and the LVE735 state/memory addenda were saved. The operational repo then received commit 2676526ee4214ae98aa89742b48cf40172cd1976 updating only companies/company-2/Counting/CURRENT_STATE.md; no app code, SQL migration, schema, ACL, or business data changed. The source-code baseline used for the audit remains 4f7fba271d35d463364a5659f8e181dabad41215.
