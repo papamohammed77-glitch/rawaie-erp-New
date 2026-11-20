@@ -2567,3 +2567,48 @@ Prepare and obtain approval for the P0 security containment Change Set across SM
 
 
 **Documentation-only follow-up after LVE735:** Report735 and the LVE735 state/memory addenda were saved. The operational repo then received commit 2676526ee4214ae98aa89742b48cf40172cd1976 updating only companies/company-2/Counting/CURRENT_STATE.md; no app code, SQL migration, schema, ACL, or business data changed. The source-code baseline used for the audit remains 4f7fba271d35d463364a5659f8e181dabad41215.
+
+
+---
+
+# LVE-2026-11-20-747 — Daily CTO security and CountFlow product-acceptance revalidation
+
+**التاريخ:** 2026-11-20، 21:52 Africa/Cairo  
+**التقرير:** doc/Draft/Reprots/Report747_DAILY_CTO_SECURITY_COUNTFLOW_PRODUCT_ACCEPTANCE_20261120.md  
+**Report commit:** b90eedbdfa384852b905c97848a15daff70558ef  
+**الدستور:** SHA 3a6b1e220af8509e314e94df76563bbc6f84910d، تمت قراءته كاملًا.  
+**Operational repo:** papamohammed77-glitch/erp-frontend، main، أحدث توثيق HEAD 095a344e20cafd768c88353c33ceecbc764a6cc4؛ آخر code HEAD قبل توثيق LVE747 هو b48e384319436e22a2464b6d3749c3e0069f7b14.  
+**CountFlow CURRENT_STATE blob:** 8475499b1dea098bdaec41c3d2063cf3b48d9e82.
+
+## LAST VERIFIED EVENT
+- Governance state السابق كان LVE735؛ CountFlow local state وصل LVE746. هذا الإدخال يربط الحالتين دون محو أي تاريخ.
+- مقارنة operational HEAD من checkpoint 4f7fba إلى b48e384: 159 commits ahead، 0 behind، 49 مسارًا؛ 48 داخل CountFlow، ومسار واحد خارجها حُذف وكان محتواه "test" فقط.
+- CountFlow الحالي: 23 جدولًا، 76 policy، 78 FK validated، 148 migration، آخرها 20261120170645. كل CountFlow tables فارغة، ولا يوجد owner Auth identity أو QA user.
+- Edge CountFlow v6/v12 ACTIVE وverify_jwt=true، ومحتواهما مطابق لمصدر GitHub.
+- SMART ERP P0: role_permissions عليه PUBLIC ALL policy وanon/authenticated direct CRUD، مع TRIGGER/REFERENCES/MAINTAIN، دون TRUNCATE. ثماني SECURITY DEFINER functions تقرأه، وget_my_effective_profile مربوط بـauth.uid.
+- rawaea-staging P0: 65 legacy tables بلا RLS، و56 anon-DML؛ public.users مكشوف ويحتوي password_hash؛ ثلاث SECURITY DEFINER RPCs تقبل p_user_email بلا auth.uid. Edge wrappers bulk-stock-adjustment وsave-sales-invoice تثبت JWT فقط ولا تتحقق من role/permission/branch.
+- CountFlow P1: direct UPDATE على reconciliation_runs، direct UPDATE/DELETE على recount_tasks، direct INSERT/UPDATE على alerts، وDELETE على sessions دون lifecycle guard. بعض حذف sessions قد cascade إلى entries/assignments/presence/cost snapshots.
+- محاولة 90k rollback لم تُرجع نتيجة بسبب خطأ داخلي؛ residue read-only = صفر. لا PASS.
+- لا deployment أو Browser E2E أو حسابات أو أثر أعمال.
+
+## CONFIRMED / UNKNOWN / CONFLICT
+- CONFIRMED: نتائج الكتالوج والـACL والـRLS والـEdge source parity والـrow counts كما في Report747.
+- UNKNOWN: Cloudflare artifact، authenticated E2E، Realtime delivery/latency، XLSX الفعلي، Benchmark، مراجعة جميع التطبيقات.
+- CONFLICT: الدستور §6.4 يحصر التنفيذ في SMART ERP Production ويرفض Staging، بينما البروتوكول اليومي §19 يطلب Staging/isolated QA؛ CountFlow يستخدم rawaea-staging القائم. لا كتابة إضافية قبل حسم المالك.
+- تقرير735 بالغ في وصف TRUNCATE على SMART role_permissions/categories؛ الصلاحية غير موجودة لـanon/authenticated حاليًا. categories تُصنف P1 لا P2.
+
+## ما تم وما لم يتم
+- تم فحص GitHub diff، CountFlow source، Supabase catalog، Edge functions، function definitions، السياسات والـtriggers والـFKs.
+- لم تُنفذ أي DDL/DML/ACL/RLS/Edge deployment أو Cloudflare deployment.
+- لم يتم استدعاء RPCs المخزنية أو المالية.
+- لم تُنشأ حسابات أو Fixtures.
+- لا تعتبر محاولة 90k اختبارًا ناجحًا؛ لا تعاد دون إعادة تقييم سبب الخطأ وبوابة البيئة.
+
+## نقطة الاستئناف
+1. اعرض CS-747-P0-A المحدد لإغلاق direct access على SMART public.role_permissions على المالك، ولا تطبقه دون الموافقة.
+2. بعد اعتماده، اختبر ACL ثم get_my_effective_profile وsave-role عبر مستخدم مخول.
+3. أبقِ rawaea-staging write tests متوقفة حتى حسم تعارض §6.4/§19 واحتواء Legacy public.users/RPCs.
+4. لا تنشئ owner/member accounts أو Pages project أو بيانات أعمال أو Edge Functions جديدة.
+5. لا تعِد فتح Parent/Buyer/Warehouse ما لم يظهر diff أو دليل أثر جديد.
+
+**الحكم:** BLOCKED للتغييرات والنشر والاختبارات الكتابية؛ READY WITH LIMITATIONS للقراءة والتوثيق فقط.
