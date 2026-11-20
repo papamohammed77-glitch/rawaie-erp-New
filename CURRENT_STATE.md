@@ -2575,7 +2575,7 @@ Prepare and obtain approval for the P0 security containment Change Set across SM
 
 **التاريخ:** 2026-11-20، 21:52 Africa/Cairo  
 **التقرير:** doc/Draft/Reprots/Report747_DAILY_CTO_SECURITY_COUNTFLOW_PRODUCT_ACCEPTANCE_20261120.md  
-**Report commit:** b90eedbdfa384852b905c97848a15daff70558ef  
+**Report commit:** 4d36499c44ee592c63dd4e4d6681b5707f17ed56  
 **الدستور:** SHA 3a6b1e220af8509e314e94df76563bbc6f84910d، تمت قراءته كاملًا.  
 **Operational repo:** papamohammed77-glitch/erp-frontend، main، أحدث توثيق HEAD 095a344e20cafd768c88353c33ceecbc764a6cc4؛ آخر code HEAD قبل توثيق LVE747 هو b48e384319436e22a2464b6d3749c3e0069f7b14.  
 **CountFlow CURRENT_STATE blob:** 8475499b1dea098bdaec41c3d2063cf3b48d9e82.
