@@ -1843,3 +1843,19 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 
 
 **Documentation-only follow-up after LVE735:** Report735 and the LVE735 state/memory addenda were saved. The operational repo then received commit 2676526ee4214ae98aa89742b48cf40172cd1976 updating only companies/company-2/Counting/CURRENT_STATE.md; no app code, SQL migration, schema, ACL, or business data changed. The source-code baseline used for the audit remains 4f7fba271d35d463364a5659f8e181dabad41215.
+
+
+---
+
+## LVE-2026-11-20-747 — Current security and CountFlow acceptance checkpoint
+- Governance CURRENT_STATE updated from LVE735 to LVE747; permanent constitution remains SHA 3a6b1e220af8509e314e94df76563bbc6f84910d.
+- Operational repo main documentation HEAD: 095a344e20cafd768c88353c33ceecbc764a6cc4; code checkpoint before docs: b48e384319436e22a2464b6d3749c3e0069f7b14.
+- CountFlow: 23 tables / 76 policies / 78 validated FKs / 148 migrations; all CountFlow tables empty; owner Auth identity and QA users absent. Edge provision v6 and export v12 exactly match current source and require JWT.
+- CountFlow workflow P1s: reconciliation_runs direct UPDATE, recount_tasks direct UPDATE/DELETE, alerts direct INSERT/UPDATE without row audit/state guard, and sessions DELETE without lifecycle guard despite child cascades. Import rows/batches, expected balances and session cost snapshots are currently SELECT-only to authenticated; count_entries is append-only at table ACL.
+- The 90k rollback attempt returned an internal tool error and has no PASS result; post-attempt residue query found zero CountFlow rows and zero qa-90k Auth users.
+- SMART ERP P0: role_permissions has PUBLIC ALL policy and direct anon/authenticated privileges; get_my_effective_profile remains an owner-postgres SECURITY DEFINER path guarded by auth.uid. No SQL change applied.
+- rawaea-staging P0: 65 legacy public tables without RLS, 56 with anon DML, public.users exposes password_hash column to anon, and three SECURITY DEFINER posting RPCs accept p_user_email without auth.uid. Two JWT-gated Edge wrappers still omit role/permission/branch authorization.
+- Report735 ACL correction: SMART role_permissions/categories do not grant TRUNCATE to anon/authenticated; they do grant TRIGGER/REFERENCES/MAINTAIN. categories is P1, not P2.
+- Governance conflict remains: constitution §6.4 restricts execution to SMART ERP Production; current MASTER DAILY protocol §19 calls for isolated/Staging QA. CountFlow uses existing rawaea-staging. No further write tests until owner resolution.
+- Next priority: owner approval for CS-747-P0-A, then read-only/post-change acceptance checks. No production write, migration, deployment, account creation or business posting was performed.
+- Report747: doc/Draft/Reprots/Report747_DAILY_CTO_SECURITY_COUNTFLOW_PRODUCT_ACCEPTANCE_20261120.md.
