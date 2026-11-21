@@ -15,7 +15,7 @@
 - أحدث حدث مثبت قبل هذه المراجعة: LVE-2026-11-21-748.
 - الدستور التشغيلي الدائم قُرئ كاملًا بعد CURRENT_STATE مباشرة: SHA = 3a6b1e220af8509e314e94df76563bbc6f84910d.
 - Report748 قُرئ كاملًا: blob 9a6e6a5813bbea793f9c92dd5e30ac07b4dbe9ce، commit 6d5c10702cb1027579ba0e10d74b463b25d979c4.
-- آخر commit في Governance وقت الفحص: dbe47a44912f6e76140e95658ae582cee8f93a46. تغييره الوحيد في CURRENT_STATE هو تصحيح مسار rawaea-staging إلى rawaea-staging داخل وصف مشروع CountFlow المستقل؛ لم يغير نتيجة RAWAEA أو Change Set الصلاحيات.
+- آخر commit في Governance وقت الفحص: dbe47a44912f6e76140e95658ae582cee8f93a46. تغييره الوحيد في CURRENT_STATE هو تصحيح المسار المكتوب سابقًا rawea-staging إلى rawaea-staging داخل وصف مشروع CountFlow المستقل؛ لم يغير نتيجة RAWAEA أو Change Set الصلاحيات.
 - Operational repository: papamohammed77-glitch/erp-frontend، branch main، HEAD = 095a344e20cafd768c88353c33ceecbc764a6cc4.
 - نقطة الكود السابقة: b48e384319436e22a2464b6d3749c3e0069f7b14. المقارنة المباشرة: commit واحد فقط إلى HEAD الحالي، وملف واحد فقط تغيّر: companies/company-2/Counting/CURRENT_STATE.md (+70 سطرًا). لا تغيير في companies/company-1.
 - Parent main.html blob الحالي = 00456494de918b36fc6792bef302319a9f65605d، مطابق لـLVE748.
