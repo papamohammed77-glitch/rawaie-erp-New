@@ -2653,3 +2653,45 @@ Prepare and obtain approval for the P0 security containment Change Set across SM
 
 **الحكم:** READY WITH LIMITATIONS للقراءة والتوثيق؛ BLOCKED للتغييرات والكتابات والنشر حتى اعتماد CS-748-P0-A.  
 **الخطوة التالية:** موافقة المالك على النص المحدد في Report748 §5، ثم تنفيذ revoke/drop والتحقق من ACL وprofile RPC دون تغيير بيانات الأعمال.
+
+
+---
+
+# LAST VERIFIED EVENT — LVE-2026-11-21-749
+
+**التاريخ:** 2026-11-21 (Africa/Cairo)  
+**التقرير:** doc/Draft/Reprots/Report749_DAILY_CTO_RAWAEA_P0_PERMISSION_REVALIDATION_20261121.md  
+**Report blob:** a7ff66b3d11a02076d8e941b0f83198d1f242a88  
+**Report final commit:** 400e99300aa72ef311a4aa9bddbc6fbf4621c903  
+**Governance repo:** main  
+**CURRENT_STATE قبل هذا التحديث:** blob 36fab16cc43dd68c707cfd6a6be933d53272fa3d، 2,656 سطرًا  
+**Permanent Constitution:** SHA 3a6b1e220af8509e314e94df76563bbc6f84910d، قُرئ كاملًا  
+**Operational repo:** papamohammed77-glitch/erp-frontend، main، HEAD 095a344e20cafd768c88353c33ceecbc764a6cc4  
+**Parent main.html blob:** 00456494de918b36fc6792bef302319a9f65605d (لم يتغير منذ LVE748؛ fetch_file أعاد محتوى فارغًا في هذه الجولة)  
+**Core core.js blob:** 2b2211a3f95049042e27a7b2ecbab3640a584942  
+**Supabase SMART ERP:** fiilmooggumokxanwiyx، ACTIVE_HEALTHY، PostgreSQL 17.6.1.121، 800 migrations، latest 20261119010201  
+
+## LAST VERIFIED EVENT
+
+- أُعيدت قراءة CURRENT_STATE ثم الدستور كاملين بالترتيب.
+- أُعيدت قراءة Report748 وReport747 وReport735 للتحقق من الادعاءات التاريخية المتعلقة بالصلاحيات وحدود المشروعين.
+- مقارنة operational HEAD من b48e384319436e22a2464b6d3749c3e0069f7b14 إلى 095a344e20cafd768c88353c33ceecbc764a6cc4: commit واحد وملف واحد فقط، companies/company-2/Counting/CURRENT_STATE.md؛ لا تغيير في company-1.
+- أعيد التحقق من public.role_permissions: RLS=true، FORCE=false، PUBLIC ALL policy، anon/authenticated direct privileges على SELECT/INSERT/UPDATE/DELETE/TRIGGER/REFERENCES/MAINTAIN، TRUNCATE=false، 21 rows، 3 role IDs، 0 wildcard rows، 0 user triggers. P0 ما زالت OPEN.
+- أُعيد جلب تعريف get_my_effective_profile وapp_private.current_user_has_effective_permission؛ كلاهما SECURITY DEFINER مملوك لـpostgres وsearch_path فارغ، والقراءة المركزية للصلاحيات مرتبطة بـauth.uid.
+- أعيد التحقق من public.categories: PUBLIC ALL وanon/authenticated CRUD، TRUNCATE=false؛ P1 مستقلة.
+- save-role v9 وsave-category v6 ACTIVE وverify_jwt=true؛ المصدر الحي قُرئ. save-role لا يكتب role_permissions مباشرة؛ role_permissions_sync اسم إجراء تدقيق.
+- Security Advisor: 24 RLS-enabled tables بلا policy (INFO)، 1 SECURITY DEFINER view، 4 anon SECURITY DEFINER functions، 142 authenticated SECURITY DEFINER functions، وLeaked Password Protection disabled. لا تُعامل الأعداد كعدد ثغرات مؤكدة.
+- CountFlow تطبيق جرد مستقل خارج RAWAEA؛ لا تُدمج بياناته أو تقاريره أو حساباته أو بيئته مع RAWAEA. RAWAEA يحتفظ بجرده وInventory Control الخاصين به داخل company-1. لم تُقرأ أو تُكتب أي بيانات CountFlow في هذه الجولة.
+- CS-748-P0-A ما زال PREPARED / NOT APPROVED / NOT APPLIED. لا توجد موافقة صريحة على SQL المحدد؛ لم يحدث DDL/DML/ACL/RLS/Edge deploy أو Cloudflare deploy أو business-data effects.
+- لا Cloudflare artifact parity أو Authenticated Browser E2E أو Realtime delivery/latency evidence جديدة؛ تبقى UNKNOWN/UNVERIFIED.
+- Report749 يوثق نتائج المراجعة وحدودها ومصفوفة التغطية. لا تحديث لملفات التشغيل أو قاعدة الأعمال.
+
+## الاستئناف التالي
+
+1. تحقق هل اعتمد المالك نص CS-748-P0-A المحدد في Report749 §5.
+2. إذا لم يعتمد، استمر في القراءة والتوثيق فقط ولا تنفذ أي Production write أو ACL/RLS change.
+3. إذا اعتمد صراحةً، طبق التغيير المحدد على public.role_permissions فقط، ثم تحقق من privileges/policy/SECURITY DEFINER profile read دون تعديل أي permission rows أو users أو roles.
+4. لا تضم categories إلى نفس التغيير؛ تحتاج Change Set مستقلًا.
+5. لا تفتح CountFlow ضمن RAWAEA، ولا تعِد فحص تطبيقات company-1 السليمة بلا diff أو دليل أثر جديد.
+
+**الحكم:** READY WITH LIMITATIONS للقراءة والتوثيق؛ BLOCKED لأي كتابة Production أو تغيير صلاحيات أو نشر حتى الموافقة المحددة على CS-748-P0-A.
