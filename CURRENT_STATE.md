@@ -2627,7 +2627,7 @@ Prepare and obtain approval for the P0 security containment Change Set across SM
 - Governance repo: main؛ CURRENT_STATE السابق SHA 658ccc5a0af3bf7edc600f8822320fa4da1e7e89، 2,615 سطرًا؛ Permanent Constitution SHA 3a6b1e220af8509e314e94df76563bbc6f84910d، قُرئ كاملًا.
 - Operational repo HEAD 095a344e20cafd768c88353c33ceecbc764a6cc4؛ commit الأخير غيّر فقط companies/company-2/Counting/CURRENT_STATE.md. لا تغيير في companies/company-1.
 - RAWAEA company-1 baseline: main.html blob 00456494de918b36fc6792bef302319a9f65605d؛ core.js blob 2b2211a3f95049042e27a7b2ecbab3640a584942.
-- CountFlow/companies/company-2/Counting/rawea-staging مشروع جرد مستقل خارج نطاق RAWAEA؛ لا تدمج بياناته أو تقاريره أو نتائجه مع RAWAEA. RAWAEA يحتفظ بجرده وInventory Control الخاصين به في company-1.
+- CountFlow/companies/company-2/Counting/rawaea-staging مشروع جرد مستقل خارج نطاق RAWAEA؛ لا تدمج بياناته أو تقاريره أو نتائجه مع RAWAEA. RAWAEA يحتفظ بجرده وInventory Control الخاصين به في company-1.
 
 ## CONFIRMED — SMART ERP P0
 - SMART ERP fiilmooggumokxanwiyx ACTIVE_HEALTHY؛ migration ledger=800، latest=20261119010201.
