@@ -2612,3 +2612,44 @@ Prepare and obtain approval for the P0 security containment Change Set across SM
 5. لا تعِد فتح Parent/Buyer/Warehouse ما لم يظهر diff أو دليل أثر جديد.
 
 **الحكم:** BLOCKED للتغييرات والنشر والاختبارات الكتابية؛ READY WITH LIMITATIONS للقراءة والتوثيق فقط.
+
+
+---
+
+# LAST VERIFIED EVENT — LVE-2026-11-21-748
+
+**التاريخ:** 2026-11-21 (Africa/Cairo)  
+**التقرير:** doc/Draft/Reprots/Report748_DAILY_CTO_RAWAEA_SECURITY_SCOPE_REVALIDATION_20261121.md  
+**Report blob:** 9a6e6a5813bbea793f9c92dd5e30ac07b4dbe9ce  
+**Report commit:** 6d5c10702cb1027579ba0e10d74b463b25d979c4
+
+## نقطة الاستئناف
+- Governance repo: main؛ CURRENT_STATE السابق SHA 658ccc5a0af3bf7edc600f8822320fa4da1e7e89، 2,615 سطرًا؛ Permanent Constitution SHA 3a6b1e220af8509e314e94df76563bbc6f84910d، قُرئ كاملًا.
+- Operational repo HEAD 095a344e20cafd768c88353c33ceecbc764a6cc4؛ commit الأخير غيّر فقط companies/company-2/Counting/CURRENT_STATE.md. لا تغيير في companies/company-1.
+- RAWAEA company-1 baseline: main.html blob 00456494de918b36fc6792bef302319a9f65605d؛ core.js blob 2b2211a3f95049042e27a7b2ecbab3640a584942.
+- CountFlow/companies/company-2/Counting/rawea-staging مشروع جرد مستقل خارج نطاق RAWAEA؛ لا تدمج بياناته أو تقاريره أو نتائجه مع RAWAEA. RAWAEA يحتفظ بجرده وInventory Control الخاصين به في company-1.
+
+## CONFIRMED — SMART ERP P0
+- SMART ERP fiilmooggumokxanwiyx ACTIVE_HEALTHY؛ migration ledger=800، latest=20261119010201.
+- public.role_permissions: RLS=true، FORCE=false، PUBLIC ALL policy غير مقيدة، anon/authenticated لديهما SELECT/INSERT/UPDATE/DELETE/TRIGGER/REFERENCES/MAINTAIN؛ TRUNCATE=false؛ لا audit trigger.
+- 21 permission rows / 3 role IDs / مستخدم نشط واحد لكل role؛ wildcard rows الحالية=0.
+- get_my_effective_profile SECURITY DEFINER owner postgres، auth.uid-bound، يضم role_permissions؛ app_private.current_user_has_effective_permission يقبل '*' أو المفتاح المحدد. Owner flag له شروط منفصلة ولا يمنحه role_permissions وحده.
+- ثماني SECURITY DEFINER functions تقرأ الجدول؛ anon EXECUTE=false للجميع، authenticated execute فقط لـget_my_effective_profile وget_warehouse_hub_snapshot، والباقي service_role-only.
+- مسح 35 ملف تطبيق و31 ملف Edge/shared: لا direct table access في Parent/Core أو واجهات company-1. direct reads المكتشفة في warehouse-auth helper (12 مستهلكًا) وreport-discrepancy تستخدم service_role.
+- save-role v9 وsave-category v6 ACTIVE وverify_jwt=true؛ المصدر الحي لهما غير متتبع كملف مطابق في operational Git.
+
+## P1 وموثوقية التقارير
+- categories ما زال عليه PUBLIC ALL وanon/auth CRUD؛ Parent main.html يقرأه مباشرة مع company filter. P1 مفتوحة.
+- تقرير735 بالغ في TRUNCATE؛ current ACL يؤكد TRUNCATE=false. Report747 صحح ذلك، وإعادة الفحص اليوم تؤكده.
+- Report747 لم يحصر جميع Edge consumers؛ أُضيف اليوم توثيق direct service_role readers، دون أن يتغير استنتاج سلامة revoke المقترح تجاه هذه المستهلكات.
+- Security Advisor: 24 RLS-enabled tables بلا policy (INFO)، view SECURITY DEFINER واحدة، 4 anon SECURITY DEFINER warnings، 142 authenticated SECURITY DEFINER warnings، وLeaked Password Protection معطل؛ تحتاج فرزًا function-by-function.
+
+## Change Set / التنفيذ
+- CS-748-P0-A جاهز: REVOKE ALL على public.role_permissions من anon/authenticated ثم DROP POLICY "Allow all for all".
+- لم يُنفذ بسبب عدم وجود موافقة صريحة على هذا النص المحدد.
+- لم يحدث DDL/DML/ACL/RLS/Edge deploy/Cloudflare deploy أو استدعاء RPC تشغيلي أو أي أثر مخزني/مالي.
+- CI run 44805844091 نجح في static inventory contract وanonymous mocked shell smoke فقط؛ لا Auth حقيقي ولا DB ولا inventory E2E.
+- Cloudflare artifact وauthenticated Runtime وRealtime delivery/latency وBenchmark تبقى UNKNOWN/UNVERIFIED.
+
+**الحكم:** READY WITH LIMITATIONS للقراءة والتوثيق؛ BLOCKED للتغييرات والكتابات والنشر حتى اعتماد CS-748-P0-A.  
+**الخطوة التالية:** موافقة المالك على النص المحدد في Report748 §5، ثم تنفيذ revoke/drop والتحقق من ACL وprofile RPC دون تغيير بيانات الأعمال.
