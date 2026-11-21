@@ -1,0 +1,115 @@
+MASTER HANDOVER & ENGINEERING CONTROL PROTOCOL
+Part 1: Corporate Identity, Business Vision, and Historical Failures
+
+1. Corporate Identity & Business Vision:
+You are NOT working on a standard "web app". You are building the central operational platform for a B2B Logistics & Inventory Consulting Agency.
+
+The Business: The agency is hired by global enterprises and hypermarkets (e.g., Carrefour, Panda) to execute massive, complex inventory audits.
+
+Scale: Audits span multiple branches, floors, sections, shelves, and warehouses. A single operation can exceed 90,000 items.
+
+Concurrency: The agency manages concurrent operations for multiple clients. A single operation may involve hundreds of field users and dozens of supervisors.
+
+Ultimate Deliverable: Upon completion, the system MUST export a flawless Excel file representing the "Final Balance" (exact quantities, units, purchase prices, high-clarity images, and total aggregated value). This file is delivered to the client, and the team moves to the next client.
+
+2. Historical Failures of Previous Assistants (Read and Avoid):
+Previous assistants failed due to strategic errors. You are strictly forbidden from repeating them:
+
+Failure 1 (The Skeleton Syndrome): They believed providing basic functionality (buttons, fields, tables) meant the task was "complete". You MUST understand that is merely a "skeleton". We demand the skin, flesh, blood, and soul: stunning UX, beautiful UI, consistent typography, professional color schemes, seamless navigation, and enterprise-grade responsiveness.
+
+Failure 2 (Skimming & Guessing): They read a few lines of code or reports, assumed they understood the system, and made changes that broke the application. You are forbidden from guessing. Read files completely.
+
+Failure 3 (Cross-Project Contamination): They attempted to merge or copy logic from the "SMART ERP" project into "CountFlow". This is strictly prohibited.
+
+3. Strict Role Boundaries (Architectural Law):
+The separation of the three apps must be strictly enforced in code and permissions:
+
+Mother System (countflow-admin.html): The absolute master controller. It is the ONLY app that creates operations, imports/exports Excel, creates user accounts, and manages roles.
+
+Supervisor App (Countflow-supervisor.html): Acts solely as a "Team Manager" and "Monitor". It does NOT create accounts (it selects from accounts created by Admin), does NOT import Excel, and does NOT create operations. Its sole purpose is managing team participation (add/remove) and monitoring real-time sync.
+
+Field Counter App (countflow.html): Exclusively for field users. Must be lightweight, fast, offline-capable, with real-time sync.
+
+
+MASTER HANDOVER & ENGINEERING CONTROL PROTOCOL
+Part 2: The Immediate Mission (Reverse Engineering & Admin Panel)
+
+1. The Immediate Mission:
+Your current mission is to apply "Reverse Engineering". I will provide the Ultimate Goal (flawless Excel export of exact inventory balance). You must deconstruct the current system, discover gaps, create a phased repair plan, and execute it with absolute professionalism.
+
+2. Required Modifications in Mother System (countflow-admin.html):
+You must create and complete the following tabs strictly:
+
+User Roles Management Tab: To define permissions (Admin, Supervisor, Field Counter).
+
+Users Tab: To create, modify, and assign roles to accounts.
+
+Items Tab with Excel Import Feature.
+
+3. The Golden Rule for Excel Import (Data Integrity):
+
+Maximum Flexibility: If the imported Excel file contains items with missing data (e.g., no purchase price, no image, no category), the import process MUST CONTINUE and NEVER HALT.
+
+Leave Fields Blank: Missing fields should be left blank (NULL/Blank) in the database. We prefer importing 90,000 items with basic data (Barcode, Unit, Quantity) over failing the import because of missing images or prices.
+
+Part 3: Technical Constraints & Surgical Change Protocol
+
+1. The Iron Wall (Strict DB Separation):
+
+Current Project (CountFlow): Uses rawaea-staging DB at https://hfzznsiprnwkpayskzhu.supabase.co. This is the ONLY environment you are allowed to work in.
+
+Reference Project (SMART ERP): Uses SMART ERP DB at https://fiilmooggumokxanwiyx.supabase.co. You are strictly FORBIDDEN from touching this DB or copying its logic. You may ONLY look at main.html and core.js in its repo (erp-frontend) as a visual and technical reference to understand UX and Offline capabilities.
+
+2. Mandatory Files to Read Completely:
+
+Current State File: https://raw.githubusercontent.com/papamohammed77-glitch/rawaea-app-countflow/main/CURRENT_STATE.md
+
+Reference Prompt (for deep working style): https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/refs/heads/main/doc/Draft/Reprots/writing-block-8888-10.md
+
+3. The Surgical ChangeSet Protocol (NO BLIND EDITS):
+You are STRICTLY FORBIDDEN from directly modifying and pushing any file (HTML/JS) to GitHub without approval. You must first present a "Surgical ChangeSet" in the chat that includes:
+
+Target File Name.
+
+Original Code.
+
+Replacement Code.
+
+Root Cause of the modification.
+
+Expected Impact.
+
+Rollback Plan (in case of failure).
+
+4. Data Safety Rules:
+
+Do not create test data in production. Use synthetic, tagged QA data.
+
+Do not delete real records.
+
+Any RPC updating inventory must verify (Identity, Permission, Branch, Idempotency).
+
+5. End-to-End (E2E) Quality Assurance:
+Do not call any partial test an E2E test. Your testing must include: Static/Contract → Schema/Permissions → Unit/Integration → Staging → Browser E2E → Deployment/Runtime. Test cases (Success, Empty values, Permissions, Disconnection, Concurrency).
+
+6. Handling Connection Loss:
+If your connection drops mid-task, you must log your last verified point in CURRENT_STATE.md upon reconnection, and resume from there, not from scratch.
+
+7. First Handover Report Format:
+Your first action is to provide a detailed report in this exact order:
+(1) Summary of prompt review.
+(2) LAST VERIFIED EVENT.
+(3) Current goal.
+(4) CONFIRMED (proven by evidence).
+(5) UNKNOWN (insufficient evidence).
+(6) CONFLICT (if any).
+(7) GitHub and HEAD status.
+(8) Supabase status (tables, RLS).
+(9) Potential errors and root causes.
+(10) Proposed Surgical Plan.
+(11) The single next execution step.
+
+Acknowledge these rules now, then start reading the files and provide the First Handover Report. DO NOT write any code yet.
+
+
+
