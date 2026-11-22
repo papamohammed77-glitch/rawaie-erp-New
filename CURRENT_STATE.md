@@ -2695,3 +2695,37 @@ Prepare and obtain approval for the P0 security containment Change Set across SM
 5. لا تفتح CountFlow ضمن RAWAEA، ولا تعِد فحص تطبيقات company-1 السليمة بلا diff أو دليل أثر جديد.
 
 **الحكم:** READY WITH LIMITATIONS للقراءة والتوثيق؛ BLOCKED لأي كتابة Production أو تغيير صلاحيات أو نشر حتى الموافقة المحددة على CS-748-P0-A.
+
+
+---
+
+# LAST VERIFIED EVENT — LVE-2026-11-22-750
+
+**Date:** 2026-11-22 (Africa/Cairo)  
+**Report:** `doc/Draft/Reprots/Report750_DAILY_CTO_RAWAEA_PERMISSION_GATE_REVALIDATION_20261122.md`  
+**Report commit:** `98af49f8c5b94a197f5c0f283a413d4d985dd4c1`  
+**Governance HEAD before state pin:** `2c188024c1100fd734ec3941ddbacbf7567ce471`  
+**CURRENT_STATE blob before this update:** `9fed871ceef202139e4c499ac2ebf4696f41c7ab`  
+**Permanent Constitution:** `3a6b1e220af8509e314e94df76563bbc6f84910d`, read in full immediately after CURRENT_STATE.  
+**Operational repo:** `erp-frontend/main`, HEAD `095a344e20cafd768c88353c33ceecbc764a6cc4`; latest change remains documentation-only outside company-1.
+
+## LAST VERIFIED EVENT
+
+- Resumed from LVE-749; full CURRENT_STATE fetched first, then full permanent constitution. Report750 records today’s evidence and scope.
+- GitHub history rechecked: Governance current HEAD before this state pin was `2c188024...`; operational HEAD remains `095a344...`. No new company-1 code change was observed in the inspected latest history.
+- SMART ERP read-only SQL at `2026-11-22 19:38:38 UTC`: migration ledger 800, latest `20261119010201`; `role_permissions` = 21 rows / 3 role IDs / 0 wildcard / 1 policy; categories = 1 policy.
+- Live ACL reconfirmed anon/authenticated direct SELECT/INSERT/UPDATE/DELETE/TRIGGER/REFERENCES on `public.role_permissions`; TRUNCATE is not granted to these roles. service_role retains its elevated privileges.
+- Security Advisor revalidated: 24 RLS-enabled tables without policy (INFO), one SECURITY DEFINER view `public.v_finance_employee_directory`, 4 anon-executable SECURITY DEFINER functions, and 142 authenticated-executable SECURITY DEFINER functions. Counts are lint findings and require per-object review, not blanket revocation.
+- P0 `CS-748-P0-A` remains PREPARED / NOT APPROVED / NOT APPLIED. No owner approval was inferred. No DDL/DML/ACL/RLS/deploy/RPC business call/QA fixture or stock/financial business effect occurred.
+- Report749’s key P0 catalog facts were reconfirmed. Its previous consumer census was not repeated today and remains prior evidence, not a new full scan.
+- Cloudflare artifact parity, authenticated runtime, realtime delivery/latency and full browser E2E remain UNKNOWN/UNVERIFIED.
+- CountFlow remains separate and excluded from RAWAEA findings and metrics.
+
+## Next step
+
+1. Resolve explicit owner approval for the exact CS-748-P0-A SQL in Report749 §5.
+2. If not approved, continue read-only audit only.
+3. If approved, execute only the approved permission change and perform ACL + authenticated profile acceptance; do not change permission rows/users/roles.
+4. Keep categories and SECURITY DEFINER remediation as separate Change Sets.
+
+**Readiness:** READY WITH LIMITATIONS for read-only work; BLOCKED for production ACL/RLS changes, deployment and acceptance requiring the unapproved change.
