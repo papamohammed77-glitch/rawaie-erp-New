@@ -2729,3 +2729,33 @@ Prepare and obtain approval for the P0 security containment Change Set across SM
 4. Keep categories and SECURITY DEFINER remediation as separate Change Sets.
 
 **Readiness:** READY WITH LIMITATIONS for read-only work; BLOCKED for production ACL/RLS changes, deployment and acceptance requiring the unapproved change.
+
+
+---
+
+# LAST VERIFIED EVENT — LVE-2026-11-23-751
+
+**Date:** 2026-11-23 (Africa/Cairo)  
+**Report:** `doc/Draft/Reprots/Report751_DAILY_CTO_RAWAEA_P0_PERMISSION_REVALIDATION_20261123.md`  
+**Report commit:** `dfff6a1e779863aa9f500548687e3ee93e38c80e`  
+**CURRENT_STATE before this pin:** blob `c29dd795f842ead678e174dd7713b30f16d2be9e`  
+**Permanent Constitution:** `3a6b1e220af8509e314e94df76563bbc6f84910d`, read in full immediately after CURRENT_STATE  
+**Operational repository:** `erp-frontend/main`, HEAD `095a344e20cafd768c88353c33ceecbc764a6cc4`
+
+## LAST VERIFIED EVENT
+
+- Resumed from LVE-750. Current state and permanent constitution were retrieved in the mandatory order; Report750 was read and audited.
+- Operational repo HEAD remains `095a344e20cafd768c88353c33ceecbc764a6cc4`. Latest inspected operational commit is documentation-only in the separate CountFlow/company-2 area; no company-1 source change was identified in the inspected latest history.
+- Governance repo has 2026-11-23 commits for `New-Project/Report1`, `Report4`, and `Report5`. They belong to a separate CountFlow/new-project workstream and are excluded from RAWAEA ERP scope and metrics.
+- SMART ERP read-only SQL observed `2026-11-23 19:41:38 UTC`: `public.role_permissions` = 21 rows, 3 role IDs, 1 policy; policy `Allow all for all` has USING=true and WITH CHECK=true.
+- Live effective privileges: anon and authenticated have SELECT/INSERT/UPDATE/DELETE; neither has TRUNCATE. This reconfirms P0. A first read-only query failed due an assumed column name; corrected query succeeded; no writes occurred.
+- CS-748-P0-A remains NOT APPROVED / NOT APPLIED based on current evidence. Approval outside the available project/conversation evidence remains UNKNOWN; no approval was inferred from the daily protocol.
+- No DDL/DML/ACL/RLS/Edge/Cloudflare change, business RPC, QA fixture, account, stock/financial posting, or business-data effect occurred.
+- Artifact parity, authenticated browser E2E, Realtime delivery/latency, full business E2E, full UX review, and current competitive benchmark remain UNKNOWN/UNVERIFIED.
+- CountFlow remains separate from RAWAEA ERP; do not merge its code, data, reports, accounts, or maturity metrics.
+
+## Next step
+
+Resolve explicit owner approval for the exact CS-748-P0-A SQL in Report749 §5. Until then, continue read-only audit/documentation only. If approved, execute only the approved scope and verify ACL plus authenticated profile acceptance without modifying permission rows/users/roles or bundling categories.
+
+**Readiness:** READY WITH LIMITATIONS for read-only audit; BLOCKED for production permission changes and acceptance requiring the unapproved change.
