@@ -2759,3 +2759,32 @@ Prepare and obtain approval for the P0 security containment Change Set across SM
 Resolve explicit owner approval for the exact CS-748-P0-A SQL in Report749 §5. Until then, continue read-only audit/documentation only. If approved, execute only the approved scope and verify ACL plus authenticated profile acceptance without modifying permission rows/users/roles or bundling categories.
 
 **Readiness:** READY WITH LIMITATIONS for read-only audit; BLOCKED for production permission changes and acceptance requiring the unapproved change.
+
+
+---
+
+# LAST VERIFIED EVENT — LVE-2026-11-24-752
+
+**Date:** 2026-11-24 (Africa/Cairo)  
+**Report:** `doc/Draft/Reprots/Report752_DAILY_CTO_RAWAEA_P0_PERMISSION_REVALIDATION_20261124.md`  
+**Report commit:** `907472b828099b97e820b516c5c0ec7f4551b4ae`  
+**CURRENT_STATE before this pin:** blob `61e97211d9e2307a8e4d29296723f86fb89e173b`  
+**Permanent Constitution:** `3a6b1e220af8509e314e94df76563bbc6f84910d`, retrieved in full immediately after CURRENT_STATE  
+**Operational repo:** `erp-frontend/main`, HEAD `095a344e20cafd768c88353c33ceecbc764a6cc4`
+
+## LAST VERIFIED EVENT
+
+- Resumed from LVE-751. CURRENT_STATE was fetched first (284,427 characters; blob SHA `61e97211d9e2307a8e4d29296723f86fb89e173b`), then the complete permanent constitution (SHA `3a6b1e220af8509e314e94df76563bbc6f84910d`). Report751 was retrieved and its key claims revalidated.
+- Operational HEAD remains `095a344e20cafd768c88353c33ceecbc764a6cc4`. Its latest inspected commit is documentation-only in `companies/company-2/Counting/CURRENT_STATE.md`; no company-1 source change was identified in the inspected latest commit.
+- SMART ERP read-only SQL at `2026-11-24 20:34:31.512114 UTC`: `public.role_permissions` = 21 rows / 3 distinct role IDs / 1 policy. `Allow all for all` has USING=true and WITH CHECK=true.
+- Live effective privileges: anon and authenticated have SELECT/INSERT/UPDATE/DELETE; neither has TRUNCATE. P0 is reconfirmed. No SQL write occurred.
+- `CS-748-P0-A` remains NOT APPLIED. Owner approval outside available evidence is UNKNOWN; no approval was inferred from the daily protocol.
+- Report752 saved at commit `907472b828099b97e820b516c5c0ec7f4551b4ae`. No operational source, Production schema/ACL, deployment, QA fixture, or business data was changed.
+- Cloudflare artifact parity, authenticated runtime/E2E, Realtime delivery/latency, complete business E2E, full UX review, and current competitive benchmark remain UNKNOWN/UNVERIFIED.
+- CountFlow remains separate from RAWAEA ERP and is excluded from RAWAEA findings and metrics.
+
+## Next step
+
+Resolve explicit owner approval for the exact `CS-748-P0-A` SQL in Report749 §5. Until approval is evidenced, continue read-only audit/documentation only. If approved, apply only the approved role_permissions scope and verify effective ACL plus authenticated profile behavior; do not modify permission rows/users/roles/categories or bundle unrelated changes.
+
+**Readiness:** READY WITH LIMITATIONS for read-only audit; BLOCKED for production ACL/RLS changes and acceptance requiring the unapproved change. **P0 NOT CLOSED.**
