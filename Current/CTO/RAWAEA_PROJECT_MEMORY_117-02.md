@@ -1859,3 +1859,23 @@ Recover and reconcile the five deployed stock-voucher Edge source files into ope
 - Governance conflict remains: constitution §6.4 restricts execution to SMART ERP Production; current MASTER DAILY protocol §19 calls for isolated/Staging QA. CountFlow uses existing rawaea-staging. No further write tests until owner resolution.
 - Next priority: owner approval for CS-747-P0-A, then read-only/post-change acceptance checks. No production write, migration, deployment, account creation or business posting was performed.
 - Report747: doc/Draft/Reprots/Report747_DAILY_CTO_SECURITY_COUNTFLOW_PRODUCT_ACCEPTANCE_20261120.md.
+
+
+---
+
+## LVE-2026-11-25-753 — RAWAEA ERP P0 Permission Gate / Default ACL / Advisor Triage
+
+- Daily continuation from LVE-752. CURRENT_STATE and permanent constitution were read in required order. Report753: `doc/Draft/Reprots/Report753_DAILY_CTO_RAWAEA_P0_SECURITY_GATE_AND_ADVISOR_TRIAGE_20261125.md`; report commit `5127d211ba256d6996246ab5cacdf9093d28d66e`.
+- Operational `erp-frontend/main` HEAD remains `095a344e20cafd768c88353c33ceecbc764a6cc4`; compare from `b48e384319436e22a2464b6d3749c3e0069f7b14` shows one docs-only change in CountFlow/company-2, no company-1 source change. CountFlow remains fully excluded from RAWAEA.
+- SMART ERP `fiilmooggumokxanwiyx` ACTIVE_HEALTHY, PostgreSQL 17.6.1.121, 800 migrations, latest `20261119010201`.
+- P0 reconfirmed read-only: `public.role_permissions` RLS=true/FORCE=false; PUBLIC ALL policy USING/WITH CHECK=true; 21 rows, 3 role IDs, 0 wildcard rows, 0 user triggers; explicit anon/authenticated SELECT/INSERT/UPDATE/DELETE/REFERENCES/TRIGGER/MAINTAIN grants; TRUNCATE=false for both. `service_role` retains grants.
+- `get_my_effective_profile()`, `current_user_has_effective_permission(text)`, `get_warehouse_hub_snapshot()` are postgres-owned SECURITY DEFINER with empty search_path; authenticated EXECUTE=true and anon=false. `current_user_company_id()` is auth.uid-bound and anon EXECUTE=false.
+- New P1: public-schema default table ACLs for owners `supabase_admin` and `postgres` grant anon/authenticated broad privileges including TRUNCATE to future tables created by those owners. This is not a current TRUNCATE grant on role_permissions and requires a separate Change Set.
+- categories remains P1 with PUBLIC ALL and anon/authenticated CRUD; separate scope.
+- Security Advisor 2026-11-25 20:37:42Z: 24 RLS-enabled tables without policies (INFO), one SECURITY DEFINER view (ERROR), four anon SECURITY DEFINER functions (WARN), 142 authenticated SECURITY DEFINER functions (WARN), Leaked Password Protection disabled (WARN). Counts are triage signals, not exploit counts.
+- v_finance_employee_directory: anon SELECT=false; authenticated SELECT=true; company/permission/self filter; multi-company runtime remains UNVERIFIED. Four anon function warnings include two trigger-return functions and two public storefront endpoints; rate-limit/abuse tests not run.
+- Current storefront setting is EGP and non-null; public catalog SAR fallback is dormant in the current row.
+- CS-748-P0-A remains PREPARED/NOT APPROVED/NOT APPLIED. No approval evidence in available project/conversation context; external approval UNKNOWN. No DDL/DML/ACL/RLS/deploy/business RPC/QA fixture or business-data effect.
+- Cloudflare artifact, authenticated Browser E2E, Realtime delivery/latency, full UX and competitive benchmark remain UNKNOWN/UNVERIFIED. Parent main.html fetch returned SHA but empty content; core.js blob remains `2b2211a3f95049042e27a7b2ecbab3640a584942`.
+- QA governance conflict: Constitution §6.4 vs current owner protocol §§19/25.E/25.F. Protective action: no effectful Production test and no new staging; read-only work only until a permitted existing isolated context or explicit resolution.
+- Next: obtain explicit approval for the exact CS-748-P0-A SQL in Report753; then apply only that table-scoped change and verify ACL/policy/profile grants. Keep default ACL/categories separate.
