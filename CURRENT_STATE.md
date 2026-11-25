@@ -2788,3 +2788,42 @@ Resolve explicit owner approval for the exact CS-748-P0-A SQL in Report749 §5. 
 Resolve explicit owner approval for the exact `CS-748-P0-A` SQL in Report749 §5. Until approval is evidenced, continue read-only audit/documentation only. If approved, apply only the approved role_permissions scope and verify effective ACL plus authenticated profile behavior; do not modify permission rows/users/roles/categories or bundle unrelated changes.
 
 **Readiness:** READY WITH LIMITATIONS for read-only audit; BLOCKED for production ACL/RLS changes and acceptance requiring the unapproved change. **P0 NOT CLOSED.**
+
+
+---
+
+# LAST VERIFIED EVENT — LVE-2026-11-25-753
+
+**Date:** 2026-11-25 (Africa/Cairo)  
+**Report:** doc/Draft/Reprots/Report753_DAILY_CTO_RAWAEA_P0_SECURITY_GATE_AND_ADVISOR_TRIAGE_20261125.md  
+**Report commit:** 5127d211ba256d6996246ab5cacdf9093d28d66e  
+**Previous checkpoint:** LVE-2026-11-24-752  
+**CURRENT_STATE before this pin:** blob c9e1747ea79559eda32c4d6af946ad520b502dab (2,791 lines)  
+**Permanent Constitution:** 3a6b1e220af8509e314e94df76563bbc6f84910d (310 lines, read in full immediately after CURRENT_STATE)  
+**Operational repository:** erp-frontend/main, HEAD 095a344e20cafd768c88353c33ceecbc764a6cc4  
+**Governance repository:** rawaie-erp-New/main, prior HEAD afca741e40da92c27766077d484f8af536f95ec7
+
+## LAST VERIFIED EVENT
+
+- Resumed from LVE-752. CURRENT_STATE and the complete permanent constitution were retrieved in the required order.
+- Operational commit comparison b48e384...095a344 confirms one commit/one changed file only: companies/company-2/Counting/CURRENT_STATE.md. No company-1 source change.
+- SMART ERP fiilmooggumokxanwiyx remains ACTIVE_HEALTHY; PostgreSQL 17.6.1.121; 800 migrations; latest 20261119010201.
+- Read-only SQL at 2026-11-25 20:42:04.972972 UTC reconfirmed role_permissions RLS=true/FORCE=false, one PUBLIC ALL policy with USING/WITH CHECK true, 21 rows, 3 role IDs, zero wildcard rows, no user triggers, explicit anon/authenticated SELECT/INSERT/UPDATE/DELETE/REFERENCES/TRIGGER/MAINTAIN grants, and no TRUNCATE for either role. service_role retains its grants. P0 remains OPEN.
+- Live profile functions are SECURITY DEFINER owned by postgres with empty search_path; get_my_effective_profile/current_user_has_effective_permission/get_warehouse_hub_snapshot are executable by authenticated and not anon. current_user_company_id is auth.uid-bound and anon execution is false.
+- New P1 evidence: public-schema default table ACLs for owners supabase_admin and postgres grant anon/authenticated broad table privileges including TRUNCATE on future tables created by those owners. This is separate from the current role_permissions ACL; role_permissions itself still has no anon/authenticated TRUNCATE.
+- categories remains RLS-enabled with PUBLIC ALL and anon/authenticated CRUD; separate P1, not bundled with CS-748-P0-A.
+- Security Advisor at 2026-11-25T20:37:42.289Z: 24 RLS-enabled tables without policies (INFO), one SECURITY DEFINER view (ERROR), four anon SECURITY DEFINER functions (WARN), 142 authenticated SECURITY DEFINER functions (WARN), and Leaked Password Protection disabled (WARN). Counts are not treated as confirmed exploit counts.
+- v_finance_employee_directory is owner-postgres SECURITY DEFINER/security_barrier; anon SELECT=false; authenticated SELECT=true; view filters current company plus finance/finance_manager/hr or self. current_user_company_id is auth.uid-bound. Multi-company runtime acceptance remains UNVERIFIED.
+- The four anon function warnings comprise two trigger-returning functions with one trigger each and two public storefront endpoints. The public catalog exposes listed product/price/quantity projections; order tracking requires storefront key and applies code/phone-dependent limited projections. Runtime abuse/rate-limit tests were not run.
+- app_settings aggregate: one enabled storefront row, currency EGP, no null currency; public catalog's SAR fallback is dormant in the current snapshot.
+- CS-748-P0-A remains PREPARED / NOT APPROVED / NOT APPLIED. No approval evidence was found in current project records or available conversation context; external approval status remains UNKNOWN and is not inferred.
+- No DDL/DML/ACL/RLS/Edge/Cloudflare deployment, business RPC, exploit, QA fixture, posting, stock movement, treasury movement, journal, supplier/customer ledger or custody effect occurred.
+- Cloudflare artifact, authenticated Browser E2E, Realtime delivery/latency and complete business E2E remain UNKNOWN/UNVERIFIED. Browser connector lacked originating browser context; public deployment/raw artifact retrieval failed.
+- Governance conflict recorded: constitution §6.4 Production-only QA model vs current owner protocol §§19/25.E/25.F requiring isolated/no-persistent-effect testing and prohibiting creation of new staging. Protective rule: no effectful Production QA and no new staging; continue read-only until a permitted existing isolated context or explicit resolution is available.
+- CountFlow remains a separate project and is excluded from RAWAEA data, code, metrics, tests and findings.
+
+## Next step
+
+Obtain explicit owner approval for the exact CS-748-P0-A SQL in Report753 §20. After approval only, apply that table-scoped change and verify ACL/policy/profile grants; authenticated profile behavior must be tested in an authorized session. Keep default ACL and categories as separate Change Sets.
+
+**Readiness:** READY WITH LIMITATIONS for read-only audit/documentation; BLOCKED for CS-748-P0-A application and any effectful test lacking an approved safe context. P0 NOT CLOSED.
