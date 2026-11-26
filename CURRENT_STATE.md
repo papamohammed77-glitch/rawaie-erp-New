@@ -2827,3 +2827,41 @@ Resolve explicit owner approval for the exact `CS-748-P0-A` SQL in Report749 §5
 Obtain explicit owner approval for the exact CS-748-P0-A SQL in Report753 §20. After approval only, apply that table-scoped change and verify ACL/policy/profile grants; authenticated profile behavior must be tested in an authorized session. Keep default ACL and categories as separate Change Sets.
 
 **Readiness:** READY WITH LIMITATIONS for read-only audit/documentation; BLOCKED for CS-748-P0-A application and any effectful test lacking an approved safe context. P0 NOT CLOSED.
+
+
+---
+
+# LAST VERIFIED EVENT — LVE-2026-11-26-754
+
+**Date:** 2026-11-26 (Africa/Cairo) 22:10–22:20  
+**Report:** `doc/Draft/Reprots/Report754_DAILY_CTO_RAWAEA_P0_LIVE_REVALIDATION_20261126.md`  
+**Report commit:** `21241ad2297ed67d620e1bc00967ca43b9c19bec`  
+**Previous checkpoint:** LVE-2026-11-25-753  
+**CURRENT_STATE before this pin:** blob `a1796560a39f01cc71325a650621de146acaa893`, 292,005 characters / 1 lines  
+**Permanent Constitution:** `3a6b1e220af8509e314e94df76563bbc6f84910d`, 310 lines / 19,916 characters, read in full immediately after CURRENT_STATE  
+**Operational repository:** `erp-frontend/main`, HEAD `095a344e20cafd768c88353c33ceecbc764a6cc4`  
+**Governance repository HEAD before this report:** `657853f0f5be8b5f36077632064b35d147ef2e74`
+
+## LAST VERIFIED EVENT
+
+- Resumed from LVE-753. CURRENT_STATE was fetched first, then the full permanent constitution. Report753 was fetched and read in full.
+- Operational compare `b48e384319436e22a2464b6d3749c3e0069f7b14...095a344e20cafd768c88353c33ceecbc764a6cc4`: one commit/one file, only CountFlow `company-2/Counting/CURRENT_STATE.md`; no company-1 source change. CountFlow remains excluded from RAWAEA.
+- Parent `companies/company-1/main.html` blob `00456494de918b36fc6792bef302319a9f65605d`; fetch returned empty content. Core `companies/company-1/core.js` blob `2b2211a3f95049042e27a7b2ecbab3640a584942`, 53,676 characters fetched; no complete consumer census today.
+- SMART ERP `fiilmooggumokxanwiyx` ACTIVE_HEALTHY, PostgreSQL 17.6.1.121; live migration list 800, latest `20261119010201`.
+- Read-only SQL timestamp `2026-11-26 20:10:35.523734 UTC`: `public.role_permissions` RLS=true/FORCE=false, 21 rows, 3 role IDs, 0 wildcard rows, ACL grants anon/authenticated SELECT/INSERT/UPDATE/DELETE/REFERENCES/TRIGGER/MAINTAIN, no TRUNCATE. Policy `Allow all for all` remains PUBLIC ALL, USING=true, WITH CHECK=true. P0 remains CONFIRMED/OPEN.
+- `get_my_effective_profile()` and `app_private.current_user_has_effective_permission(text)` are SECURITY DEFINER, empty search_path, authenticated EXECUTE=true and anon=false. This is source/catalog evidence, not authenticated runtime acceptance.
+- `categories` RLS=true, PUBLIC ALL policy, anon/authenticated CRUD=true; P1 remains separate.
+- Public-schema table default ACLs for owners `postgres` and `supabase_admin` still grant anon/authenticated broad `arwdxtm` privileges including TRUNCATE on future tables created by those owners; separate P1 Change Set.
+- CS-748-P0-A remains PREPARED / NOT APPROVED / NOT APPLIED. The general daily protocol did not approve this exact SQL. No DDL/DML/ACL/RLS/Edge/Cloudflare deployment, business RPC, fixture, posting, stock/cash/ledger/journal/custody effect occurred.
+- Public deployed URL fetch returned inaccessible/internal error; deployment bytes, authenticated Browser E2E, Realtime delivery/latency and full business E2E remain UNVERIFIED.
+- Report753 P0/migration assertions were independently reconfirmed. Advisor counts and broader endpoint/runtime controls were not re-run today and remain prior evidence, not newly confirmed.
+- Report754 created: `Report754_DAILY_CTO_RAWAEA_P0_LIVE_REVALIDATION_20261126.md`. No operational source or business data changed.
+
+## Next checkpoint
+
+1. Obtain explicit owner approval for exact CS-748-P0-A in Report753 §20.
+2. Until approval, continue read-only work only; do not execute ACL/RLS change or effectful QA.
+3. After approval, apply only the approved `role_permissions` scope and verify privileges/policy/profile read; do not alter permission rows, users, roles, categories, default ACL or business balances.
+4. Keep default ACL and categories as independent Change Sets; preserve the testing-governance blocker.
+
+**Readiness:** READY WITH LIMITATIONS for read-only audit/documentation; BLOCKED for CS-748-P0-A and effectful QA without the applicable approval/safe context. **P0 NOT CLOSED.**
