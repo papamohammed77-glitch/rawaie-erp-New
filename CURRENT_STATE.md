@@ -2865,3 +2865,39 @@ Obtain explicit owner approval for the exact CS-748-P0-A SQL in Report753 §20. 
 4. Keep default ACL and categories as independent Change Sets; preserve the testing-governance blocker.
 
 **Readiness:** READY WITH LIMITATIONS for read-only audit/documentation; BLOCKED for CS-748-P0-A and effectful QA without the applicable approval/safe context. **P0 NOT CLOSED.**
+
+
+---
+
+# LAST VERIFIED EVENT — LVE-2026-11-27-755
+
+**Date:** 2026-11-27 (Africa/Cairo), 21:38–21:39  
+**Report:** `doc/Draft/Reprots/Report755_DAILY_CTO_RAWAEA_SECURITY_GATE_REVALIDATION_20261127.md`  
+**Report commit:** 3cd5a4062f86b8819a5c42958a3ec0aa68757f61  
+**Previous checkpoint:** LVE-2026-11-26-754  
+**Constitution SHA:** `3a6b1e220af8509e314e94df76563bbc6f84910d`  
+**Operational repo:** `erp-frontend/main`, HEAD `095a344e20cafd768c88353c33ceecbc764a6cc4`
+
+## LAST VERIFIED EVENT
+
+- CURRENT_STATE was retrieved first, followed immediately by the complete permanent constitution. Report754 was read and audited.
+- Governance HEAD before this report was `bbd20027614a6ce4661bf9350ab0dbda043d2d4f`; Report754/state pin were the latest prior daily records.
+- Operational HEAD remains `095a344e20cafd768c88353c33ceecbc764a6cc4`. No company-1 source change was identified in the inspected latest operational history; CountFlow/company-2 remains excluded.
+- SMART ERP `fiilmooggumokxanwiyx` ACTIVE_HEALTHY, PostgreSQL 17.6.1.121; migration ledger 800, latest `20261119010201`.
+- Read-only SQL observed 2026-11-27 19:38:38–19:39:16 UTC: `role_permissions` RLS=true/FORCE=false, PUBLIC ALL policy `Allow all for all` with USING/WITH CHECK true, 21 rows/3 role IDs; anon/authenticated SELECT/INSERT/UPDATE/DELETE/REFERENCES/TRIGGER/MAINTAIN=true and TRUNCATE=false; service_role SELECT/INSERT/UPDATE/DELETE=true. P0 remains CONFIRMED/OPEN.
+- `categories` still has PUBLIC ALL policy and anon/authenticated direct CRUD; P1 separate.
+- public default table ACLs remain broad for future tables created by postgres/supabase_admin; P1 separate.
+- Security Advisor refreshed 2026-11-27 19:38:46 UTC: 24 RLS/no-policy INFO, one SECURITY DEFINER view ERROR, four anon SECURITY DEFINER WARN, 142 authenticated SECURITY DEFINER WARN, leaked password protection WARN. These are findings to triage, not proven exploit counts.
+- Exact CS-748-P0-A remains PREPARED / NOT APPROVED / NOT APPLIED. Personal-context search found no explicit owner approval/rejection; daily protocol is not specific approval.
+- No DDL/DML/ACL/RLS/Edge/Cloudflare deployment, business RPC, QA fixture, identity, stock/cash/journal/ledger/custody effect occurred. One failed read-only SQL used obsolete column `polname`; corrected query succeeded.
+- Cloudflare artifact parity, authenticated browser E2E, Realtime delivery/latency, full business E2E, UX field tests and current competitive benchmark remain UNKNOWN/UNVERIFIED.
+- Report755 created. No operational code or business data changed.
+
+## Next step
+
+1. Obtain explicit owner approval or rejection for exact CS-748-P0-A in Report755 §20.
+2. Until then, read-only work only; do not apply ACL/RLS change or effectful QA.
+3. Keep default ACL and categories as separate Change Sets.
+4. Resolve safe test-context conflict before effectful business testing.
+
+**Readiness:** READY WITH LIMITATIONS for read-only audit/documentation; BLOCKED for CS-748-P0-A and effectful QA. **P0 NOT CLOSED.**
